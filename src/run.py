@@ -3,7 +3,7 @@ import environment as environment
 import numpy as np
 
 from experiments import default_config
-from models.communication_v0.server import create_server
+from envs.communication_v0.server import create_server
 
 
 if __name__ == "__main__":

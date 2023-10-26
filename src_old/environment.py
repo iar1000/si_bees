@@ -3,11 +3,10 @@ from model import Garden
 from visualization.TextVisualization import TextGrid
 
 import functools
-import math
 
 import gymnasium
 import numpy as np
-from gymnasium.spaces import Discrete, Box, Tuple, Dict, MultiDiscrete
+from gymnasium.spaces import Discrete, Box, Tuple, Dict
 
 from pettingzoo import AECEnv
 from pettingzoo.utils import agent_selector, wrappers

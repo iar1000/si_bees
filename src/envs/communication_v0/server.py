@@ -2,8 +2,8 @@ from mesa.visualization.ModularVisualization import ModularServer
 from mesa.visualization.modules import CanvasGrid
 from mesa.visualization import ChartModule
 
-from models.communication_v0.agents import Worker, Oracle, Plattform
-from models.communication_v0.model import CommunicationV0_model
+from envs.communication_v0.agents import Worker, Oracle, Plattform
+from envs.communication_v0.model import CommunicationV0_model
 
 
 def agent_visualisation(agent):

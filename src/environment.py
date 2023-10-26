@@ -4,8 +4,7 @@ import gymnasium
 from pettingzoo import AECEnv
 from pettingzoo.utils import agent_selector, wrappers
 
-from models.communication_v0.model import CommunicationV0_model
-from models.communication_v0.agents import Worker, Oracle, Plattform
+from envs.communication_v0.model import CommunicationV0_model
 
 
 def env(render_mode=None, task="communication_v0", config={}):
@@ -53,26 +52,30 @@ class CommunicationV0_env(AECEnv):
 
 
     @functools.lru_cache(maxsize=None)
-    def observation_space(self, agent):
+    def observation_space(self, agent) -> gymnasium.spaces.Space:
         """
         return action space for the given agent
+        the obsercation space has the form of a dict{observation, action_mask}
         """ 
         agent_id = self.agent_to_id[agent]
         return self.model.get_obs_space(agent_id=agent_id)
         
     
     @functools.lru_cache(maxsize=None)
-    def action_space(self, agent):
+    def action_space(self, agent) -> gymnasium.spaces.Space:
         """
         return action space for the given agent
+        the size of the action space can be different than the one in observation[action_mask], 
+            but it needs to be clear what is being masked in the custom model
         """
         agent_id = self.agent_to_id[agent]
         return self.model.get_action_space(agent_id=agent_id)
 
 
-    def observe(self, agent):
+    def observe(self, agent) -> dict:
         """
         return observation of the given agent (can be outdated)
+        an observation has the form of a dict{observation, action_mask}
         """
         if not self.observations[agent]:
             self.observations[agent] = self.model.observe_agent(self.agent_to_id[agent])
@@ -152,7 +155,7 @@ class CommunicationV0_env(AECEnv):
             self.rewards = {agent: reward for agent in self.agents}
             
             # kill the game after max_rounds
-            if next_round >= self.config["training_max_rounds"]:
+            if next_round >= self.config["mesa_max_rounds"]:
                 for a in self.agents:
                     self.truncations[a] = True
             # render

@@ -1,97 +1,86 @@
 import ray
-from ray.tune.registry import register_env
-from ray.rllib.algorithms.ppo import PPOConfig
-from ray.tune.search.hyperopt import HyperOptSearch
-from ray.tune.schedulers import AsyncHyperBandScheduler
-from action_mask_model import TorchActionMaskModel
-from ray.rllib.env.apis.task_settable_env import TaskSettableEnv, TaskType
-from ray.rllib.env.env_context import EnvContext
 from ray import air, tune
-from ray.tune import Callback
+from ray.tune.registry import register_env
+from ray.rllib.env import PettingZooEnv
+from ray.rllib.algorithms.ppo import PPOConfig
 from ray.air.integrations.wandb import WandbLoggerCallback
-# import the pettingzoo environment
-import environment as environment
-# import rllib pettingzoo interface
-from pettingzoo_env import PettingZooEnv
-from ray.rllib.utils.from_config import NotProvided
-from ray.rllib.algorithms.callbacks import DefaultCallbacks
-from ray.rllib.env import BaseEnv
-from ray.rllib.evaluation import Episode, RolloutWorker
-from ray.rllib.policy import Policy
-from ray.rllib.policy.sample_batch import SampleBatch
-from typing import Dict
-import sys
-import time
-from experiments import default_config
+from ray.rllib.utils import check_env
 
+from environment import env
+from experiments import default_config
+from models.fully_connected import FullyConnected
+
+#from action_mask_model import TorchActionMaskModel
+# import rllib pettingzoo interface
+
+
+WANDB_KEY = ".wandb_key"
+LOG_FOLDER = "/Users/sega/Code/si_bees/log"
 
 # Limit number of cores
 ray.init(num_cpus=2)
 
+
 # register that way to make the environment under an rllib name
-register_env('environment', lambda config: PettingZooEnv(environment.env(config=default_config)))
+task_name = "communication_v0"
+register_env(task_name, lambda config: PettingZooEnv(env(config=config, task=task_name)))
 
-config = PPOConfig()
-config = config.rollouts(num_rollout_workers=2, num_envs_per_worker=2)
-config = config.callbacks(ScoreCallback)
-config = config.training(
-    model={
-        "custom_model": TorchActionMaskModel,
-        "custom_model_config": model_config,
-        "fcnet_hiddens": model_config["fcnet_hiddens"],
-    },
-    grad_clip=40.0,
-    lr=1e-4,
-    # Linearly decrease learning rate to avoid gradient explosion
-    # Should not happen anyway with gradient clipping
-    lr_schedule = [
-        [0, 1e-4],
-        [1_000_000, 2.5e-5],
-    ],
-    #train_batch_size=tune.randint(1_000, 10_000),
-)
-config = config.environment(
-    'environment',
-    env_config={
-        "game_config": game_config,
-        "training_config": training_config,
-        "obs_config": obs_config,
-    },
-    env_task_fn=curriculum_fn if training_config["curriculum_learning"] else NotProvided,
+ppo_config = (
+    PPOConfig()
+    .environment(
+        task_name,
+        env_config=default_config,
+        disable_env_checking=True
+        # env_task_fn= @todo: curriculum learning
+    )
+    .resources(num_gpus=0)
+    .rollouts(num_rollout_workers=1, num_envs_per_worker=1)
+    .training(
+        gamma=0.9,
+        lr=1e-4,
+        grad_clip=40.0,
+        #train_batch_size=tune.randint(1_000, 10_000),
+        model={
+            "custom_model": FullyConnected,
+            "custom_model_config": default_config["model_config"]},
+        _enable_learner_api=False
+    )
+    .rl_module(_enable_rl_module_api=False)
 )
 
-# For hyperparameter tuning
-current_best_params = [
-    {"lr": 5e-5, "train_batch_size": 4000},
-]
-hyperopt_search = HyperOptSearch(
-            metric="episode_reward_mean", mode="max",
-            points_to_evaluate=current_best_params)
+checkpoint_config = air.CheckpointConfig(
+    checkpoint_at_end=True,
+    checkpoint_frequency=default_config["tune_checkpoint_frequency"] * default_config["tune_stopper_training_iterations"]
+)
+
+wandb_callback = WandbLoggerCallback(
+    project=f"marl_si_{task_name}",
+    log_config=True,
+    api_key_file=WANDB_KEY
+)
+
+run_config = air.RunConfig(
+    name="TODO",
+    stop={"training_iteration": default_config["tune_stopper_training_iterations"]},
+    checkpoint_config=checkpoint_config,
+    callbacks=[wandb_callback],
+    storage_path=LOG_FOLDER,
+)
+
+tune_config = tune.TuneConfig(
+        num_samples=1,
+        # @todo: find good parameters
+    )
 
 tuner = tune.Tuner(
     "PPO",
-    run_config=air.RunConfig(
-        name=training_config["experiment_name"],
-        local_dir=RESULTS_DIR,
-        stop={"training_iteration": 2000},
-        callbacks=[WandbLoggerCallback(project="bees", api_key_file="~/.wandb_api_key", log_config=True)] if LOG_TO_WANDB else None,
-        checkpoint_config=air.CheckpointConfig(
-            checkpoint_frequency=100,
-        ),
-    ),
-    tune_config=tune.TuneConfig(
-        num_samples=5,
-        # Uncomment the following to use Ray Tune's automatic hypermarameter search
-        #search_alg=hyperopt_search,
-        #scheduler=AsyncHyperBandScheduler(
-        #    time_attr="training_iteration",
-        #    metric="episode_reward_mean",
-        #    mode="max",
-        #    max_t=100,
-        #    grace_period=10,
-        #),
-    ),
-    param_space=config.to_dict()
+    run_config=run_config,
+    tune_config=tune_config,
+    param_space=ppo_config.to_dict()
 )
+
+
 results = tuner.fit()
+results.get_dataframe().to_csv("tune_output.csv")
+
 print("Best hyperparameters found were: ", results.get_best_result(metric="episode_reward_mean", mode="max").config)

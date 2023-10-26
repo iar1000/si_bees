@@ -2,7 +2,7 @@ import gymnasium
 import mesa
 from math import floor
 
-from models.communication_v0.agents import Plattform, Worker, Oracle
+from envs.communication_v0.agents import Plattform, Worker, Oracle
 
 class CommunicationV0_model(mesa.Model):
     """
@@ -160,7 +160,7 @@ class CommunicationV0_model(mesa.Model):
 
         next_round = self.finish_round()
         self.print_status()
-        if next_round >= self.config["inference_max_rounds"]:
+        if next_round >= self.config["mesa_max_rounds"]:
             self.running = False
 
     def observe_agent(self, agent_id) -> dict:
