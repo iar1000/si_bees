@@ -3,9 +3,18 @@ import functools
 import gymnasium
 from pettingzoo import AECEnv
 from pettingzoo.utils import agent_selector, wrappers
+from ray.train import report
 
 from envs.communication_v0.model import CommunicationV0_model
-
+from pettingzoo.utils.wrappers.base import BaseWrapper
+from pettingzoo.utils.env import (
+    ActionType,
+    AECEnv,
+    AECIterable,
+    AECIterator,
+    AgentID,
+    ObsType,
+)
 
 def env(render_mode=None, task="communication_v0", config={}):
     """
@@ -22,7 +31,6 @@ def env(render_mode=None, task="communication_v0", config={}):
     env = wrappers.OrderEnforcingWrapper(env)
 
     return env
-
 
 class CommunicationV0_env(AECEnv):
     """
@@ -49,6 +57,8 @@ class CommunicationV0_env(AECEnv):
         self.action_buffer = dict() # {agent_id: action}
 
         self.render_mode = render_mode
+
+        self.n_episode = 0
 
 
     @functools.lru_cache(maxsize=None)
@@ -110,6 +120,7 @@ class CommunicationV0_env(AECEnv):
         - agent_selection
         and must set up the environment so that render(), step(), and observe() can be called without issues.
         """
+        self.n_episode = self.n_episode + 1
         self.model = CommunicationV0_model(config=self.config)
         self.agents = self.possible_agents[:]
         self.observations = {agent: None for agent in self.agents}
@@ -143,6 +154,7 @@ class CommunicationV0_env(AECEnv):
         # get agent
         agent = self.agent_selection
         is_last = self._agent_selector.is_last()
+        # self._cumulative_rewards[self.agent_selection] = 0 @todo: when to do this?
 
         # add action to buffer and progress the simulation if necessary
         self.action_buffer[agent] = action
@@ -150,9 +162,9 @@ class CommunicationV0_env(AECEnv):
             self.progress_simulation()
 
         if is_last:
-            next_round = self.model.finish_round()
-            reward = self.model.compute_reward()
+            next_round, reward = self.model.finish_round()
             self.rewards = {agent: reward for agent in self.agents}
+            self._accumulate_rewards()
             
             # kill the game after max_rounds
             if next_round >= self.config["mesa_max_rounds"]:
@@ -161,16 +173,10 @@ class CommunicationV0_env(AECEnv):
             # render
             if self.render_mode:
                 self.render()
-        else:
-            self._clear_rewards()
 
         # selects the next agent.
         self.agent_selection = self._agent_selector.next()
-
-        # Adds .rewards to ._cumulative_rewards
-        self._accumulate_rewards()
         self._deads_step_first()
-
 
 
     def progress_simulation(self) -> None:

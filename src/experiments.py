@@ -2,15 +2,17 @@
 
 default_config = {
     "task_name": "communication_v0",
+
+    # env
+    "render_mode": None,
+    "max_steps": 50,
+    
     # mesa model
     "mesa_grid_width": 10,
     "mesa_grid_height": 9,
     "mesa_tile_size": 30,
-    "mesa_max_rounds": 100,
-    "apply_actions_synchronously": True,
-
-    # scenario
-    "num_agents": 10,
+    
+    "num_agents": 2,
     "oracle_burn_in": 15,
     "p_oracle_activation": 0.01,
 
@@ -22,8 +24,13 @@ default_config = {
     "n_trace_length": 4,
 
     # tuning
-    "tune_stopper_training_iterations": 100,
+    "train_batch_size": 10000,
+    #"stopper_training_episodes_total": None,
+    "stopper_training_steps_total": 10000,
     "tune_checkpoint_frequency": 0.1,
+
+    "enable_wandb": True,
+    "wandb_project": "marl_si",
 
     # NN
     "model_config": {

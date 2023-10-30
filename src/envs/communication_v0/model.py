@@ -1,3 +1,4 @@
+import random
 import gymnasium
 import mesa
 from math import floor
@@ -31,13 +32,13 @@ class CommunicationV0_model(mesa.Model):
         self.agent_name_to_id = {}
 
         # track number of rounds, steps tracked by scheduler
-        self.n_rounds = 0
+        self.n_steps = 0
         self.total_reward = 0
         self.last_reward = 0
 
         # create workers
         for _ in range(self.config["num_agents"]):
-            new_worker = Worker(self.next_id(), self, 
+            new_worker = Worker(self._next_id(), self, 
                                 n_hidden_vec=self.config["n_hidden_vec"],
                                 n_comm_vec=self.config["n_comm_vec"],
                                 n_visibility_range=self.config["n_visibility_range"],
@@ -52,11 +53,11 @@ class CommunicationV0_model(mesa.Model):
         # create oracle and lightswitch
         margin = 2
         x_oracle = margin
-        self.oracle = Oracle(self.next_id(), self)
+        self.oracle = Oracle(self._next_id(), self)
         self.grid.place_agent(agent=self.oracle, pos=(x_oracle, y_mid))
 
         x_plattform = x_max - margin
-        self.plattform = Plattform(self.next_id(), self)
+        self.plattform = Plattform(self._next_id(), self)
         self.grid.place_agent(agent=self.plattform, pos=(x_plattform, y_mid))
 
         # track time for the information to travel
@@ -64,7 +65,7 @@ class CommunicationV0_model(mesa.Model):
         self.reward_delay = self.comm_distance # @todo: if the agents can see further than 1 square, this needs to be smaller
         self.time_to_reward = 0
 
-    def next_id(self) -> int:
+    def _next_id(self) -> int:
         """Return the next unique ID for agents, increment current_id"""
         curr_id = self.current_id
         self.current_id += 1
@@ -72,10 +73,18 @@ class CommunicationV0_model(mesa.Model):
     
     def print_status(self) -> None:
         """print status of the model"""
-        print(f"round {self.n_rounds}: oracle is {'off' if not self.oracle.is_active() else 'on'}\n\ttime to reward={self.time_to_reward}\n\treward={self.last_reward}, acc_reward={self.total_reward}")
+        print(f"step {self.n_steps}: oracle is {'off' if not self.oracle.is_active() else 'on'}\n\ttime to reward={self.time_to_reward}\n\treward={self.last_reward}, acc_reward={self.total_reward}")
 
-    
-    def finish_round(self) -> int:
+    def print_agent_locations(self) -> None:
+        oracle_state = self.oracle.get_state()
+        out = f"step {self.n_steps}; o={oracle_state}, "
+        for agent_name in self.possible_agents:
+            agent_id = self.agent_name_to_id[agent_name]
+            agent = self.schedule.agents[agent_id]
+            out += f"{agent_name}: {agent.pos} "
+        print(out)
+
+    def finish_round(self) -> [int, int]:
         """
         finish up a round
         - increases the round counter by 1
@@ -83,29 +92,27 @@ class CommunicationV0_model(mesa.Model):
         - count points
         """
         # update round
-        self.n_rounds += 1
+        self.n_steps += 1
         self.time_to_reward = max(0, self.time_to_reward - 1)
 
         self.last_reward = self.compute_reward()
         self.total_reward += self.last_reward
 
         # activate oracle
-        if not self.oracle.is_active() and self.config["oracle_burn_in"] < self.n_rounds:
+        if not self.oracle.is_active() and self.config["oracle_burn_in"] < self.n_steps:
             r = self.random.random()
             if r > self.config["p_oracle_activation"]:
                 self.oracle.set_state(1)
                 self.oracle.activate()
                 self.time_to_reward = self.reward_delay
-
-        # @todo: change state of oracle
         
-        return self.n_rounds
+        return self.n_steps, self.last_reward
     
     def compute_reward(self) -> int:
         """computes the reward based on the current state"""
         oracle_state = self.oracle.get_state()
         plattform_occupation = len(self.plattform.get_occupants()) > 0
-        
+
         # dont go on plattform if oracle is not active
         if not self.oracle.is_active():
             if plattform_occupation == 1:
@@ -124,14 +131,6 @@ class CommunicationV0_model(mesa.Model):
                 return 10
             else:
                 return 1
-
-    def get_num_rounds_and_steps(self) -> [int, int]:
-        """returns number of rounds and step of the currend model"""
-        return self.n_rounds, self.schedule.steps
-
-    def get_oracle_and_plattform(self) -> [Oracle, Plattform]:
-        """returns oracle and plattform agents"""
-        return self.oracle, self.plattform
 
     def get_possible_agents(self) -> [list, dict]:
         """returns list of scheduled agent names and dict to map names to respective ids"""
@@ -154,18 +153,16 @@ class CommunicationV0_model(mesa.Model):
          agent = self.schedule.agents[agent_id]
          agent.step(action=action)
 
-    def step(self) -> None:
-        """step once through all agents, used for inference"""
-        self.schedule.step()
-
-        next_round = self.finish_round()
-        self.print_status()
-        if next_round >= self.config["mesa_max_rounds"]:
-            self.running = False
-
     def observe_agent(self, agent_id) -> dict:
         """returns the observation of the agent in the current model state"""
         agent = self.schedule.agents[agent_id]
         return agent.observe()
+
+    # for running the model in inference mode over the webserver
+    def step(self) -> None:
+        """step once through all agents, used for inference"""
+        self.schedule.step()
+        self.print_status()
+
     
 
