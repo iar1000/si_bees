@@ -33,7 +33,6 @@ ppo_config = (
         gamma=tune.uniform(0.1, 1),
         lr=tune.loguniform(1e-4, 1e-1),
         grad_clip=tune.loguniform(0.1, 50),
-        #train_batch_size=tune.randint(1_000, 10_000),
         model={
             "custom_model": FullyConnected,
             "custom_model_config": default_config["model_config"]},
@@ -59,13 +58,13 @@ run_config = air.RunConfig(
     name=task_name,
     # stopping criteria can be everything from here: https://docs.ray.io/en/latest/tune/tutorials/tune-metrics.html#tune-autofilled-metrics
     stop={
-        "timesteps_total": default_config["stopper_training_steps_total"]},
+        "timesteps_total": default_config["tune_stop_max_samples"]},
     storage_path=LOG_FOLDER,
     callbacks=callbacks
 )
 
 tune_config = tune.TuneConfig(
-        num_samples=10,
+        num_samples=default_config["tune_num_samples"],
         # @todo: find good parameters
     )
 

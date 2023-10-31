@@ -12,22 +12,20 @@ default_config = {
     "mesa_grid_height": 9,
     "mesa_tile_size": 30,
     
-    "num_agents": 2,
+    "num_agents": 5,
     "oracle_burn_in": 15,
     "p_oracle_activation": 0.01,
 
     # agent details
-    "n_hidden_vec": 8,
-    "n_comm_vec": 10,
+    "n_hidden_vec": 4,
+    "n_comm_vec": 4,
     "n_visibility_range": 1,
     "n_comm_range": 1,
     "n_trace_length": 4,
 
     # tuning
-    "train_batch_size": 10000,
-    #"stopper_training_episodes_total": None,
-    "stopper_training_steps_total": 10000,
-    "tune_checkpoint_frequency": 0.1,
+    "tune_num_samples": 20,
+    "tune_stop_max_samples": 10000,
 
     "enable_wandb": True,
     "wandb_project": "marl_si",
