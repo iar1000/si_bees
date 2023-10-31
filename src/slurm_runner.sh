@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ETH_USERNAME=kpius
-PROJECT_NAME=swarm
+PROJECT_NAME=si_bees
 DIRECTORY=/itet-stor/${ETH_USERNAME}/net_scratch/${PROJECT_NAME}
 CONDA_ENVIRONMENT=swarm
 mkdir -p ${DIRECTORY}/jobs
