@@ -36,8 +36,8 @@ echo "Conda activated"
 cd ${DIRECTORY}
 
 # Binary or script to execute
-echo $(pwd)
-python train.py
+echo "run train.py from directory $(pwd)"
+python /itet-stor/kpius/net_scratch/si_bees/src/train.py
 
 # Send more noteworthy information to the output log
 echo "Finished at:     $(date)"
