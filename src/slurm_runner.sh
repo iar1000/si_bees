@@ -14,7 +14,8 @@ echo "=== Start slurm scipt ==="
 echo "Running on node: $(hostname)"
 echo "In directory:    $(pwd)"
 echo "Starting on:     $(date)"
-echo "SLURM_JOB_ID:    ${SLURM_JOB_ID}\n\n"
+echo "SLURM_JOB_ID:    ${SLURM_JOB_ID}"
+echo ""
 
 # Set a directory for temporary files unique to the job with automatic removal at job termination
 TMPDIR=$(mktemp -d)
@@ -38,7 +39,7 @@ echo "-> conda_env ${CONDA_ENVIRONMENT} activated"
 cd ${DIRECTORY}
 
 # Binary or script to execute
-echo "->run train.py from directory $(pwd)"
+echo "-> run train.py from directory $(pwd)"
 python /itet-stor/kpius/net_scratch/si_bees/src/train.py -mode "cluster"
 
 # Send more noteworthy information to the output log

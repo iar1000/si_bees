@@ -11,7 +11,7 @@ from envs.communication_v0.callbacks import ReportModelStateCallback
 
 
 def run(task_name: str, wandb_key: str, log_folder: str):
-    ray.init()
+    ray.init(num_cpus=4)
 
     ppo_config = (
         PPOConfig()
