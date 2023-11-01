@@ -38,22 +38,36 @@ def agent_visualisation(agent):
             square["Color"] = "red"
         return square
     
-def create_server(config):
+def create_server():
     chart = ChartModule(
         [{"Label": "Gini", "Color": "Black"}], data_collector_name="datacollector"
     )
 
     canvas = CanvasGrid(
         agent_visualisation, 
-        config["mesa_grid_width"], config["mesa_grid_height"], 
-        config["mesa_grid_width"] * config["mesa_tile_size"], config["mesa_grid_height"] * config["mesa_tile_size"])
+        grid_width=10, 
+        grid_height=10, 
+        canvas_width=500,
+        canvas_height=500)
 
     server = ModularServer(
         CommunicationV0_model, 
         [canvas], 
         "communication v0", 
         model_params=
-            {"config": config, 
+            {
+                "n_agents": 5,
+                "agent_placement": "random",
+                "plattform_distance": 1,
+                "oracle_burn_in": 10,
+                "p_oracle_change": 0.05,
+                "n_tiles_x": 10,
+                "n_tiles_y": 10,
+                "size_hidden": 8,
+                "size_comm": 8,
+                "dist_visibility": 2,
+                "dist_comm": 2,
+                "len_trace": 2,
             }
     )
 

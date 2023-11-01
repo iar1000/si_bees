@@ -140,10 +140,11 @@ class Worker(mesa.Agent):
 
         # move agent within bounds, ignore out of bounds movement
         x_curr, y_curr = self.pos
-        x_new = x_curr+1 if move_x == 1 else (x_curr-1 if move_x == 2 else 0)
-        y_new = y_curr+1 if move_y == 1 else (y_curr-1 if move_y == 2 else 0)
+        x_new = x_curr+1 if move_x == 1 else (x_curr-1 if move_x == 2 else x_curr)
+        y_new = y_curr+1 if move_y == 1 else (y_curr-1 if move_y == 2 else y_curr)
         x_updated = x_curr if self.model.grid.out_of_bounds((x_new, y_curr)) else x_new
         y_updated = y_curr if self.model.grid.out_of_bounds((x_curr, y_new)) else y_new
+        print(f"agent {self.name}: {self.pos} -> {(x_updated, y_updated)}")
 
         pos_updated = (x_updated, y_updated)
         self.model.grid.move_agent(self, pos_updated)
@@ -194,5 +195,4 @@ class Oracle(mesa.Agent):
         return self.state
     
     def set_state(self, state: int):
-        """set state of oracle"""
         self.state = state
