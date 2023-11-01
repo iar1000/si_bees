@@ -72,13 +72,13 @@ def run(task_name: str, wandb_key: str, log_folder: str):
         param_space=ppo_config.to_dict()
     )
 
-    results = tuner.fit()
+    tuner.fit()
 
     
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='script to setup hyperparameter tuning')
-    parser.add_argument('-mode', choices=['cluster', 'local'], help='execution mode, setting depending variables')
+    parser.add_argument('-location', choices=['cluster', 'local'], help='execution location, setting depending variables')
     parser.add_argument('-wandb_key', default=".wandb_key", help="path to the wandb key-file")
     args = parser.parse_args()
 

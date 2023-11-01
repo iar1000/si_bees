@@ -10,6 +10,7 @@ mkdir -p ${DIRECTORY}/jobs
 set -o errexit
 
 # Send some noteworthy information to the output log
+echo ""
 echo "=== Start slurm scipt ==="
 echo "Running on node: $(hostname)"
 echo "In directory:    $(pwd)"
@@ -40,7 +41,7 @@ cd ${DIRECTORY}
 
 # Binary or script to execute
 echo "-> run train.py from directory $(pwd)"
-python /itet-stor/kpius/net_scratch/si_bees/src/train.py -mode "cluster"
+python /itet-stor/kpius/net_scratch/si_bees/src/train.py -location "cluster"
 
 # Send more noteworthy information to the output log
 echo "Finished at:     $(date)"
