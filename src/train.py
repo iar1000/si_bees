@@ -3,14 +3,20 @@ import ray
 from ray import air, tune
 from ray.rllib.algorithms.ppo import PPOConfig
 from ray.air.integrations.wandb import WandbLoggerCallback
+from ray.rllib.utils.from_config import NotProvided
+
 
 from envs.communication_v0.environment import CommunicationV0_env 
 from experiments import default_config
 from models.fully_connected import FullyConnected
 from envs.communication_v0.callbacks import ReportModelStateCallback
+from envs.communication_v0.curriculum import curriculum_fn
 
 
-def run(task_name: str, wandb_key: str, log_folder: str):
+def run(task_name: str, 
+        enable_curriculum: bool,
+        wandb_key: str, 
+        log_folder: str):
     ray.init(num_cpus=4)
 
     ppo_config = (
@@ -18,8 +24,8 @@ def run(task_name: str, wandb_key: str, log_folder: str):
         .environment(
             CommunicationV0_env, # @todo: need to build wrapper
             env_config=default_config,
-            disable_env_checking=True
-            # env_task_fn= @todo: curriculum learning
+            disable_env_checking=True,
+            env_task_fn=curriculum_fn if enable_curriculum else NotProvided
         )
         .resources(num_gpus=0)
         .rollouts(num_rollout_workers=1, 
@@ -78,18 +84,21 @@ def run(task_name: str, wandb_key: str, log_folder: str):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='script to setup hyperparameter tuning')
-    parser.add_argument('-location', choices=['cluster', 'local'], help='execution location, setting depending variables')
+    parser.add_argument('-location', default="local", choices=['cluster', 'local'], help='execution location, setting depending variables')
     parser.add_argument('-wandb_key', default=".wandb_key", help="path to the wandb key-file")
+    parser.add_argument('-curriculum', default=False, action='store_true', help='enable curriculum learning')
     args = parser.parse_args()
 
     task_name = "communication_v0"
     wandb_key = args.wandb_key
-    if args.mode == 'cluster':
+    enable_curriculum = args.curriculum
+    if args.location == 'cluster':
         log_folder = "/itet-stor/kpius/net_scratch/si_bees/log"
-    elif args.mode == 'local':
+    elif args.location == 'local':
         log_folder = "/Users/sega/Code/si_bees/log"
 
     run(task_name=task_name, 
+        enable_curriculum=enable_curriculum,
         wandb_key=wandb_key,
         log_folder=log_folder)
 

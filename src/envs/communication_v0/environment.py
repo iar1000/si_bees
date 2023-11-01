@@ -1,9 +1,10 @@
 
 from ray.rllib.env.multi_agent_env import MultiAgentEnv
+from ray.rllib.env.apis.task_settable_env import TaskSettableEnv
 
 from envs.communication_v0.model import CommunicationV0_model
 
-class CommunicationV0_env(MultiAgentEnv):
+class CommunicationV0_env(MultiAgentEnv, TaskSettableEnv):
     """
     base environment to learn communication.
     synchronised actions, all alive agents step simulatiniously
@@ -19,6 +20,10 @@ class CommunicationV0_env(MultiAgentEnv):
 
         self.config = config
         self.render_mode = config["render_mode"]
+
+        # curriculum learning
+        self.curriculum_enabled = config["curriculum_enabled"]
+        self.curriculum_curr_task = 0
  
         # create underlying mesa model
         self.model = CommunicationV0_model(config)
@@ -75,6 +80,14 @@ class CommunicationV0_env(MultiAgentEnv):
             self.model.print_agent_locations()
 
         return obs, rew, terminated, truncated, info
+
+    def get_task(self):
+        """get current curriculum task"""
+        return self.curriculum_curr_task
+
+    def set_task(self, task: int):
+        """set next curriculum task"""
+        self.curriculum_curr_task = task
 
 def _format_move_actions(action_dict) -> str:
     out = "\t\t"

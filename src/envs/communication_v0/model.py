@@ -127,8 +127,6 @@ class CommunicationV0_model(mesa.Model):
             elif oracle_state == 0 and plattform_occupation == 1 or \
                 oracle_state == 1 and plattform_occupation == 0:
                 return -1
-            elif oracle_state == 1 and oracle_state == plattform_occupation:
-                return 10
             else:
                 return 1
 
