@@ -19,16 +19,16 @@ class CommunicationV0_env(MultiAgentEnv, TaskSettableEnv):
     def __init__(self, config):
         super().__init__()
 
-        self.config = config
-        self.mesa_config = config["mesa_config"]
+        self.agent_config = config["agent_config"]
+        self.model_configs = config["model_configs"]
         self.render_mode = config["render_mode"]
 
         # curriculum learning
         self.curriculum_learning = config["curriculum_learning"]
         self.curr_task = 0
-        self.max_task = len(self.mesa_config.items()) - 1
+        self.max_task = len(self.model_configs.items()) - 1
 
-        self.model = CommunicationV0_model(**self.mesa_config[str(self.curr_task)]["model_params"])
+        self.model = self._create_model()
         self.agents, self.agent_to_id =  self.model.get_possible_agents()
         self.observation_space = self.model.get_obs_space(agent_id=0)
         self.action_space = self.model.get_action_space(agent_id=0)
@@ -45,11 +45,8 @@ class CommunicationV0_env(MultiAgentEnv, TaskSettableEnv):
     def reset(self, *, seed=None, options=None):
         super().reset(seed=seed)
         
-        # re-create underlying mesa model
-        self.model = CommunicationV0_model(**self.mesa_config[str(self.curr_task)]["model_params"])
-        self.agents, self.agent_to_id =  self.model.get_possible_agents()
-        assert len(self.agents) > 0, "need to have agents in the game"
-        
+        # re-create underlying mesa model, assumes number of agents stay the same
+        self.model = self._create_model()
         self.terminateds = set()
         self.truncateds = set()
 
@@ -66,7 +63,7 @@ class CommunicationV0_env(MultiAgentEnv, TaskSettableEnv):
         for agent, action in action_dict.items():
             agent_id = self.agent_to_id[agent]
             self.model.step_agent(agent_id=agent_id, action=action)
-        n_next_step, reward = self.model.finish_round()
+        reward, is_terminated = self.model.finish_round()
 
         # gather new observations
         for agent in self.agents:
@@ -76,7 +73,7 @@ class CommunicationV0_env(MultiAgentEnv, TaskSettableEnv):
 
         # kill simulation after max_round steps
         terminated["__all__"] = False
-        truncated["__all__"] = n_next_step >= self.config["max_steps"]
+        truncated["__all__"] = is_terminated
 
         if self.render_mode == "agent_pos":
             self.model.print_agent_locations()
@@ -85,8 +82,6 @@ class CommunicationV0_env(MultiAgentEnv, TaskSettableEnv):
 
         return obs, rew, terminated, truncated, info
     
-    def sample_tasks(self, n_tasks: int) -> List[int]:
-        return super().sample_tasks(n_tasks)
 
     def get_task(self):
         """get current curriculum task"""
@@ -95,3 +90,20 @@ class CommunicationV0_env(MultiAgentEnv, TaskSettableEnv):
     def set_task(self, task: int):
         """set next curriculum task"""
         self.curr_task = min(task, self.max_task)
+
+
+    def _curr_model_config(self) -> [str, dict]:
+        """fetches and returns the name and config dict for the mesa model of the current task"""
+        task = self.model_configs[str(self.curr_task)]
+        return task["task_name"], task["model_params"] 
+
+    def _create_model(self):
+        """creates a mesa model based on the curriculum level"""
+        # merge the fixed agent config with the task dependend model config
+        parameter_dict = {}
+        _, model_config = self._curr_model_config()
+        for d in [self.agent_config, model_config]:
+            for k, v in d.items():
+                parameter_dict[k] = v
+
+        return CommunicationV0_model(**parameter_dict)

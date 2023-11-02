@@ -13,6 +13,7 @@ class CommunicationV0_model(mesa.Model):
     """
 
     def __init__(self,
+                 max_steps: int,
                  n_agents: int, agent_placement: str,
                  plattform_distance: int, oracle_burn_in: int, p_oracle_change: float,
                  n_tiles_x: int, n_tiles_y: int,
@@ -24,6 +25,7 @@ class CommunicationV0_model(mesa.Model):
 
         self.policy_net = policy_net # not None in inference mode
 
+        self.max_steps = max_steps
         self.oracle_burn_in = oracle_burn_in
         self.p_oracle_change = p_oracle_change
 
@@ -116,7 +118,7 @@ class CommunicationV0_model(mesa.Model):
         """returns if an action can be sampled from a policy net"""
         return self.policy_net is not None
 
-    def finish_round(self) -> [int, int]:
+    def finish_round(self) -> [int, bool]:
         """
         finish up a round
         - increases the round counter by 1
@@ -144,7 +146,7 @@ class CommunicationV0_model(mesa.Model):
         else:
             self.time_to_reward = max(0, self.time_to_reward - 1)
         
-        return self.n_steps, self.last_reward
+        return self.last_reward, self.max_steps < self.n_steps
     
     def compute_reward(self) -> int:
         """computes the reward based on the current state"""

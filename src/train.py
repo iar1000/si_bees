@@ -9,7 +9,6 @@ from datetime import datetime
 
 
 from envs.communication_v0.environment import CommunicationV0_env 
-from experiments import default_config
 from models.fully_connected import FullyConnected
 from envs.communication_v0.callbacks import ReportModelStateCallback
 from envs.communication_v0.curriculum import curriculum_fn
