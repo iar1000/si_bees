@@ -14,12 +14,12 @@ def agent_visualisation(agent):
         return {"Shape": "circle", "r": 0.5, "Color": "black", "Filled": "true", "Layer": 1}
     
     if type(agent) is Plattform:
-        reward = agent.model.compute_reward()
+        is_reward, _ = agent.model.compute_reward()
 
         circ = {"Shape": "circle", "r": 1, "Color": "green", "Filled": "true", "Layer": 0}
-        if reward == 0:
+        if is_reward == 0:
             circ["Color"] = "orange"
-        elif reward > 0:
+        elif is_reward > 0:
             circ["Color"] = "green"
         else:
             circ["Color"] = "red"

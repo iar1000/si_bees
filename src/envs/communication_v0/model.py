@@ -71,13 +71,14 @@ class CommunicationV0_model(mesa.Model):
 
         # track number of rounds, steps tracked by scheduler
         self.n_steps = 0
-        self.n_oracle_switches = 0
-        self.total_reward = 0
-        self.last_reward = 0
 
-        # track time for the information to travel
+        # track reward, max reward is the optimal case
+        self.accumulated_reward = 0
+        self.last_reward = 0
+        self.max_reward = 0
         self.reward_delay = plattform_distance # @todo: if the agents can see further than 1 square, this needs to be smaller
         self.time_to_reward = 0
+
 
     def _next_id(self) -> int:
         """Return the next unique ID for agents, increment current_id"""
@@ -87,7 +88,7 @@ class CommunicationV0_model(mesa.Model):
     
     def print_status(self) -> None:
         """print status of the model"""
-        print(f"step {self.n_steps}: oracle is {'deactive' if not self.oracle.is_active() else self.oracle.get_state()}\n\ttime to reward={self.time_to_reward}\n\treward={self.last_reward}, acc_reward={self.total_reward}")
+        print(f"step {self.n_steps}: oracle is {'deactived' if not self.oracle.is_active() else self.oracle.get_state()}\n\ttime to reward={self.time_to_reward}\n\treward={self.last_reward}, acc_reward={self.accumulated_reward}/{self.max_reward}")
 
     def print_agent_locations(self) -> None:
         """print a string with agent locations"""
@@ -124,8 +125,10 @@ class CommunicationV0_model(mesa.Model):
         """
         # update round
         self.n_steps += 1
-        self.last_reward = self.compute_reward()
-        self.total_reward += self.last_reward
+        last_reward_is, last_reward_could = self.compute_reward()
+        self.last_reward = last_reward_is
+        self.accumulated_reward += last_reward_is
+        self.max_reward += last_reward_could
 
         # activate oracle
         if not self.oracle.is_active() and self.n_steps >= self.oracle_burn_in:
@@ -139,37 +142,36 @@ class CommunicationV0_model(mesa.Model):
                 curr_state = self.oracle.get_state()
                 self.oracle.set_state((curr_state + 1) % 2)
                 self.time_to_reward = self.reward_delay
-                self.n_oracle_switches += 1
         else:
             self.time_to_reward = max(0, self.time_to_reward - 1)
         
         return self.last_reward, self.max_steps < self.n_steps
     
-    def compute_reward(self) -> int:
-        """computes the reward based on the current state"""
+    def compute_reward(self) -> [int, int]:
+        """computes the reward based on the current state and the reward that could be achieved in the optimal case"""
         oracle_state = self.oracle.get_state()
         plattform_occupation = len(self.plattform.get_occupants()) > 0
 
         # dont go on plattform if oracle is not active
         if not self.oracle.is_active():
             if plattform_occupation == 1:
-                return -1
+                return -1, 0
             else:
-                return 0
+                return 0, 0
         else:
             # time delay to diffuse oracle instruction to all agents
             if self.time_to_reward > 0:
-                return 0
+                return 0, 0
             elif oracle_state == 1:
                 if plattform_occupation == 1:
-                    return 1
+                    return 1, 1
                 else:
-                    return - 1
+                    return -1, 1
             elif oracle_state == 0:
                 if plattform_occupation == 1:
-                    return -1
+                    return -1, 0
                 else:
-                    return 0
+                    return 0, 0
 
 
     def step_agent(self, agent_id, action) -> None:
