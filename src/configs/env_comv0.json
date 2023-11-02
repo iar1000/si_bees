@@ -2,7 +2,7 @@
     "task_name": "communication_v0",
     
     "env_config": {
-        "render_mode": "status",
+        "render_mode": "silent",
 
         "agent_config": {
             "n_agents": 5,

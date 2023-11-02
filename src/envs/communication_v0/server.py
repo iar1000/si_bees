@@ -14,14 +14,12 @@ def agent_visualisation(agent):
         return {"Shape": "circle", "r": 0.5, "Color": "black", "Filled": "true", "Layer": 1}
     
     if type(agent) is Plattform:
-        oracle, _ = agent.model.get_oracle_and_plattform()
-        time_to_reward = agent.model.time_to_reward
+        reward = agent.model.compute_reward()
 
         circ = {"Shape": "circle", "r": 1, "Color": "green", "Filled": "true", "Layer": 0}
-        if time_to_reward > 0:
+        if reward == 0:
             circ["Color"] = "orange"
-        elif oracle.get_state() == 1 and len(agent.get_occupants()) > 0 or \
-            oracle.get_state() == 0 and len(agent.get_occupants()) <= 0:
+        elif reward > 0:
             circ["Color"] = "green"
         else:
             circ["Color"] = "red"
@@ -63,6 +61,7 @@ def create_server():
                 "p_oracle_change": 0.05,
                 "n_tiles_x": 10,
                 "n_tiles_y": 10,
+                "max_steps": 100,
                 "size_hidden": 8,
                 "size_comm": 8,
                 "dist_visibility": 2,

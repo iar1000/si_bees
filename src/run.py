@@ -1,7 +1,6 @@
 import argparse
 import numpy as np
 
-from experiments import default_config
 from envs.communication_v0.server import create_server
 
 

@@ -99,9 +99,6 @@ class CommunicationV0_model(mesa.Model):
             out += f"{agent_name}: {agent.pos} "
         print(out)
 
-    def get_oracle_and_plattform(self):
-        return self.oracle, self.plattform
-
     def get_possible_agents(self) -> [list, dict]:
         """returns list of scheduled agent names and dict to map names to respective ids"""
         return self.possible_agents, self.agent_name_to_id
@@ -163,13 +160,17 @@ class CommunicationV0_model(mesa.Model):
             # time delay to diffuse oracle instruction to all agents
             if self.time_to_reward > 0:
                 return 0
-            # actual reward of actions
-            elif oracle_state == 0 and plattform_occupation == 1:
-                return -1
-            elif oracle_state == 1 and plattform_occupation == 0:
-                return -3
-            else:
-                return 1
+            elif oracle_state == 1:
+                if plattform_occupation == 1:
+                    return 1
+                else:
+                    return - 1
+            elif oracle_state == 0:
+                if plattform_occupation == 1:
+                    return -1
+                else:
+                    return 0
+
 
     def step_agent(self, agent_id, action) -> None:
          """applies action to the agent in the environment"""
