@@ -1,0 +1,10 @@
+
+{
+    "model": "FullyConnected",
+    "model_config": {
+        "nn_action_hiddens": [256, 256],
+        "nn_action_activation": "relu",
+        "nn_value_hiddens": [256, 256],
+        "nn_value_activation": "relu"
+    }
+}

@@ -1,6 +1,7 @@
 
+from typing import List
 from ray.rllib.env.multi_agent_env import MultiAgentEnv
-from ray.rllib.env.apis.task_settable_env import TaskSettableEnv
+from ray.rllib.env.apis.task_settable_env import TaskSettableEnv, TaskType
 
 from envs.communication_v0.model import CommunicationV0_model
 
@@ -12,38 +13,40 @@ class CommunicationV0_env(MultiAgentEnv, TaskSettableEnv):
     """
 
     metadata = {
-        "render.modes": ["agent_pos"],
+        "render.modes": ["silent", "agent_pos", "status"],
     }
 
     def __init__(self, config):
         super().__init__()
 
         self.config = config
+        self.mesa_config = config["mesa_config"]
         self.render_mode = config["render_mode"]
 
         # curriculum learning
-        self.curriculum_enabled = config["curriculum_enabled"]
-        self.curriculum_curr_task = 0
- 
-        # create underlying mesa model
-        self.model = CommunicationV0_model(config)
+        self.curriculum_learning = config["curriculum_learning"]
+        self.curr_task = 0
+        self.max_task = len(self.mesa_config.items()) - 1
+
+        self.model = CommunicationV0_model(**self.mesa_config[str(self.curr_task)]["model_params"])
         self.agents, self.agent_to_id =  self.model.get_possible_agents()
-        assert len(self.agents) > 0, "need to have agents in the game"
+        self.observation_space = self.model.get_obs_space(agent_id=0)
+        self.action_space = self.model.get_action_space(agent_id=0)
 
         # create env state
         self.obss = set()
         self.rewardss = set()
         self.terminateds = set()
         self.truncateds = set()
-        self.observation_space = self.model.get_obs_space(agent_id=0)
-        self.action_space = self.model.get_action_space(agent_id=0)
-        print(f"created environment: num_agents={len(self.agents)}, ids:{[self.agent_to_id[a] for a in self.agents]}")
+        #self.observation_space = self.model.get_obs_space(agent_id=0)
+        #self.action_space = self.model.get_action_space(agent_id=0)
+        #print(f"created environment: num_agents={len(self.agents)}, ids:{[self.agent_to_id[a] for a in self.agents]}")
 
     def reset(self, *, seed=None, options=None):
         super().reset(seed=seed)
         
         # re-create underlying mesa model
-        self.model = CommunicationV0_model(self.config)
+        self.model = CommunicationV0_model(**self.mesa_config[str(self.curr_task)]["model_params"])
         self.agents, self.agent_to_id =  self.model.get_possible_agents()
         assert len(self.agents) > 0, "need to have agents in the game"
         
@@ -76,21 +79,19 @@ class CommunicationV0_env(MultiAgentEnv, TaskSettableEnv):
         truncated["__all__"] = n_next_step >= self.config["max_steps"]
 
         if self.render_mode == "agent_pos":
-            print(_format_move_actions(action_dict=action_dict))
             self.model.print_agent_locations()
+        if self.render_mode == "status":
+            self.model.print_status()
 
         return obs, rew, terminated, truncated, info
+    
+    def sample_tasks(self, n_tasks: int) -> List[int]:
+        return super().sample_tasks(n_tasks)
 
     def get_task(self):
         """get current curriculum task"""
-        return self.curriculum_curr_task
+        return self.curr_task
 
     def set_task(self, task: int):
         """set next curriculum task"""
-        self.curriculum_curr_task = task
-
-def _format_move_actions(action_dict) -> str:
-    out = "\t\t"
-    for agent, action in action_dict.items():
-        out += f"{agent}: ({action[0]}, {action[1]}) "
-    return out
+        self.curr_task = min(task, self.max_task)

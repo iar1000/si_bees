@@ -58,7 +58,7 @@ def create_server():
             {
                 "n_agents": 5,
                 "agent_placement": "random",
-                "plattform_distance": 1,
+                "plattform_distance": 4,
                 "oracle_burn_in": 10,
                 "p_oracle_change": 0.05,
                 "n_tiles_x": 10,

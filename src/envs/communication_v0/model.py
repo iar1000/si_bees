@@ -42,7 +42,7 @@ class CommunicationV0_model(mesa.Model):
         # map centerpoint
         y_mid = floor(n_tiles_y / 2)
         x_mid = floor(n_tiles_x / 2)
-        assert x_mid > plattform_distance and y_mid > plattform_distance, "plattform distance to oracle is too large, placement will be out-of-bounds"
+        assert x_mid >= plattform_distance and y_mid >= plattform_distance, "plattform distance to oracle is too large, placement will be out-of-bounds"
 
         # create workers
         for _ in range(n_agents):

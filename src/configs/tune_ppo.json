@@ -1,0 +1,6 @@
+{
+    "stopping_criteria": {
+        "timesteps_total": 500000
+    },
+    "num_samples": 10
+}
