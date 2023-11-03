@@ -5,6 +5,7 @@ from ray import air, tune
 from ray.rllib.algorithms.ppo import PPOConfig
 from ray.air.integrations.wandb import WandbLoggerCallback
 from ray.rllib.utils.from_config import NotProvided
+from ray.train import CheckpointConfig, Checkpoint
 from datetime import datetime
 
 
@@ -42,21 +43,25 @@ def run(logging_config: dict,
             env, # @todo: need to build wrapper
             env_config=env_config["env_config"],
             env_task_fn=curriculum_fn if env_config["env_config"]["curriculum_learning"] else NotProvided,
-            disable_env_checking=True,
-        )
+            disable_env_checking=True)
         .resources(num_gpus=resources_config["num_gpus"])
-        .rollouts(num_rollout_workers=resources_config["num_rollout_workers"], 
-                num_envs_per_worker=resources_config["num_envs_per_worker"])
+        .rollouts(
+            num_rollout_workers=resources_config["num_rollout_workers"], 
+            # num_envs_per_worker=resources_config["num_envs_per_worker"]
+        )
         .training(
-            train_batch_size=tune.choice([128, 256, 512, 1024, 2048, 4096]),
             gamma=tune.uniform(0.1, 1),
             lr=tune.uniform(1e-4, 1e-1),
             grad_clip=1,
             model=model,
+            train_batch_size=tune.choice([128, 256, 512, 1024, 2048, 4096]),
+            # sgd_minibatch_size=resources_config["sgd_minibatch_size"],
+            # num_sgd_iter=resources_config["num_sgd_iter"],
             _enable_learner_api=False
         )
         .rl_module(_enable_rl_module_api=False)
         .callbacks(ReportModelStateCallback)
+        .multi_agent(count_steps_by="env_steps")
     )
 
     # logging callback
@@ -74,7 +79,8 @@ def run(logging_config: dict,
         name=env_config["task_name"],
         stop=tune_config["stopping_criteria"], # https://docs.ray.io/en/latest/tune/tutorials/tune-metrics.html#tune-autofilled-metrics
         storage_path=logging_config["storage_path"],
-        callbacks=callbacks
+        callbacks=callbacks,
+        # checkpoint_config=checkpoint_config
     )
 
     tune_config = tune.TuneConfig(
