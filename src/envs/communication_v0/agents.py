@@ -55,7 +55,7 @@ class Worker(mesa.Agent):
             bin_plattform_occupation,
             nh_oracle,
             bin_oracle_directives,
-            #comm_workers
+            comm_workers
         ])
 
         return obs_space
@@ -94,7 +94,7 @@ class Worker(mesa.Agent):
             bin_plattform_occupation,
             nh_oracle,
             bin_oracle_directives,
-            #comm_workers
+            comm_workers
         ])
         
         return obs

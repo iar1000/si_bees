@@ -43,8 +43,8 @@ def create_server():
 
     canvas = CanvasGrid(
         agent_visualisation, 
-        grid_width=10, 
-        grid_height=10, 
+        grid_width=11, 
+        grid_height=11, 
         canvas_width=500,
         canvas_height=500)
 
@@ -56,11 +56,11 @@ def create_server():
             {
                 "n_agents": 5,
                 "agent_placement": "random",
-                "plattform_distance": 4,
+                "plattform_distance": 5,
                 "oracle_burn_in": 10,
                 "p_oracle_change": 0.05,
-                "n_tiles_x": 10,
-                "n_tiles_y": 10,
+                "n_tiles_x": 11,
+                "n_tiles_y": 11,
                 "max_steps": 100,
                 "size_hidden": 8,
                 "size_comm": 8,

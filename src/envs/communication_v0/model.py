@@ -76,7 +76,7 @@ class CommunicationV0_model(mesa.Model):
         self.accumulated_reward = 0
         self.last_reward = 0
         self.max_reward = 0
-        self.reward_delay = plattform_distance # @todo: if the agents can see further than 1 square, this needs to be smaller
+        self.reward_delay = int(floor(plattform_distance / dist_comm)) + 1
         self.time_to_reward = 0
 
 
