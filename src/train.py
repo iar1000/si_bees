@@ -5,7 +5,8 @@ from ray import air, tune
 from ray.rllib.algorithms.ppo import PPOConfig
 from ray.air.integrations.wandb import WandbLoggerCallback
 from ray.rllib.utils.from_config import NotProvided
-from ray.train import CheckpointConfig, Checkpoint
+from ray.train import CheckpointConfig
+from ray.tune.schedulers import ASHAScheduler
 from datetime import datetime
 
 
@@ -26,7 +27,8 @@ def run(logging_config: dict,
     ray.init(num_cpus=resources_config["num_cpus"])
     
     run_name = env_config["task_name"] + "_" + datetime.now().strftime("%Y-%m-%d-%H-%M")
-    
+    storage_path = os.path.join(logging_config["storage_path"], run_name)
+
     # calculate some configuration data into ray language
     epochs_per_training_batch = tune_config["epochs_per_training_batch"]
     checkpoint_every_n_epochs = tune_config["checkpoint_every_n_epochs"]
@@ -61,8 +63,8 @@ def run(logging_config: dict,
             # num_envs_per_worker=resources_config["num_envs_per_worker"]
         )
         .training(
-            gamma=tune.uniform(0.1, 1),
-            lr=tune.uniform(1e-4, 1e-1),
+            gamma=tune.uniform(0.1, 0.3),
+            lr=tune.uniform(1e-4, 1e-2),
             grad_clip=1,
             model=model,
             train_batch_size=train_batch_size, # ts per iteration
@@ -90,15 +92,24 @@ def run(logging_config: dict,
 
     run_config = air.RunConfig(
         name=env_config["task_name"],
-        stop=tune_config["stopping_criteria"], # https://docs.ray.io/en/latest/tune/tutorials/tune-metrics.html#tune-autofilled-metrics
-        storage_path=os.path.join(logging_config["storage_path"], run_name),
+        stop={"timesteps_total": tune_config["max_timesteps"]}, # https://docs.ray.io/en/latest/tune/tutorials/tune-metrics.html#tune-autofilled-metrics
+        storage_path=storage_path,
         callbacks=callbacks,
-        checkpoint_config=checkpoint_config
+        checkpoint_config=checkpoint_config,
+    )
+
+    asha_scheduler = ASHAScheduler(
+        time_attr='timesteps_total',
+        metric='custom_metrics/curriculum_task_max',
+        mode='max',
+        max_t=tune_config["max_timesteps"],
+        grace_period=tune_config["min_timesteps"],
+        reduction_factor=2,
     )
 
     tune_config = tune.TuneConfig(
             num_samples=tune_config["num_samples"],
-            # @todo: find good parameters
+            scheduler=asha_scheduler
         )
 
     tuner = tune.Tuner(

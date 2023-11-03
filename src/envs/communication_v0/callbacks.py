@@ -31,8 +31,8 @@ class ReportModelStateCallback(DefaultCallbacks):
         # @info:    if only custom_metrics is kept, rllib automatically calculates min, max and mean from it, but throws the rest
         #           adding it to hist_data keeps the raw episode rewards for post processing
         if env.model.max_reward > 0:
-            episode.custom_metrics["episode_optimality"] = env.model.accumulated_reward / env.model.max_reward
+            episode.custom_metrics["episode_performance_per_100"] = env.model.accumulated_reward / env.model.max_reward
         else:
-            episode.custom_metrics["episode_optimality"] = 0
+            episode.custom_metrics["episode_performance_per_100"] = 0
         episode.custom_metrics["episode_reward_normalized"] = rewards[0]
         episode.custom_metrics["curriculum_task"] = env.get_task()
