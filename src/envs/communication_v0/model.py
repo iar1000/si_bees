@@ -145,7 +145,7 @@ class CommunicationV0_model(mesa.Model):
         else:
             self.time_to_reward = max(0, self.time_to_reward - 1)
         
-        return self.last_reward, self.max_steps < self.n_steps
+        return self.last_reward, self.max_steps <= self.n_steps
     
     def compute_reward(self) -> [int, int]:
         """computes the reward based on the current state and the reward that could be achieved in the optimal case"""

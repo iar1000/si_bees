@@ -24,6 +24,7 @@ class CommunicationV0_env(MultiAgentEnv, TaskSettableEnv):
         self.render_mode = config["render_mode"]
 
         # curriculum learning
+        self.max_steps = config["max_steps"]
         self.curriculum_learning = config["curriculum_learning"]
         self.curr_task = 0
         self.max_task = len(self.model_configs.items()) - 1
@@ -98,11 +99,12 @@ class CommunicationV0_env(MultiAgentEnv, TaskSettableEnv):
         return task["task_name"], task["model_params"] 
 
     def _create_model(self):
-        """creates a mesa model based on the curriculum level"""
+        """creates a mesa model based on the curriculum level and agent configs"""
         # merge the fixed agent config with the task dependend model config
+        # add the max_steps, as it is a parameter of the model
         parameter_dict = {}
         _, model_config = self._curr_model_config()
-        for d in [self.agent_config, model_config]:
+        for d in [self.agent_config, model_config, {"max_steps":self.max_steps}]:
             for k, v in d.items():
                 parameter_dict[k] = v
 

@@ -12,13 +12,13 @@
             "dist_comm": 2,
             "len_trace": 2
         },
-
+        
+        "max_steps": 100,
         "curriculum_learning": true,
         "model_configs": {
             "0": {
                 "task_name": "learn_to_listen",
                 "model_params": {
-                    "max_steps": 100,
                     "agent_placement": "center",
                     "plattform_distance": 1,
                     "oracle_burn_in": 0,
@@ -30,7 +30,6 @@
             "1": {
                 "task_name": "random",
                 "model_params": {
-                    "max_steps": 100,
                     "agent_placement": "center",
                     "plattform_distance": 1,
                     "oracle_burn_in": 0,
@@ -42,7 +41,6 @@
             "2": {
                 "task_name": "bigger",
                 "model_params": {
-                    "max_steps": 100,
                     "agent_placement": "center",
                     "plattform_distance": 1,
                     "oracle_burn_in": 0,
@@ -54,7 +52,6 @@
             "3": {
                 "task_name": "large",
                 "model_params": {
-                    "max_steps": 100,
                     "agent_placement": "center",
                     "plattform_distance": 1,
                     "oracle_burn_in": 0,
