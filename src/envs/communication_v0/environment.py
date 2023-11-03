@@ -96,7 +96,7 @@ class CommunicationV0_env(MultiAgentEnv, TaskSettableEnv):
     def _curr_model_config(self) -> [str, dict]:
         """fetches and returns the name and config dict for the mesa model of the current task"""
         task = self.model_configs[str(self.curr_task)]
-        return task["task_name"], task["model_params"] 
+        return task["description"], task["model_params"] 
 
     def _create_model(self):
         """creates a mesa model based on the curriculum level and agent configs"""
