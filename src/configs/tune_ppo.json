@@ -1,6 +1,8 @@
 {
+    "num_samples": 20,
+    "epochs_per_training_batch": 8,
+    "checkpoint_every_n_epochs": 80,
     "stopping_criteria": {
-        "timesteps_total": 500000
-    },
-    "num_samples": 10
+        "timesteps_total": 100000
+    }
 }

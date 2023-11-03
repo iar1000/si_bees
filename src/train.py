@@ -24,6 +24,17 @@ def run(logging_config: dict,
     """starts a run with the given configurations"""
 
     ray.init(num_cpus=resources_config["num_cpus"])
+    
+    run_name = env_config["task_name"] + "_" + datetime.now().strftime("%Y-%m-%d-%H-%M")
+    
+    # calculate some configuration data into ray language
+    epochs_per_training_batch = tune_config["epochs_per_training_batch"]
+    checkpoint_every_n_epochs = tune_config["checkpoint_every_n_epochs"]
+    
+    train_batch_size = epochs_per_training_batch * env_config["env_config"]["max_steps"], # ts per iteration
+    train_batch_size = train_batch_size[0]
+    checkpoint_frequency = int(checkpoint_every_n_epochs/train_batch_size) # need to convert to iterations
+
 
     # set task environment
     env = None
@@ -54,9 +65,7 @@ def run(logging_config: dict,
             lr=tune.uniform(1e-4, 1e-1),
             grad_clip=1,
             model=model,
-            train_batch_size=tune.choice([128, 256, 512, 1024, 2048, 4096]),
-            # sgd_minibatch_size=resources_config["sgd_minibatch_size"],
-            # num_sgd_iter=resources_config["num_sgd_iter"],
+            train_batch_size=train_batch_size, # ts per iteration
             _enable_learner_api=False
         )
         .rl_module(_enable_rl_module_api=False)
@@ -69,18 +78,22 @@ def run(logging_config: dict,
     if logging_config["enable_wandb"]:
         callbacks.append(WandbLoggerCallback(
                             project=logging_config["project"],
-                            group=env_config["task_name"] + "_" + datetime.now().strftime("%Y-%m-%d-%H-%M"),
+                            group=run_name,
                             api_key_file=logging_config["api_key_file"],
                             log_config=logging_config["log_config"],
-                            upload_checkpoints=logging_config["upload_checkpoints"]
     ))
+        
+    checkpoint_config = CheckpointConfig(
+        checkpoint_frequency=checkpoint_frequency,
+        checkpoint_at_end=True
+    )
 
     run_config = air.RunConfig(
         name=env_config["task_name"],
         stop=tune_config["stopping_criteria"], # https://docs.ray.io/en/latest/tune/tutorials/tune-metrics.html#tune-autofilled-metrics
-        storage_path=logging_config["storage_path"],
+        storage_path=os.path.join(logging_config["storage_path"], run_name),
         callbacks=callbacks,
-        # checkpoint_config=checkpoint_config
+        checkpoint_config=checkpoint_config
     )
 
     tune_config = tune.TuneConfig(
