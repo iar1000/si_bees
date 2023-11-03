@@ -28,36 +28,69 @@
                 }
             },
             "1": {
-                "description": "random",
+                "description": "learn_2_move_2_center",
                 "model_params": {
-                    "agent_placement": "center",
+                    "agent_placement": "random",
                     "plattform_distance": 1,
-                    "oracle_burn_in": 0,
+                    "oracle_burn_in": 5,
                     "p_oracle_change": 0.05,
                     "n_tiles_x": 5,
                     "n_tiles_y": 5
                 }
             },
             "2": {
-                "description": "bigger",
+                "description": "learn_2_move_2_center_2",
                 "model_params": {
-                    "agent_placement": "center",
+                    "agent_placement": "random",
                     "plattform_distance": 1,
-                    "oracle_burn_in": 0,
+                    "oracle_burn_in": 11,
                     "p_oracle_change": 0.05,
-                    "n_tiles_x": 5,
-                    "n_tiles_y": 5
+                    "n_tiles_x": 11,
+                    "n_tiles_y": 11
                 }
             },
             "3": {
-                "description": "large",
+                "description": "solve_dist_2",
                 "model_params": {
-                    "agent_placement": "center",
-                    "plattform_distance": 1,
-                    "oracle_burn_in": 0,
+                    "agent_placement": "random",
+                    "plattform_distance": 2,
+                    "oracle_burn_in": 11,
                     "p_oracle_change": 0.05,
-                    "n_tiles_x": 5,
-                    "n_tiles_y": 5
+                    "n_tiles_x": 11,
+                    "n_tiles_y": 11
+                }
+            },
+            "4": {
+                "description": "solve_dist_3",
+                "model_params": {
+                    "agent_placement": "random",
+                    "plattform_distance": 3,
+                    "oracle_burn_in": 11,
+                    "p_oracle_change": 0.05,
+                    "n_tiles_x": 11,
+                    "n_tiles_y": 11
+                }
+            },
+            "5": {
+                "description": "solve_dist_4",
+                "model_params": {
+                    "agent_placement": "random",
+                    "plattform_distance": 4,
+                    "oracle_burn_in": 11,
+                    "p_oracle_change": 0.05,
+                    "n_tiles_x": 11,
+                    "n_tiles_y": 11
+                }
+            },
+            "6": {
+                "description": "solve_dist_6",
+                "model_params": {
+                    "agent_placement": "random",
+                    "plattform_distance": 5,
+                    "oracle_burn_in": 11,
+                    "p_oracle_change": 0.05,
+                    "n_tiles_x": 11,
+                    "n_tiles_y": 11
                 }
             }
         }
