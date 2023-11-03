@@ -1,6 +1,6 @@
 {
-    "num_cpus": 8,
+    "num_cpus": 40,
     "num_gpus": 0,
-    "num_rollout_workers": 1,
+    "num_rollout_workers": 40,
     "num_envs_per_worker": 2
 }
