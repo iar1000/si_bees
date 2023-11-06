@@ -38,12 +38,3 @@ class ReportModelStateCallback(DefaultCallbacks):
             episode.custom_metrics["episode_performance_per_100"] = 0
         episode.custom_metrics["episode_reward_normalized"] = rewards[0]
         episode.custom_metrics["curriculum_task"] = env.get_task()
-        train.report({"episode_performance_per_100": env.model.accumulated_reward / env.model.max_reward, 
-                      "curriculum_task": env.get_task()
-                      })
-    
-    def on_train_result(self, *, algorithm: Algorithm, result: dict, **kwargs) -> None:
-        print("on train result:", result)
-
-    def on_learn_on_batch(self, *, policy: Policy, train_batch: SampleBatch, result: dict, **kwargs) -> None:
-        print("on learn on batch", result)
