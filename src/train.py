@@ -24,7 +24,7 @@ def run(logging_config: dict,
         tune_config: dict):
     """starts a run with the given configurations"""
 
-    ray.init()
+    ray.init(num_cpus=4)
     
     run_name = env_config["task_name"] + "_" + datetime.now().strftime("%Y-%m-%d-%H-%M")
     storage_path = os.path.join(logging_config["storage_path"], run_name)

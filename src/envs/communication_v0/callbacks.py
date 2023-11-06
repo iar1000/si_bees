@@ -4,6 +4,7 @@ import numpy as np
 from pprint import pprint
 
 from ray import train
+from ray.rllib.algorithms.algorithm import Algorithm
 from ray.tune.callback import Callback
 from ray.rllib.env import BaseEnv
 from ray.rllib.evaluation import Episode, RolloutWorker
@@ -40,3 +41,9 @@ class ReportModelStateCallback(DefaultCallbacks):
         train.report({"episode_performance_per_100": env.model.accumulated_reward / env.model.max_reward, 
                       "curriculum_task": env.get_task()
                       })
+    
+    def on_train_result(self, *, algorithm: Algorithm, result: dict, **kwargs) -> None:
+        print("on train result:", result)
+
+    def on_learn_on_batch(self, *, policy: Policy, train_batch: SampleBatch, result: dict, **kwargs) -> None:
+        print("on learn on batch", result)
