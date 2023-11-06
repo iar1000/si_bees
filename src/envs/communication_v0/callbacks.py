@@ -3,6 +3,7 @@ import numpy as np
 
 from pprint import pprint
 
+from ray import train
 from ray.tune.callback import Callback
 from ray.rllib.env import BaseEnv
 from ray.rllib.evaluation import Episode, RolloutWorker
@@ -36,3 +37,6 @@ class ReportModelStateCallback(DefaultCallbacks):
             episode.custom_metrics["episode_performance_per_100"] = 0
         episode.custom_metrics["episode_reward_normalized"] = rewards[0]
         episode.custom_metrics["curriculum_task"] = env.get_task()
+        train.report({"episode_performance_per_100": env.model.accumulated_reward / env.model.max_reward, 
+                      "curriculum_task": env.get_task()
+                      })
