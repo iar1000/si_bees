@@ -68,11 +68,11 @@ def run(logging_config: dict,
             # num_envs_per_worker=resources_config["num_envs_per_worker"]
         )
         .training(
-            gamma=tune.uniform(0.1, 0.3),
-            lr=tune.uniform(1e-4, 1e-2),
+            gamma=tune.uniform(0.1, 0.9),
+            lr=tune.uniform(1e-4, 1e-1),
             grad_clip=1,
             model=model,
-            train_batch_size=tune.sample_from([4096, 8192, 16384]), # ts per iteration
+            train_batch_size=tune.choice([4096, 8192, 16384]), # ts per iteration
             _enable_learner_api=False
         )
         .rl_module(_enable_rl_module_api=False)
