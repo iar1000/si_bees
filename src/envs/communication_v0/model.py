@@ -1,7 +1,8 @@
-import random
 import gymnasium
 import mesa
 from math import floor
+
+from ray.rllib.algorithms import Algorithm 
 
 from envs.communication_v0.agents import Plattform, Worker, Oracle
 from utils import get_random_pos_on_border
@@ -20,7 +21,7 @@ class CommunicationV0_model(mesa.Model):
                  size_hidden: int, size_comm: int,
                  dist_visibility: int, dist_comm: int,
                  len_trace: int,
-                 policy_net=None) -> None:
+                 policy_net: Algorithm = None) -> None:
         super().__init__()
 
         self.policy_net = policy_net # not None in inference mode

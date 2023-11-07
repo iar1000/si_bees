@@ -2,6 +2,8 @@ from mesa.visualization.ModularVisualization import ModularServer
 from mesa.visualization.modules import CanvasGrid
 from mesa.visualization import ChartModule
 
+from ray.rllib.algorithms.ppo import PPO
+
 from envs.communication_v0.agents import Worker, Oracle, Plattform
 from envs.communication_v0.model import CommunicationV0_model
 
@@ -36,10 +38,11 @@ def agent_visualisation(agent):
             square["Color"] = "red"
         return square
     
-def create_server():
-    chart = ChartModule(
-        [{"Label": "Gini", "Color": "Black"}], data_collector_name="datacollector"
-    )
+def create_server(model_checkpoint: str):
+    
+    policy_net = None
+    if model_checkpoint:
+        policy_net = PPO.from_checkpoint(model_checkpoint)
 
     canvas = CanvasGrid(
         agent_visualisation, 
@@ -67,6 +70,7 @@ def create_server():
                 "dist_visibility": 2,
                 "dist_comm": 2,
                 "len_trace": 2,
+                "policy_net": policy_net
             }
     )
 

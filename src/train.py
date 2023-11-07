@@ -33,6 +33,11 @@ def run(logging_config: dict,
     epochs_per_training_batch = tune_config["epochs_per_training_batch"]
     checkpoint_every_n_timesteps = tune_config["checkpoint_every_n_timesteps"]
     
+    # make checkpoint frequency such that the biggest batch size still gets it, the smaller one produce more
+    max_training_batch_size = 16384
+    min_checkpoint_frequency = int(checkpoint_every_n_timesteps/max_training_batch_size)
+
+    # only used when train_batch_size is not a hyperparameter
     train_batch_size = epochs_per_training_batch * env_config["env_config"]["max_steps"], # ts per iteration
     train_batch_size = train_batch_size[0]
     checkpoint_frequency = int(checkpoint_every_n_timesteps/train_batch_size) # need to convert to iterations
@@ -67,7 +72,7 @@ def run(logging_config: dict,
             lr=tune.uniform(1e-4, 1e-2),
             grad_clip=1,
             model=model,
-            train_batch_size=train_batch_size, # ts per iteration
+            train_batch_size=tune.sample_from([4096, 8192, 16384]), # ts per iteration
             _enable_learner_api=False
         )
         .rl_module(_enable_rl_module_api=False)
@@ -86,7 +91,7 @@ def run(logging_config: dict,
     ))
         
     checkpoint_config = CheckpointConfig(
-        checkpoint_frequency=checkpoint_frequency,
+        checkpoint_frequency=min_checkpoint_frequency,
         checkpoint_at_end=True
     )
 
