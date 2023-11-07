@@ -31,11 +31,11 @@ def run(logging_config: dict,
 
     # calculate some configuration data into ray language
     epochs_per_training_batch = tune_config["epochs_per_training_batch"]
-    checkpoint_every_n_epochs = tune_config["checkpoint_every_n_epochs"]
+    checkpoint_every_n_timesteps = tune_config["checkpoint_every_n_timesteps"]
     
     train_batch_size = epochs_per_training_batch * env_config["env_config"]["max_steps"], # ts per iteration
     train_batch_size = train_batch_size[0]
-    checkpoint_frequency = int(checkpoint_every_n_epochs/train_batch_size) # need to convert to iterations
+    checkpoint_frequency = int(checkpoint_every_n_timesteps/train_batch_size) # need to convert to iterations
 
 
     # set task environment
@@ -86,7 +86,7 @@ def run(logging_config: dict,
     ))
         
     checkpoint_config = CheckpointConfig(
-        checkpoint_frequency=1,
+        checkpoint_frequency=checkpoint_frequency,
         checkpoint_at_end=True
     )
 
