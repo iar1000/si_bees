@@ -30,18 +30,16 @@ def run(logging_config: dict,
     storage_path = os.path.join(logging_config["storage_path"], run_name)
 
     # calculate some configuration data into ray language
+    # only used when train_batch_size is not a hyperparameter
     epochs_per_training_batch = tune_config["epochs_per_training_batch"]
     checkpoint_every_n_timesteps = tune_config["checkpoint_every_n_timesteps"]
+    train_batch_size = epochs_per_training_batch * env_config["env_config"]["max_steps"], # ts per iteration
+    train_batch_size = train_batch_size[0]
+    checkpoint_frequency = int(checkpoint_every_n_timesteps/train_batch_size) # need to convert to iterations
     
     # make checkpoint frequency such that the biggest batch size still gets it, the smaller one produce more
     max_training_batch_size = 4096
     min_checkpoint_frequency = int(checkpoint_every_n_timesteps/max_training_batch_size)
-
-    # only used when train_batch_size is not a hyperparameter
-    train_batch_size = epochs_per_training_batch * env_config["env_config"]["max_steps"], # ts per iteration
-    train_batch_size = train_batch_size[0]
-    checkpoint_frequency = int(checkpoint_every_n_timesteps/train_batch_size) # need to convert to iterations
-
 
     # set task environment
     env = None
@@ -71,6 +69,7 @@ def run(logging_config: dict,
             gamma=tune.uniform(0.1, 0.9),
             lr=tune.uniform(1e-4, 1e-1),
             grad_clip=1,
+            grad_clip_by="value",
             model=model,
             train_batch_size=tune.choice([2048, 4096, 8192]), # ts per iteration
             _enable_learner_api=False
