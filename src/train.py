@@ -60,10 +60,14 @@ def run(logging_config: dict,
             env_config=env_config["env_config"],
             env_task_fn=curriculum_fn if env_config["env_config"]["curriculum_learning"] else NotProvided,
             disable_env_checking=True)
-        .resources(num_gpus=resources_config["num_gpus"])
+        .resources(
+            num_gpus=resources_config["num_gpus"],
+            num_cpus_per_worker=1,
+            num_cpus_for_local_worker=resources_config["num_cpus_for_local_worker"]
+            )
         .rollouts(
-            num_rollout_workers=resources_config["num_rollout_workers"], 
-            # num_envs_per_worker=resources_config["num_envs_per_worker"]
+            num_rollout_workers=resources_config["num_cpus"] - resources_config["num_cpus_for_local_worker"], 
+            num_envs_per_worker=resources_config["num_envs_per_worker"]
         )
         .training(
             gamma=tune.uniform(0.1, 0.9),
