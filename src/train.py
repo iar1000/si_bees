@@ -24,7 +24,7 @@ def run(logging_config: dict,
         tune_config: dict):
     """starts a run with the given configurations"""
 
-    ray.init(num_cpus=resources_config["num_cpus"])
+    ray.init(num_cpus=resources_config["num_cpus"], num_gpus=resources_config["num_gpus"])
     
     run_name = env_config["task_name"] + "_" + datetime.now().strftime("%Y-%m-%d-%H-%M")
     storage_path = os.path.join(logging_config["storage_path"], run_name)
@@ -34,7 +34,7 @@ def run(logging_config: dict,
     checkpoint_every_n_timesteps = tune_config["checkpoint_every_n_timesteps"]
     
     # make checkpoint frequency such that the biggest batch size still gets it, the smaller one produce more
-    max_training_batch_size = 16384
+    max_training_batch_size = 4096
     min_checkpoint_frequency = int(checkpoint_every_n_timesteps/max_training_batch_size)
 
     # only used when train_batch_size is not a hyperparameter
@@ -72,7 +72,7 @@ def run(logging_config: dict,
             lr=tune.uniform(1e-4, 1e-1),
             grad_clip=1,
             model=model,
-            train_batch_size=tune.choice([4096, 8192, 16384]), # ts per iteration
+            train_batch_size=tune.choice([2048, 4096, 8192]), # ts per iteration
             _enable_learner_api=False
         )
         .rl_module(_enable_rl_module_api=False)
@@ -105,7 +105,7 @@ def run(logging_config: dict,
 
     asha_scheduler = ASHAScheduler(
         time_attr='timesteps_total',
-        metric='custom_metrics/curriculum_task_max',
+        metric='custom_metrics/curr_learning_score',
         mode='max',
         max_t=tune_config["max_timesteps"],
         grace_period=tune_config["min_timesteps"],

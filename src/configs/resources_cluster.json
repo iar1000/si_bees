@@ -1,6 +1,6 @@
 {
     "num_cpus": null,
-    "num_gpus": 0,
+    "num_gpus": null,
     "num_rollout_workers": 1,
     "num_envs_per_worker": 1
 }
