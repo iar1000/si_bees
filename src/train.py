@@ -24,7 +24,7 @@ def run(logging_config: dict,
         tune_config: dict):
     """starts a run with the given configurations"""
 
-    ray.init()
+    ray.init(num_cpus=resources_config["num_cpus"])
     
     run_name = env_config["task_name"] + "_" + datetime.now().strftime("%Y-%m-%d-%H-%M")
     storage_path = os.path.join(logging_config["storage_path"], run_name)
@@ -86,12 +86,12 @@ def run(logging_config: dict,
     ))
         
     checkpoint_config = CheckpointConfig(
-        checkpoint_frequency=checkpoint_frequency,
+        checkpoint_frequency=1,
         checkpoint_at_end=True
     )
 
     run_config = air.RunConfig(
-        name=env_config["task_name"],
+        name=run_name,
         stop={"timesteps_total": tune_config["max_timesteps"]}, # https://docs.ray.io/en/latest/tune/tutorials/tune-metrics.html#tune-autofilled-metrics
         storage_path=storage_path,
         callbacks=callbacks,
