@@ -38,7 +38,7 @@ def run(auto_init: bool,
     
     # make checkpoint frequency such that the biggest batch size still gets it, the smaller one produce more
     checkpoint_every_n_timesteps = tune_config["checkpoint_every_n_timesteps"]
-    max_training_batch_size = 4096
+    max_training_batch_size = 8192
     min_checkpoint_frequency = int(checkpoint_every_n_timesteps/max_training_batch_size)
     print(f"checkpointing schedule every {min_checkpoint_frequency} iterations")
 
@@ -70,7 +70,7 @@ def run(auto_init: bool,
             grad_clip=1,
             grad_clip_by="value",
             model=model,
-            train_batch_size=tune.choice([2048, 4096, 8192]), # ts per iteration
+            train_batch_size=tune.choice([8192, 16384, 32768]), # ts per iteration
             _enable_learner_api=False
         )
         .rl_module(_enable_rl_module_api=False)
