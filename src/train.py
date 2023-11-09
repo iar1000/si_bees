@@ -25,7 +25,10 @@ def run(auto_init: bool,
         tune_config: dict):
     """starts a run with the given configurations"""
 
-    ray.init()
+    if auto_init:
+        ray.init()
+    else:
+        ray.init(num_cpus=resources_config["num_cpus"])
     
     run_name = env_config["task_name"] + "_" + datetime.now().strftime("%Y-%m-%d-%H-%M")
     storage_path = os.path.join(logging_config["storage_path"], run_name)
