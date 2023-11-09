@@ -39,9 +39,6 @@ class CommunicationV0_env(MultiAgentEnv, TaskSettableEnv):
         self.rewardss = set()
         self.terminateds = set()
         self.truncateds = set()
-        #self.observation_space = self.model.get_obs_space(agent_id=0)
-        #self.action_space = self.model.get_action_space(agent_id=0)
-        #print(f"created environment: num_agents={len(self.agents)}, ids:{[self.agent_to_id[a] for a in self.agents]}")
 
     def reset(self, *, seed=None, options=None):
         super().reset(seed=seed)

@@ -70,7 +70,7 @@ def run(auto_init: bool,
             grad_clip=1,
             grad_clip_by="value",
             model=model,
-            train_batch_size=tune.choice([8192, 16384, 32768]), # ts per iteration
+            train_batch_size=tune.choice([8192, 16384]), # ts per iteration
             _enable_learner_api=False
         )
         .rl_module(_enable_rl_module_api=False)
