@@ -18,9 +18,7 @@ class CommunicationV0_model(mesa.Model):
                  n_agents: int, agent_placement: str,
                  plattform_distance: int, oracle_burn_in: int, p_oracle_change: float,
                  n_tiles_x: int, n_tiles_y: int,
-                 size_hidden: int, size_comm: int,
-                 dist_visibility: int, dist_comm: int,
-                 len_trace: int,
+                 size_com_vec: int, com_range: int, len_trace: int,
                  policy_net: Algorithm = None) -> None:
         super().__init__()
 
@@ -50,11 +48,9 @@ class CommunicationV0_model(mesa.Model):
         # create workers
         for _ in range(n_agents):
             new_worker = Worker(self._next_id(), self, 
-                                n_hidden_vec=size_hidden,
-                                n_comm_vec=size_comm,
-                                n_visibility_range=dist_visibility,
-                                n_comm_range=dist_comm,
-                                n_trace_length=len_trace)
+                                size_com_vec=size_com_vec,
+                                com_range=com_range,
+                                len_trace=len_trace)
             self.schedule.add(new_worker)
             self.possible_agents.append(new_worker.name)
             self.agent_name_to_id[new_worker.name] = new_worker.unique_id
@@ -77,7 +73,7 @@ class CommunicationV0_model(mesa.Model):
         self.accumulated_reward = 0
         self.last_reward = 0
         self.max_reward = 0
-        self.reward_delay = int(floor(plattform_distance / dist_comm)) + 1
+        self.reward_delay = int(floor(plattform_distance / com_range)) + 1
         self.time_to_reward = 0
 
 
@@ -151,7 +147,7 @@ class CommunicationV0_model(mesa.Model):
     def compute_reward(self) -> [int, int]:
         """computes the reward based on the current state and the reward that could be achieved in the optimal case"""
         oracle_state = self.oracle.get_state()
-        plattform_occupation = len(self.plattform.get_occupants()) > 0
+        plattform_occupation = self.plattform.is_occupied()
 
         # dont go on plattform if oracle is not active
         if not self.oracle.is_active():

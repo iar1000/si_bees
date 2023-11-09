@@ -28,7 +28,7 @@ def run(auto_init: bool,
     if auto_init:
         ray.init()
     else:
-        ray.init(num_cpus=resources_config["num_cpus"])
+        ray.init(num_cpus=resources_config["num_cpus"], local_mode=True)
     
     run_name = env_config["task_name"] + "_" + datetime.now().strftime("%Y-%m-%d-%H-%M")
     storage_path = os.path.join(logging_config["storage_path"], run_name)
