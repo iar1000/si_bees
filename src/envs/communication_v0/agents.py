@@ -67,7 +67,7 @@ class Worker(mesa.Agent):
         plattform_occupation = np.array([-1], dtype=np.int8)
         oracle_location = np.zeros(shape=(self.nh_size,), dtype=np.int8)
         oracle_state = np.array([-1], dtype=np.int8)
-        agent_nh = [np.zeros((self.size_com_vec,), dtype=np.float64) for _ in self.nh_size]
+        agent_nh = [np.zeros((self.size_com_vec,), dtype=np.float64) for _ in range(self.nh_size)]
         
 
         neighbors = self.model.grid.get_neighbors(self.pos, moore=self.moore_nh, radius=self.com_range)
