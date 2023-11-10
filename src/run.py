@@ -25,7 +25,7 @@ if __name__ == "__main__":
     checkpoints_dir = "checkpoints"
     cp = None
     env_config = None
-    if args.checkpoint:
+    if args.run_name:
         cp = os.path.join(checkpoints_dir, args.run_name, zero_pad_to_six(args.checkpoint))
         env_config = load_config_dict(os.path.join(checkpoints_dir, args.run_name, args.env_config))
         
