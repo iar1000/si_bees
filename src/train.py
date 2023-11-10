@@ -18,18 +18,17 @@ from configs.utils import load_config_dict
 from models.gnn_base import GNN_ComNet
 
 
-def run(auto_init: bool,
+def run(debug: bool,
         logging_config: dict, 
-        resources_config: dict, 
         model_config: dict,
         env_config: dict,
         tune_config: dict):
     """starts a run with the given configurations"""
 
-    if auto_init:
+    if not debug:
         ray.init()
     else:
-        ray.init(num_cpus=resources_config["num_cpus"], local_mode=True)
+        ray.init(num_cpus=1, local_mode=True)
     
     run_name = env_config["task_name"] + "_" + datetime.now().strftime("%Y-%m-%d-%H-%M")
     storage_path = os.path.join(logging_config["storage_path"], run_name)
@@ -134,6 +133,7 @@ def run(auto_init: bool,
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='script to setup hyperparameter tuning')
     parser.add_argument('-location', default="local", choices=['cluster', 'local'], help='execution location, setting depending variables')
+    parser.add_argument('-debug', default=False, action="set_true", help='executes with limited capacity in local mode')
     parser.add_argument('-logging_config', default=None, help="path to the logging config json, defaults to *_local or cluster, depending on location")
     parser.add_argument('-resources_config', default=None, help="path to the available resources config json, defaults to *_local or cluster, depending on location")
     parser.add_argument('-model_config', default="model_fc.json", help="path to the NN model config")
@@ -152,8 +152,7 @@ if __name__ == '__main__':
     if args.location == 'cluster':
         resources_config = load_config_dict(os.path.join(config_dir, "resources_cluster.json"))
         logging_config = load_config_dict(os.path.join(config_dir, "logging_cluster.json"))
-
-    elif args.location == 'local':
+    else:
         resources_config = load_config_dict(os.path.join(config_dir, "resources_local.json"))
         logging_config = load_config_dict(os.path.join(config_dir, "logging_local.json"))
 
@@ -169,7 +168,7 @@ if __name__ == '__main__':
         print(f"\t{k}: {v}")
     print("\n")
 
-    run(auto_init=args.location=="cluster",
+    run(debug=args.debug,
         logging_config=logging_config,
         resources_config=resources_config,
         model_config=model_config,

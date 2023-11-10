@@ -1,7 +1,0 @@
-{
-    "num_gpus": 0,
-    "num_cpus": 1,
-    "num_cpus_for_local_worker": 1,
-    "num_rollout_workers": 3,
-    "num_envs_per_worker": 1
-}
