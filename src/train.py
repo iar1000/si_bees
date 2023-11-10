@@ -133,9 +133,8 @@ def run(debug: bool,
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='script to setup hyperparameter tuning')
     parser.add_argument('-location', default="local", choices=['cluster', 'local'], help='execution location, setting depending variables')
-    parser.add_argument('-debug', default=False, action="set_true", help='executes with limited capacity in local mode')
+    parser.add_argument('-debug', default=False, action="store_true", help='executes with limited capacity in local mode')
     parser.add_argument('-logging_config', default=None, help="path to the logging config json, defaults to *_local or cluster, depending on location")
-    parser.add_argument('-resources_config', default=None, help="path to the available resources config json, defaults to *_local or cluster, depending on location")
     parser.add_argument('-model_config', default="model_fc.json", help="path to the NN model config")
     parser.add_argument('-env_config', default="env_comv0.json", help="path to task/ env config")
     parser.add_argument('-tune_config', default="tune_ppo.json", help="path to tune config")
@@ -150,17 +149,17 @@ if __name__ == '__main__':
     
     # location dependend configs
     if args.location == 'cluster':
-        resources_config = load_config_dict(os.path.join(config_dir, "resources_cluster.json"))
+        #resources_config = load_config_dict(os.path.join(config_dir, "resources_cluster.json"))
         logging_config = load_config_dict(os.path.join(config_dir, "logging_cluster.json"))
     else:
-        resources_config = load_config_dict(os.path.join(config_dir, "resources_local.json"))
+        #resources_config = load_config_dict(os.path.join(config_dir, "resources_local.json"))
         logging_config = load_config_dict(os.path.join(config_dir, "logging_local.json"))
 
     # override default configs
-    if args.resources_config:
-        resources_config = load_config_dict(os.path.join(config_dir, args.resources_config))
-    if args.logging_config:
-        logging_config = load_config_dict(os.path.join(config_dir, args.logging_config))
+    #if args.resources_config:
+    #    resources_config = load_config_dict(os.path.join(config_dir, args.resources_config))
+    #if args.logging_config:
+    #    logging_config = load_config_dict(os.path.join(config_dir, args.logging_config))
 
     # sanity print
     print("===== run hyperparameter tuning =======")
@@ -170,7 +169,6 @@ if __name__ == '__main__':
 
     run(debug=args.debug,
         logging_config=logging_config,
-        resources_config=resources_config,
         model_config=model_config,
         env_config=env_config,
         tune_config=tune_config)

@@ -1,6 +1,6 @@
 {
     "storage_path": "/Users/sega/Code/si_bees/log",
-    "enable_wandb": false,
+    "enable_wandb": true,
     "project": "marl_si",
     "log_config": true,
     "api_key_file": ".wandb_key"
