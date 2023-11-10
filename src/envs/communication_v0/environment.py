@@ -2,6 +2,7 @@
 from typing import List
 from ray.rllib.env.multi_agent_env import MultiAgentEnv
 from ray.rllib.env.apis.task_settable_env import TaskSettableEnv, TaskType
+from gymnasium.spaces.utils import flatdim
 
 from envs.communication_v0.model import CommunicationV0_model
 
@@ -33,6 +34,7 @@ class CommunicationV0_env(MultiAgentEnv, TaskSettableEnv):
         self.agents, self.agent_to_id =  self.model.get_possible_agents()
         self.observation_space = self.model.get_obs_space(agent_id=0)
         self.action_space = self.model.get_action_space(agent_id=0)
+        print(f"create env: size action_space={flatdim(self.action_space)}. size obs_space={flatdim(self.observation_space)}")
 
         # create env state
         self.obss = set()
@@ -51,7 +53,7 @@ class CommunicationV0_env(MultiAgentEnv, TaskSettableEnv):
         obs = {}
         for a in self.agents:
             obs[a] = self.model.observe_agent(self.agent_to_id[a])
-
+                
         return obs, {}
 
     def step(self, action_dict):
