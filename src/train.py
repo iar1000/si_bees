@@ -15,6 +15,7 @@ from models.fully_connected import FullyConnected
 from envs.communication_v0.callbacks import ReportModelStateCallback
 from envs.communication_v0.curriculum import curriculum_fn
 from configs.utils import load_config_dict
+from models.gnn_base import GNN_ComNet
 
 
 def run(auto_init: bool,
@@ -52,6 +53,9 @@ def run(auto_init: bool,
     model = {}
     if model_config["model"] == "FullyConnected":
         model = {"custom_model": FullyConnected,
+                "custom_model_config": model_config["model_config"]}
+    elif model_config["model"] == "GNN_ComNet":
+        model = {"custom_model": GNN_ComNet,
                 "custom_model_config": model_config["model_config"]}
 
     # set config

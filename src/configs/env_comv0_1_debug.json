@@ -1,0 +1,96 @@
+{
+    "task_name": "communication_v0_in-out",
+    
+    "env_config": {
+        "render_mode": "silent",
+
+        "agent_config": {
+            "n_agents": 1,
+            "size_com_vec": 2,
+            "com_range": 1,
+            "len_trace": 2
+        },
+        
+        "max_steps": 128,
+        "curriculum_learning": true,
+        "model_configs": {
+            "0": {
+                "description": "find_plattform_1",
+                "model_params": {
+                    "agent_placement": "center",
+                    "plattform_distance": 1,
+                    "oracle_burn_in": 0,
+                    "p_oracle_change": 0.05,
+                    "n_tiles_x": 11,
+                    "n_tiles_y": 11
+                }
+            },
+            "1": {
+                "description": "find_plattform_2",
+                "model_params": {
+                    "agent_placement": "center",
+                    "plattform_distance": 2,
+                    "oracle_burn_in": 5,
+                    "p_oracle_change": 0.05,
+                    "n_tiles_x": 11,
+                    "n_tiles_y": 11
+                }
+            },
+            "2": {
+                "description": "find_plattform_3",
+                "model_params": {
+                    "agent_placement": "center",
+                    "plattform_distance": 3,
+                    "oracle_burn_in": 5,
+                    "p_oracle_change": 0.05,
+                    "n_tiles_x": 11,
+                    "n_tiles_y": 11
+                }
+            },
+            "3": {
+                "description": "find_plattform_4",
+                "model_params": {
+                    "agent_placement": "center",
+                    "plattform_distance": 4,
+                    "oracle_burn_in": 11,
+                    "p_oracle_change": 0.05,
+                    "n_tiles_x": 11,
+                    "n_tiles_y": 11
+                }
+            },
+            "4": {
+                "description": "find_plattform_5",
+                "model_params": {
+                    "agent_placement": "center",
+                    "plattform_distance": 5,
+                    "oracle_burn_in": 11,
+                    "p_oracle_change": 0.05,
+                    "n_tiles_x": 11,
+                    "n_tiles_y": 11
+                }
+            },
+            "5": {
+                "description": "solve",
+                "model_params": {
+                    "agent_placement": "random",
+                    "plattform_distance": 3,
+                    "oracle_burn_in": 11,
+                    "p_oracle_change": 0.05,
+                    "n_tiles_x": 11,
+                    "n_tiles_y": 11
+                }
+            },
+            "6": {
+                "description": "solve_2",
+                "model_params": {
+                    "agent_placement": "random",
+                    "plattform_distance": 5,
+                    "oracle_burn_in": 11,
+                    "p_oracle_change": 0.05,
+                    "n_tiles_x": 11,
+                    "n_tiles_y": 11
+                }
+            }
+        }
+    }
+}
