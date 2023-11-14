@@ -18,17 +18,13 @@ from configs.utils import load_config_dict
 from models.gnn_base import GNN_ComNet
 
 
-def run(debug: bool,
-        logging_config: dict, 
+def run(logging_config: dict, 
         model_config: dict,
         env_config: dict,
         tune_config: dict):
     """starts a run with the given configurations"""
 
-    if not debug:
-        ray.init()
-    else:
-        ray.init(num_cpus=1, local_mode=True)
+    ray.init()
     
     run_name = env_config["task_name"] + "_" + datetime.now().strftime("%Y-%m-%d-%H-%M")
     storage_path = os.path.join(logging_config["storage_path"], run_name)
@@ -56,6 +52,8 @@ def run(debug: bool,
     elif model_config["model"] == "GNN_ComNet":
         model = {"custom_model": GNN_ComNet,
                 "custom_model_config": model_config["model_config"]}
+    nh_size = (2 * env_config["env_config"]["agent_config"]["com_range"] + 1)**2
+    model["custom_model_config"]["n_states"] = nh_size + 1 # pass in neighborhood size to calculate per agent space size automatically
 
     # set config
     ppo_config = (
@@ -133,7 +131,6 @@ def run(debug: bool,
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='script to setup hyperparameter tuning')
     parser.add_argument('-location', default="local", choices=['cluster', 'local'], help='execution location, setting depending variables')
-    parser.add_argument('-debug', default=False, action="store_true", help='executes with limited capacity in local mode')
     parser.add_argument('-logging_config', default=None, help="path to the logging config json, defaults to *_local or cluster, depending on location")
     parser.add_argument('-model_config', default="model_fc.json", help="path to the NN model config")
     parser.add_argument('-env_config', default="env_comv0.json", help="path to task/ env config")
@@ -167,8 +164,7 @@ if __name__ == '__main__':
         print(f"\t{k}: {v}")
     print("\n")
 
-    run(debug=args.debug,
-        logging_config=logging_config,
+    run(logging_config=logging_config,
         model_config=model_config,
         env_config=env_config,
         tune_config=tune_config)
