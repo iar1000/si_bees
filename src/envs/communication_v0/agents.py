@@ -20,7 +20,6 @@ class Worker(mesa.Agent):
 
         # neighborhood variables
         self.com_range = com_range
-        self.moore_nh = True
         self.nh_size = (2 * self.com_range + 1)**2
 
         # communication state
@@ -33,8 +32,9 @@ class Worker(mesa.Agent):
 
     def get_obs_space(self) -> Tuple:
         """
-        obs space is concatenation of all neighbourhoods states
-
+        obs space is concatenation of the agents state and all nh_size neighbourhoods states
+        e.g. nh_size + 1 states
+        
         flag_active: if the state is to be used
         trace: neihbourhood with past positions
         plattform_location: one_hot encoded location in neighbourhood
@@ -51,7 +51,7 @@ class Worker(mesa.Agent):
         oracle_state = Box(-1, 1, shape=(1,), dtype=np.int8)
         agent_state_obs_space = Tuple([flag_active, trace, plattform_location, plattform_occupation, oracle_location, oracle_state])
 
-        return Tuple([agent_state_obs_space for _ in range(self.nh_size)])
+        return Tuple([agent_state_obs_space for _ in range(self.nh_size + 1)])
     
     def get_state(self) -> list:
         """returns the agents own state as list of np.arrays, in the same format as defined in get_obs_state"""
@@ -70,7 +70,7 @@ class Worker(mesa.Agent):
                 trace[relative_moore_to_linear(get_relative_pos(self.pos, p_trace), radius=self.com_range)] = 1
             
         # set plattform and oracle observations
-        neighbors = self.model.grid.get_neighbors(self.pos, moore=self.moore_nh, radius=self.com_range, include_center=True)
+        neighbors = self.model.grid.get_neighbors(self.pos, moore=True, radius=self.com_range, include_center=True)
         for n in neighbors:
             rel_pos = get_relative_pos(self.pos, n.pos)
             if type(n) is Oracle:
@@ -87,13 +87,13 @@ class Worker(mesa.Agent):
         obs = [self.get_state()]
 
         # collect neighbours states
-        nh = self.model.grid.get_neighbors(self.pos, moore=self.moore_nh, radius=self.com_range, include_center=True)
+        nh = self.model.grid.get_neighbors(self.pos, moore=True, radius=self.com_range, include_center=True)
         nh = [n for n in nh if type(n) is Worker and n is not self]
         for n in nh:
             obs.append(n.get_state())
         
         # append empty states
-        while len(obs) < self.nh_size:
+        while len(obs) < self.nh_size + 1:
             empty_obs = [np.zeros(shape=(1,)), 
                          np.zeros(shape=(self.nh_size,)), 
                          np.zeros(shape=(self.nh_size,)), 
