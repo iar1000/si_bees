@@ -5,7 +5,7 @@
         "render_mode": "silent",
 
         "agent_config": {
-            "n_agents": 5,
+            "n_agents": 3,
             "size_com_vec": 2,
             "com_range": 1,
             "len_trace": 2
