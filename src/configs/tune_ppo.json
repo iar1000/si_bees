@@ -1,7 +1,7 @@
 {
     "num_samples": 500,
     "epochs_per_training_batch": 32,
-    "checkpoint_every_n_timesteps": 250000,
+    "checkpoint_every_n_timesteps": 200000,
     "min_timesteps": 50000,
     "max_timesteps": 10000000
 }

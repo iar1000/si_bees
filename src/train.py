@@ -2,20 +2,19 @@ import argparse
 import os
 import ray
 from ray import air, tune
+from ray.train import CheckpointConfig
+from ray.tune.schedulers import ASHAScheduler
 from ray.rllib.algorithms.ppo import PPOConfig
 from ray.air.integrations.wandb import WandbLoggerCallback
 from ray.rllib.utils.from_config import NotProvided
-from ray.train import CheckpointConfig
-from ray.tune.schedulers import ASHAScheduler
 from datetime import datetime
 
-
 from envs.communication_v0.environment import CommunicationV0_env 
-from models.fully_connected import FullyConnected
 from envs.communication_v0.callbacks import ReportModelStateCallback
 from envs.communication_v0.curriculum import curriculum_fn
+from envs.communication_v0.models.fully_connected import FullyConnected
+from envs.communication_v0.models.gnn_base import GNN_ComNet
 from configs.utils import load_config_dict
-from models.gnn_base import GNN_ComNet
 
 
 def run(logging_config: dict, 
