@@ -10,11 +10,12 @@ from ray.rllib.utils.from_config import NotProvided
 from datetime import datetime
 
 from envs.communication_v0.environment import CommunicationV0_env 
-from envs.communication_v0.callbacks import ReportModelStateCallback
-from envs.communication_v0.curriculum import curriculum_fn
+
 from envs.communication_v0.models.fully_connected import FullyConnected
 from envs.communication_v0.models.gnn_base import GNN_ComNet
 from configs.utils import load_config_dict
+from callbacks import ReportModelStateCallback
+from curriculum import curriculum_fn
 
 
 def run(logging_config: dict, 

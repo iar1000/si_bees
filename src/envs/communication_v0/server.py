@@ -37,7 +37,8 @@ def agent_visualisation(agent):
         else:
             square["Color"] = "red"
         return square
-    
+
+# @todo: refactor to make it compatible with multiple envs
 def create_server(curr_level: int, env_config: dict, model_checkpoint: str):
     
     policy_net = None
