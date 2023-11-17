@@ -1,16 +1,14 @@
-
-from typing import List
-from ray.rllib.env.multi_agent_env import MultiAgentEnv
-from ray.rllib.env.apis.task_settable_env import TaskSettableEnv, TaskType
+from ray.rllib.env.apis.task_settable_env import TaskSettableEnv
 from gymnasium.spaces.utils import flatdim
 
-from envs.communication_v0.model import CommunicationV0_model
+from envs.communication_v1.model import CommunicationV1_model
 
-class CommunicationV0_env(MultiAgentEnv, TaskSettableEnv):
+
+class CommunicationV1_env(TaskSettableEnv):
     """
     base environment to learn communication.
-    synchronised actions, all alive agents step simulatiniously
-    an oracle outputs information if the agents should step on a particular field. once the oracle says "go" or field_nr or so, the agents get rewarded once on the field
+    synchronised actions, all alive agents step simulatiniously. 
+    collect info as a graph, that can be used for pytorch_geometric library.
     """
 
     metadata = {
@@ -20,6 +18,7 @@ class CommunicationV0_env(MultiAgentEnv, TaskSettableEnv):
     def __init__(self, config):
         super().__init__()
 
+        # configs
         self.agent_config = config["agent_config"]
         self.model_configs = config["model_configs"]
         self.render_mode = config["render_mode"]
@@ -30,58 +29,33 @@ class CommunicationV0_env(MultiAgentEnv, TaskSettableEnv):
         self.curr_task = 0
         self.max_task = len(self.model_configs.items()) - 1
 
+        # model
         self.model = self._create_model()
-        self.agents, self.agent_to_id =  self.model.get_possible_agents()
-        self.observation_space = self.model.get_obs_space(agent_id=0)
-        self.action_space = self.model.get_action_space(agent_id=0)
-        print(f"create env: size action_space={flatdim(self.action_space)}. size obs_space={flatdim(self.observation_space)}")
-
-        # create env state
-        self.obss = set()
-        self.rewardss = set()
-        self.terminateds = set()
-        self.truncateds = set()
+        self.observation_space = self.model.get_obs_space()
+        self.action_space = self.model.get_action_space()
+        
+        print("\n=== env ===")
+        print(f"size action_space={flatdim(self.action_space)}")
+        print(f"size obs_space={flatdim(self.observation_space)}")
 
     def reset(self, *, seed=None, options=None):
         super().reset(seed=seed)
-        
-        # re-create underlying mesa model, assumes number of agents stay the same
-        self.model = self._create_model()
-        self.terminateds = set()
-        self.truncateds = set()
 
-        obs = {}
-        for a in self.agents:
-            obs[a] = self.model.observe_agent(self.agent_to_id[a])
-                
-        return obs, {}
+        self.model = self._create_model()                
+        return self.model.get_obs(), {}
 
-    def step(self, action_dict):
-        obs, rew, terminated, truncated, info = {}, {}, {}, {}, {}
-
-        # step all agents
-        for agent, action in action_dict.items():
-            agent_id = self.agent_to_id[agent]
-            self.model.step_agent(agent_id=agent_id, action=action)
+    def step(self, actions):
+        # let model update itself
+        self.model.apply_actions(actions)
         reward, is_terminated = self.model.finish_round()
-
-        # gather new observations
-        for agent in self.agents:
-            agent_id = self.agent_to_id[agent]
-            obs[agent] = self.model.observe_agent(agent_id=agent_id)
-            rew[agent] = reward
-
-        # kill simulation after max_round steps
-        terminated["__all__"] = False
-        truncated["__all__"] = is_terminated
+        obs = self.model.get_obs()
 
         if self.render_mode == "agent_pos":
             self.model.print_agent_locations()
-        if self.render_mode == "status":
+        elif self.render_mode == "status":
             self.model.print_status()
 
-        return obs, rew, terminated, truncated, info
-    
+        return obs, reward, is_terminated, is_terminated, {} 
 
     def get_task(self):
         """get current curriculum task"""
@@ -90,7 +64,6 @@ class CommunicationV0_env(MultiAgentEnv, TaskSettableEnv):
     def set_task(self, task: int):
         """set next curriculum task"""
         self.curr_task = min(task, self.max_task)
-
 
     def _curr_model_config(self) -> [str, dict]:
         """fetches and returns the name and config dict for the mesa model of the current task"""
@@ -107,4 +80,4 @@ class CommunicationV0_env(MultiAgentEnv, TaskSettableEnv):
             for k, v in d.items():
                 parameter_dict[k] = v
 
-        return CommunicationV0_model(**parameter_dict)
+        return CommunicationV1_model(**parameter_dict)

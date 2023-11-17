@@ -1,13 +1,17 @@
-import gymnasium
 import mesa
 from math import floor
+import numpy as np
+from ray.rllib.algorithms import Algorithm
 
-from ray.rllib.algorithms import Algorithm 
+import gymnasium
+from gymnasium.spaces import Box, Tuple
+from gymnasium.spaces.utils import flatten_space
 
-from envs.communication_v0.agents import Plattform, Worker, Oracle
-from utils import get_random_pos_on_border
+from utils import get_random_pos_on_border, get_relative_pos
+from envs.communication_v1.agents import Oracle, Plattform, Worker 
 
-class CommunicationV0_model(mesa.Model):
+
+class CommunicationV1_model(mesa.Model):
     """
     an oracle outputs information if the agents should step on a particular field. 
     once the oracle says "go" or field_nr or so, the agents get rewarded once on the field
@@ -24,7 +28,13 @@ class CommunicationV0_model(mesa.Model):
 
         self.policy_net = policy_net # not None in inference mode
 
+        self.n_agents = n_agents
+        self.com_range = com_range
+        self.n_tiles_x = n_tiles_x
+        self.n_tiles_y = n_tiles_y
+
         self.max_steps = max_steps
+        self.n_steps = 0 # current number of steps
         self.oracle_burn_in = oracle_burn_in
         self.p_oracle_change = p_oracle_change
 
@@ -37,8 +47,6 @@ class CommunicationV0_model(mesa.Model):
         # grid coordinates, bottom left = (0,0)
         self.grid = mesa.space.MultiGrid(n_tiles_x, n_tiles_y, False)
         self.schedule = mesa.time.BaseScheduler(self)
-        self.possible_agents = []
-        self.agent_name_to_id = {}
 
         # map centerpoint
         y_mid = floor(n_tiles_y / 2)
@@ -52,10 +60,6 @@ class CommunicationV0_model(mesa.Model):
                                 com_range=com_range,
                                 len_trace=len_trace)
             self.schedule.add(new_worker)
-            self.possible_agents.append(new_worker.name)
-            self.agent_name_to_id[new_worker.name] = new_worker.unique_id
-
-            # place workers
             self.grid.place_agent(agent=new_worker, pos=(x_mid, y_mid))
             if agent_placement == "random":
                 self.grid.move_to_empty(agent=new_worker)
@@ -66,9 +70,6 @@ class CommunicationV0_model(mesa.Model):
         self.grid.place_agent(agent=self.oracle, pos=(x_mid, y_mid))
         self.grid.place_agent(agent=self.plattform, pos=get_random_pos_on_border(center=(x_mid, y_mid), dist=plattform_distance))
 
-        # track number of rounds, steps tracked by scheduler
-        self.n_steps = 0
-
         # track reward, max reward is the optimal case
         self.accumulated_reward = 0
         self.last_reward = 0
@@ -76,6 +77,11 @@ class CommunicationV0_model(mesa.Model):
         self.reward_delay = int(floor(plattform_distance / com_range)) + 1
         self.time_to_reward = 0
 
+        # sizes for later processing, must be updated if obs_space change
+        self.agent_obs_size = 6
+        self.adj_matrix_size = self.n_agents ** 2
+        self.obs_space_size = self.n_agents * self.agent_obs_size + self.adj_matrix_size
+        self.agent_action_size = 2
 
     def _next_id(self) -> int:
         """Return the next unique ID for agents, increment current_id"""
@@ -91,28 +97,72 @@ class CommunicationV0_model(mesa.Model):
         """print a string with agent locations"""
         oracle_state = self.oracle.get_state()
         out = f"step {self.n_steps}; o={oracle_state}, "
-        for agent_name in self.possible_agents:
-            agent_id = self.agent_name_to_id[agent_name]
-            agent = self.schedule.agents[agent_id]
-            out += f"{agent_name}: {agent.pos} "
+        for agent in self.schedule.agents:
+            out += f"{agent.name}: {agent.pos} "
         print(out)
+    
+    def get_action_space(self) -> gymnasium.spaces.Space:
+        """action spaces of all agents"""
+        move = Box(-1, 1, shape=(2,), dtype=np.int8) # relative movement in x and y direction
 
-    def get_possible_agents(self) -> [list, dict]:
-        """returns list of scheduled agent names and dict to map names to respective ids"""
-        return self.possible_agents, self.agent_name_to_id
+        return flatten_space(Tuple([move for _ in range(self.n_agents)]))
     
-    def get_action_space(self, agent_id) -> gymnasium.spaces.Space:
-        agent = self.schedule.agents[agent_id]
-        return agent.get_action_space()
-    
-    def get_obs_space(self, agent_id) -> gymnasium.spaces.Space:
-        agent = self.schedule.agents[agent_id]
-        return agent.get_obs_space()
-    
-    def has_policy(self) -> bool:
-        """returns if an action can be sampled from a policy net"""
-        return self.policy_net is not None
+    def get_obs_space(self) -> gymnasium.spaces.Space:
+        """obs space consisting of all agent states + adjacents matrix"""
+        plattform_location = Box(-self.com_range, self.com_range, shape=(2,)) # relative position of plattform
+        oracle_location = Box(-self.com_range, self.com_range, shape=(2,)) # relative position of oracle
+        plattform_occupation = Box(-1, 1, shape=(1,)) # -1 if not visible, else 0/1 if it is occupied
+        oracle_state = Box(-1, 1, shape=(1,)) # -1 if not visible, else what the oracle is saying
+        agent_state = flatten_space(Tuple([plattform_location, oracle_location, plattform_occupation, oracle_state]))
+        all_agent_states = flatten_space(Tuple([agent_state for _ in range(self.n_agents)]))
 
+        adj_matrix = Box(0, 1, shape=(self.n_agents * self.n_agents,), dtype=np.int8)        
+        flat_obs = flatten_space(Tuple([all_agent_states, adj_matrix]))
+
+        print("\n=== obs space ===")
+        print(f"agent_state     : {agent_state}")
+        print(f"adj matrix size : {self.adj_matrix_size}")
+        print(f"total size      : {self.obs_space_size}")
+
+        return flat_obs
+    
+    def get_obs(self) -> dict:
+        """
+        gather information about all agents states and their connectivity.
+        fill the observation in the linear obs_space with the same format as described in get_obs_space
+        """
+        # bugfix, somehow get_obs() get's called before get_obs_space()
+        if not self.obs_space_size:
+            self.obs_space_size = self.get_obs_space().shape[0]
+
+        obs = np.zeros(shape=(self.obs_space_size,))
+        adj_matrix_offset = self.n_agents * self.agent_obs_size
+        for worker in self.schedule.agents:
+            obs_offset = worker.unique_id * self.agent_obs_size 
+            neighbors = self.grid.get_neighbors(worker.pos, moore=True, radius=self.com_range, include_center=True)
+            for n in neighbors:
+                rel_pos = get_relative_pos(worker.pos, n.pos)
+                if type(n) is Plattform:
+                    obs[obs_offset], obs[obs_offset + 1] = rel_pos
+                    obs[obs_offset + 4] = 1 if n.is_occupied() else 0
+                elif type(n) is Oracle:
+                    obs[obs_offset + 2], obs[obs_offset + 3] = rel_pos
+                    obs[obs_offset + 5] = n.get_state()
+                # adj. matrix
+                elif type(n) is Worker and n is not worker:
+                    obs[adj_matrix_offset + n.unique_id * self.n_agents + worker.unique_id] = 1
+                    obs[adj_matrix_offset + worker.unique_id * self.n_agents + n.unique_id] = 1
+
+        return obs
+        
+    def apply_actions(self, actions) -> None:
+        """apply the actions to the indivdual agents"""
+        for i, worker in enumerate(self.schedule.agents):
+            x_old, y_old = worker.pos
+            x_new = max(0, min(self.n_tiles_x - 1, x_old + actions[i * self.agent_action_size]))
+            y_new = max(0, min(self.n_tiles_y - 1, y_old + actions[i * self.agent_action_size + 1]))
+            self.grid.move_agent(worker, (x_new, y_new))
+        
     def finish_round(self) -> [int, bool]:
         """
         finish up a round
@@ -169,24 +219,6 @@ class CommunicationV0_model(mesa.Model):
                     return -1, 0
                 else:
                     return 0, 0
-
-
-    def step_agent(self, agent_id, action) -> None:
-         """applies action to the agent in the environment"""
-         agent = self.schedule.agents[agent_id]
-         agent.step(action=action)
-
-    def observe_agent(self, agent_id) -> dict:
-        """returns the observation of the agent in the current model state"""
-        agent = self.schedule.agents[agent_id]
-        return agent.observe()
-
-    # for running the model in inference mode over the webserver
-    def step(self) -> None:
-        """step once through all agents, used for inference"""
-        self.schedule.step()
-        self.finish_round()
-        self.print_status()
 
     
 

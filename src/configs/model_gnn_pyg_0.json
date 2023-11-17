@@ -1,0 +1,28 @@
+
+{
+    "model": "GNN_PyG_0",
+    "model_config": {
+        "encoding_size": 32,
+        "hidden_state_size": 32,
+
+        "encoder":{
+            "hidden_layers": [],
+            "activation":  "relu"
+        },
+        "aggregator":{
+            "op": "mean"
+        },
+        "f":{
+            "hidden_layers": [64],
+            "activation":  "relu"
+        },
+        "decoder":{
+            "hidden_layers": [],
+            "activation":  "relu"
+        },
+        "value":{
+            "hidden_layers": [],
+            "activation":  "relu"
+        }
+    }
+}

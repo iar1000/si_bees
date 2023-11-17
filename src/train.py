@@ -54,6 +54,7 @@ def run(logging_config: dict,
                 "custom_model_config": model_config["model_config"]}
     nh_size = (2 * env_config["env_config"]["agent_config"]["com_range"] + 1)**2
     model["custom_model_config"]["n_states"] = nh_size + 1 # pass in neighborhood size to calculate per agent space size automatically
+    model["custom_model_config"]["n_agents"] = env_config["env_config"]["agent_config"]["n_agents"]
 
     # set config
     ppo_config = (

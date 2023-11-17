@@ -10,7 +10,6 @@ class CommunicationV0_env(MultiAgentEnv, TaskSettableEnv):
     """
     base environment to learn communication.
     synchronised actions, all alive agents step simulatiniously
-    an oracle outputs information if the agents should step on a particular field. once the oracle says "go" or field_nr or so, the agents get rewarded once on the field
     """
 
     metadata = {

@@ -6,18 +6,21 @@ from ray.rllib.algorithms.ppo import PPOConfig
 
 from configs.utils import load_config_dict
 from envs.communication_v0.environment import CommunicationV0_env
-from models.fully_connected import FullyConnected
-from models.gnn_base import GNN_ComNet
-from envs.communication_v0.callbacks import ReportModelStateCallback
+from envs.communication_v0.models.fully_connected import FullyConnected
+from envs.communication_v0.models.gnn_base import GNN_ComNet
+from callbacks import ReportModelStateCallback
+from envs.communication_v1.environment import CommunicationV1_env
+from envs.communication_v1.models.gnn_base import GNN_PyG_base
+
 
 config_dir = os.path.join("src", "configs") 
-env_config = load_config_dict(os.path.join(config_dir, "env_comv0_1_debug.json"))
+env_config = load_config_dict(os.path.join(config_dir, "env_comv1.json"))
 tune_config = load_config_dict(os.path.join(config_dir, "tune_ppo.json"))
 logging_config = load_config_dict(os.path.join(config_dir, "logging_local.json"))
 
 ray.init(num_cpus=1, local_mode=True)
 
-env = CommunicationV0_env
+env = CommunicationV1_env
 
 # create internal model from config
 fc_config = load_config_dict(os.path.join(config_dir, "model_fc.json")) 
@@ -27,6 +30,11 @@ model_fc = {"custom_model": FullyConnected,
 gnn_config = load_config_dict(os.path.join(config_dir, "model_gnn_comnet.json")) 
 model_gnn = {"custom_model": GNN_ComNet,
         "custom_model_config": gnn_config["model_config"]}
+
+gnn_pyg_config = load_config_dict(os.path.join(config_dir, "model_gnn_pyg_0.json")) 
+model_gnn_pyg = {"custom_model": GNN_PyG_base,
+        "custom_model_config": gnn_pyg_config["model_config"]}
+model_gnn_pyg["custom_model_config"]["n_agents"] = env_config["env_config"]["agent_config"]["n_agents"]
 
 
 ppo_config = (
@@ -40,7 +48,7 @@ ppo_config = (
         lr=0.0005,
         grad_clip=1,
         grad_clip_by="value",
-        model=model_gnn,
+        model=model_gnn_pyg,
         train_batch_size=128, # ts per iteration
         _enable_learner_api=False
     )
