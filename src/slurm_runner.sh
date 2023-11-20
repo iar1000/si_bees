@@ -1,5 +1,11 @@
 #!/bin/bash
 
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=40
+#SBATCH --gres=gpu:0
+#SBATCH --exclude=tikgpu[01-10]
+#SBATCH --time=1-00:00:00
+
 ETH_USERNAME=kpius
 PROJECT_NAME=si_bees
 DIRECTORY=/itet-stor/${ETH_USERNAME}/net_scratch/${PROJECT_NAME}
