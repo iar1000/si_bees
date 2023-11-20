@@ -1,5 +1,5 @@
 {
-    "task_name": "communication_v1_in-out",
+    "task_name": "comV1",
     
     "env_config": {
         "render_mode": "silent",
@@ -31,7 +31,7 @@
                 "model_params": {
                     "agent_placement": "random",
                     "platform_placement": "random",
-                    "platform_distance": 5,
+                    "platform_distance": 3,
                     "oracle_burn_in": 5,
                     "p_oracle_change": 0.05,
                     "n_tiles_x": 11,
@@ -39,6 +39,18 @@
                 }
             },
             "2": {
+                "description": "find_plattform",
+                "model_params": {
+                    "agent_placement": "random",
+                    "platform_placement": "random",
+                    "platform_distance": 5,
+                    "oracle_burn_in": 5,
+                    "p_oracle_change": 0.05,
+                    "n_tiles_x": 11,
+                    "n_tiles_y": 11
+                }
+            },
+            "3": {
                 "description": "find_plattform_2",
                 "model_params": {
                     "agent_placement": "random",

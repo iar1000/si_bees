@@ -5,12 +5,11 @@ from ray import air, tune
 from ray.rllib.algorithms.ppo import PPOConfig
 
 from configs.utils import load_config_dict
-from envs.communication_v0.environment import CommunicationV0_env
 from envs.communication_v0.models.fully_connected import FullyConnected
 from envs.communication_v0.models.gnn_base import GNN_ComNet
 from callbacks import ReportModelStateCallback
 from envs.communication_v1.environment import CommunicationV1_env
-from envs.communication_v1.models.gnn_base import GNN_PyG
+from envs.communication_v1.models.pyg import GNN_PyG
 
 
 config_dir = os.path.join("src", "configs") 

@@ -25,12 +25,13 @@ class GNN_PyG(TorchModelV2, Module):
         Module.__init__(self)
 
         # custom parameters are passed via the model_config dict from ray
-        self.config = self.model_config
         self.custom_config = self.model_config["custom_model_config"]
+        self.gnn_config = self.custom_config["gnn_config"]
+        self.critic_config = self.custom_config["critic_config"]
+        self.n_agents = self.custom_config["n_agents"]
 
         self.num_inputs = flatdim(obs_space)
         self.num_outputs = num_outputs
-        self.n_agents = self.custom_config["n_agents"]
         self.agent_state_size = int((self.num_inputs - self.n_agents**2) / self.n_agents)
         
         self._gnn = self._build_gnn()
@@ -96,27 +97,28 @@ class GNN_PyG(TorchModelV2, Module):
         ins = self.agent_state_size
         outs = int(self.num_outputs/ self.n_agents)
 
-        if self.custom_config["model"] == "PyG_GIN":
+        if self.gnn_config["model"] == "PyG_GIN":
             layers = list()
             prev_layer_size = ins
-            for curr_layer_size in self.custom_config["model_config"]["hiddens"]:
+            for curr_layer_size in [self.gnn_config["size_hidden"] for _ in range(self.gnn_config["num_hidden_layers"])]:
                 layers.append(SlimFC(in_size=prev_layer_size, out_size=curr_layer_size, activation_fn="relu"))           
                 prev_layer_size = curr_layer_size
             layers.append(SlimFC(in_size=prev_layer_size, out_size=outs))
             return GINConv(Sequential(*layers))
-        elif self.custom_config["model"] == "PyG_GCN":
+        elif self.gnn_config["model"] == "PyG_GCN":
             return GCNConv(ins, outs)
-        elif self.custom_config["model"] == "PyG_GAT":
-            return GATConv(ins, outs, heads=self.custom_config["model_config"]["heads"], concat=False, dropout=self.custom_config["model_config"]["dropout"])
+        elif self.gnn_config["model"] == "PyG_GAT":
+            return GATConv(ins, outs, heads=self.gnn_config["heads"], concat=False, dropout=self.gnn_config["dropout"])
     
     def _build_critic(self):
         """
         builds the model that is used to compute the value of a step
         """
-        if self.custom_config["critic"] == "fc":
+        # fully connected critic that takes the whole observation as input and outputs value
+        if self.critic_config["model"] == "fc":
             layers = list()
             prev_layer_size = self.num_inputs
-            for curr_layer_size in self.custom_config["critic_config"]["hiddens"]:
+            for curr_layer_size in [self.critic_config["size_hidden"] for _ in range(self.critic_config["num_hidden_layers"])]:
                 layers.append(SlimFC(in_size=prev_layer_size, out_size=curr_layer_size, activation_fn="relu"))           
                 prev_layer_size = curr_layer_size
             layers.append(SlimFC(in_size=prev_layer_size, out_size=1))

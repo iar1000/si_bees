@@ -19,7 +19,8 @@ echo "SLURM_JOB_ID:    ${SLURM_JOB_ID}"
 
 # user argumetns
 ENV_CONFIG="env_comv0.json"
-MODEL_CONFIG="model_fc.json"
+MODEL_CONFIG="model_pyg_gcn.json"
+CRITIC_CONFIG="model_fc.json"
 
 # check for user flags
 while [[ $# -gt 0 ]]; do
@@ -42,6 +43,15 @@ while [[ $# -gt 0 ]]; do
         exit 1
       fi
       ;;
+    -critic_config)
+      if [[ -n $2 ]]; then
+        CRITIC_CONFIG=$2
+        shift 2
+      else
+        echo "Error: Missing value for -critic_config flag."
+        exit 1
+      fi
+      ;;
     *)
       shift
       ;;
@@ -51,8 +61,8 @@ done
 echo ""
 echo "--- USER ARGUMENTS ---"
 echo "ENV_CONFIG:       $ENV_CONFIG"
-echo "ENV_CONFIG:       $MODEL_CONFIG"
-
+echo "MODEL_CONFIG:     $MODEL_CONFIG"
+echo "CRITIC_CONFIG:    $CRITIC_CONFIG"
 
 # Set a directory for temporary files unique to the job with automatic removal at job termination
 TMPDIR=$(mktemp -d)
@@ -78,7 +88,7 @@ cd ${DIRECTORY}
 
 # Binary or script to execute
 echo "-> run train.py from directory $(pwd)"
-python /itet-stor/kpius/net_scratch/si_bees/src/train.py --location "cluster" --env_config $ENV_CONFIG --model_config $MODEL_CONFIG
+python /itet-stor/kpius/net_scratch/si_bees/src/train.py --location "cluster" --env_config $ENV_CONFIG --model_config $MODEL_CONFIG --critic_config $CRITIC_CONFIG
 
 # Send more noteworthy information to the output log
 echo "Finished at:     $(date)"

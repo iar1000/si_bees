@@ -1,6 +1,6 @@
 
 {
-    "model": "fc",
+    "model": "PyG_GIN",
     "num_hidden_layers": {
         "min": 0,
         "max": 4
