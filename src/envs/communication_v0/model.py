@@ -4,7 +4,7 @@ from math import floor
 
 from ray.rllib.algorithms import Algorithm 
 
-from envs.communication_v0.agents import Plattform, Worker, Oracle
+from envs.communication_v0.agents import platform, Worker, Oracle
 from utils import get_random_pos_on_border
 
 class CommunicationV0_model(mesa.Model):
@@ -16,7 +16,7 @@ class CommunicationV0_model(mesa.Model):
     def __init__(self,
                  max_steps: int,
                  n_agents: int, agent_placement: str,
-                 plattform_distance: int, oracle_burn_in: int, p_oracle_change: float,
+                 platform_distance: int, oracle_burn_in: int, p_oracle_change: float,
                  n_tiles_x: int, n_tiles_y: int,
                  size_com_vec: int, com_range: int, len_trace: int,
                  policy_net: Algorithm = None) -> None:
@@ -31,7 +31,7 @@ class CommunicationV0_model(mesa.Model):
         assert n_agents > 0, "must have a positive number of agents"
         assert agent_placement in ["center", "random"], f"agent placement {agent_placement} unknown"
         assert n_tiles_x > 2 and n_tiles_y > 2, "minimum map size of 3x3 required"
-        assert 0 < plattform_distance, "distance of plattform to oracle must be at least 1"
+        assert 0 < platform_distance, "distance of platform to oracle must be at least 1"
 
         # create model
         # grid coordinates, bottom left = (0,0)
@@ -43,7 +43,7 @@ class CommunicationV0_model(mesa.Model):
         # map centerpoint
         y_mid = floor(n_tiles_y / 2)
         x_mid = floor(n_tiles_x / 2)
-        assert x_mid >= plattform_distance and y_mid >= plattform_distance, "plattform distance to oracle is too large, placement will be out-of-bounds"
+        assert x_mid >= platform_distance and y_mid >= platform_distance, "platform distance to oracle is too large, placement will be out-of-bounds"
 
         # create workers
         for _ in range(n_agents):
@@ -62,9 +62,9 @@ class CommunicationV0_model(mesa.Model):
 
         # place oracle in the middle and lightswitch around it
         self.oracle = Oracle(self._next_id(), self)
-        self.plattform = Plattform(self._next_id(), self)
+        self.platform = platform(self._next_id(), self)
         self.grid.place_agent(agent=self.oracle, pos=(x_mid, y_mid))
-        self.grid.place_agent(agent=self.plattform, pos=get_random_pos_on_border(center=(x_mid, y_mid), dist=plattform_distance))
+        self.grid.place_agent(agent=self.platform, pos=get_random_pos_on_border(center=(x_mid, y_mid), dist=platform_distance))
 
         # track number of rounds, steps tracked by scheduler
         self.n_steps = 0
@@ -73,7 +73,7 @@ class CommunicationV0_model(mesa.Model):
         self.accumulated_reward = 0
         self.last_reward = 0
         self.max_reward = 0
-        self.reward_delay = int(floor(plattform_distance / com_range)) + 1
+        self.reward_delay = int(floor(platform_distance / com_range)) + 1
         self.time_to_reward = 0
 
 
@@ -147,11 +147,11 @@ class CommunicationV0_model(mesa.Model):
     def compute_reward(self) -> [int, int]:
         """computes the reward based on the current state and the reward that could be achieved in the optimal case"""
         oracle_state = self.oracle.get_state()
-        plattform_occupation = self.plattform.is_occupied()
+        platform_occupation = self.platform.is_occupied()
 
-        # dont go on plattform if oracle is not active
+        # dont go on platform if oracle is not active
         if not self.oracle.is_active():
-            if plattform_occupation == 1:
+            if platform_occupation == 1:
                 return -1, 0
             else:
                 return 0, 0
@@ -160,12 +160,12 @@ class CommunicationV0_model(mesa.Model):
             if self.time_to_reward > 0:
                 return 0, 0
             elif oracle_state == 1:
-                if plattform_occupation == 1:
+                if platform_occupation == 1:
                     return 1, 1
                 else:
                     return -1, 1
             elif oracle_state == 0:
-                if plattform_occupation == 1:
+                if platform_occupation == 1:
                     return -1, 0
                 else:
                     return 0, 0

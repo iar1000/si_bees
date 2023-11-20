@@ -15,10 +15,10 @@
         "curriculum_learning": true,
         "model_configs": {
             "0": {
-                "description": "find_plattform_1",
+                "description": "find_platform_1",
                 "model_params": {
                     "agent_placement": "center",
-                    "plattform_distance": 1,
+                    "platform_distance": 1,
                     "oracle_burn_in": 0,
                     "p_oracle_change": 0.05,
                     "n_tiles_x": 11,
@@ -26,10 +26,10 @@
                 }
             },
             "1": {
-                "description": "find_plattform_2",
+                "description": "find_platform_2",
                 "model_params": {
                     "agent_placement": "center",
-                    "plattform_distance": 2,
+                    "platform_distance": 2,
                     "oracle_burn_in": 5,
                     "p_oracle_change": 0.05,
                     "n_tiles_x": 11,
@@ -37,10 +37,10 @@
                 }
             },
             "2": {
-                "description": "find_plattform_3",
+                "description": "find_platform_3",
                 "model_params": {
                     "agent_placement": "center",
-                    "plattform_distance": 3,
+                    "platform_distance": 3,
                     "oracle_burn_in": 5,
                     "p_oracle_change": 0.05,
                     "n_tiles_x": 11,
@@ -48,10 +48,10 @@
                 }
             },
             "3": {
-                "description": "find_plattform_4",
+                "description": "find_platform_4",
                 "model_params": {
                     "agent_placement": "center",
-                    "plattform_distance": 4,
+                    "platform_distance": 4,
                     "oracle_burn_in": 11,
                     "p_oracle_change": 0.05,
                     "n_tiles_x": 11,
@@ -59,10 +59,10 @@
                 }
             },
             "4": {
-                "description": "find_plattform_5",
+                "description": "find_platform_5",
                 "model_params": {
                     "agent_placement": "center",
-                    "plattform_distance": 5,
+                    "platform_distance": 5,
                     "oracle_burn_in": 11,
                     "p_oracle_change": 0.05,
                     "n_tiles_x": 11,
@@ -73,7 +73,7 @@
                 "description": "solve",
                 "model_params": {
                     "agent_placement": "random",
-                    "plattform_distance": 3,
+                    "platform_distance": 3,
                     "oracle_burn_in": 11,
                     "p_oracle_change": 0.05,
                     "n_tiles_x": 11,
@@ -84,7 +84,7 @@
                 "description": "solve_2",
                 "model_params": {
                     "agent_placement": "random",
-                    "plattform_distance": 5,
+                    "platform_distance": 5,
                     "oracle_burn_in": 11,
                     "p_oracle_change": 0.05,
                     "n_tiles_x": 11,
