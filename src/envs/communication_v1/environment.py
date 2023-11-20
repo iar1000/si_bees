@@ -36,7 +36,7 @@ class CommunicationV1_env(TaskSettableEnv):
         
         print("\n=== env ===")
         print(f"size action_space={flatdim(self.action_space)}")
-        print(f"size obs_space={flatdim(self.observation_space)}")
+        print(f"size obs_space={flatdim(self.observation_space)}\n")
 
     def reset(self, *, seed=None, options=None):
         super().reset(seed=seed)

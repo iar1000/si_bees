@@ -78,7 +78,7 @@ cd ${DIRECTORY}
 
 # Binary or script to execute
 echo "-> run train.py from directory $(pwd)"
-python /itet-stor/kpius/net_scratch/si_bees/src/train.py -location "cluster" -env_config $ENV_CONFIG -model_config $MODEL_CONFIG
+python /itet-stor/kpius/net_scratch/si_bees/src/train.py --location "cluster" --env_config $ENV_CONFIG --model_config $MODEL_CONFIG
 
 # Send more noteworthy information to the output log
 echo "Finished at:     $(date)"
