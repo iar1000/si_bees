@@ -45,7 +45,6 @@ class CommunicationV1_env(TaskSettableEnv):
         return self.model.get_obs(), {}
 
     def step(self, actions):
-        # let model update itself
         self.model.apply_actions(actions)
         reward, is_terminated = self.model.finish_round()
         obs = self.model.get_obs()

@@ -40,12 +40,6 @@ class CommunicationV1_model(mesa.Model):
         self.oracle_burn_in = oracle_burn_in
         self.p_oracle_change = p_oracle_change
 
-        assert n_agents > 0, "must have a positive number of agents"
-        assert agent_placement in ["center", "random"], f"agent placement {agent_placement} unknown"
-        assert n_tiles_x > 2 and n_tiles_y > 2, "minimum map size of 3x3 required"
-        assert 0 < platform_distance, "distance of platform to oracle must be at least 1"
-
-        # create model
         # grid coordinates, bottom left = (0,0)
         self.grid = mesa.space.MultiGrid(n_tiles_x, n_tiles_y, False)
         self.schedule = mesa.time.BaseScheduler(self)
@@ -57,10 +51,7 @@ class CommunicationV1_model(mesa.Model):
 
         # create workers
         for _ in range(n_agents):
-            new_worker = Worker(self._next_id(), self, 
-                                size_com_vec=size_com_vec,
-                                com_range=com_range,
-                                len_trace=len_trace)
+            new_worker = Worker(self._next_id(), self)
             self.schedule.add(new_worker)
             self.grid.place_agent(agent=new_worker, pos=(x_mid, y_mid))
             if agent_placement == "random":
@@ -80,11 +71,12 @@ class CommunicationV1_model(mesa.Model):
         self.reward_delay = int(floor(platform_distance / com_range)) + 1
         self.time_to_reward = 0
 
-        # sizes for later processing, must be updated if obs_space change
-        self.agent_obs_size = 6
+        # observation and action space sizes
+        self.total_obs_size = self.get_obs_space().shape[0]
+        self.total_actions_size = self.get_action_space().shape[0]
         self.adj_matrix_size = self.n_agents ** 2
-        self.obs_space_size = self.n_agents * self.agent_obs_size + self.adj_matrix_size
-        self.agent_action_size = 2
+        self.agent_obs_size = int((self.total_obs_size - self.adj_matrix_size) / self.n_agents)
+        self.agent_action_size = int(self.total_actions_size / self.n_agents)
 
     def _next_id(self) -> int:
         """Return the next unique ID for agents, increment current_id"""
@@ -122,11 +114,6 @@ class CommunicationV1_model(mesa.Model):
         adj_matrix = Box(0, 1, shape=(self.n_agents * self.n_agents,), dtype=np.int8)        
         flat_obs = flatten_space(Tuple([all_agent_states, adj_matrix]))
 
-        print("\n=== obs space ===")
-        print(f"agent_state     : {agent_state}")
-        print(f"adj matrix size : {self.adj_matrix_size}")
-        print(f"total size      : {self.obs_space_size}")
-
         return flat_obs
     
     def get_obs(self) -> dict:
@@ -134,11 +121,7 @@ class CommunicationV1_model(mesa.Model):
         gather information about all agents states and their connectivity.
         fill the observation in the linear obs_space with the same format as described in get_obs_space
         """
-        # bugfix, somehow get_obs() get's called before get_obs_space()
-        if not self.obs_space_size:
-            self.obs_space_size = self.get_obs_space().shape[0]
-
-        obs = np.zeros(shape=(self.obs_space_size,))
+        obs = np.zeros(shape=(self.total_obs_size,))
         adj_matrix_offset = self.n_agents * self.agent_obs_size
         for worker in self.schedule.agents:
             obs_offset = worker.unique_id * self.agent_obs_size 
