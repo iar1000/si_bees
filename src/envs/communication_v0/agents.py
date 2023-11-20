@@ -162,7 +162,7 @@ class Worker(mesa.Agent):
         assert len(self.trace_global_locations) <= self.len_trace, "position history should not be longer than maximum allowed trace length"
 
 
-class Plattform(mesa.Agent):
+class Platform(mesa.Agent):
     """
     plattform that can be stepped on
     """

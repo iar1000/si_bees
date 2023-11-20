@@ -4,7 +4,7 @@ from math import floor
 
 from ray.rllib.algorithms import Algorithm 
 
-from envs.communication_v0.agents import platform, Worker, Oracle
+from envs.communication_v0.agents import Platform, Worker, Oracle
 from utils import get_random_pos_on_border
 
 class CommunicationV0_model(mesa.Model):
@@ -62,7 +62,7 @@ class CommunicationV0_model(mesa.Model):
 
         # place oracle in the middle and lightswitch around it
         self.oracle = Oracle(self._next_id(), self)
-        self.platform = platform(self._next_id(), self)
+        self.platform = Platform(self._next_id(), self)
         self.grid.place_agent(agent=self.oracle, pos=(x_mid, y_mid))
         self.grid.place_agent(agent=self.platform, pos=get_random_pos_on_border(center=(x_mid, y_mid), dist=platform_distance))
 
