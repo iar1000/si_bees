@@ -20,10 +20,7 @@ from envs.communication_v1.models.gnn_base import GNN_PyG
 
 
 # --- todo monday:
-# create parameterisation for pyg  
-# create run integration for pyg
 # test curriculum from last level with comnet model
-# create random placement with max distance curriculum
 # create inference ability for pyg model
 
 def run(logging_config: dict, 

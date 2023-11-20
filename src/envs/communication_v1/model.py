@@ -1,3 +1,4 @@
+import random
 import mesa
 from math import floor
 import numpy as np
@@ -8,7 +9,7 @@ from gymnasium.spaces import Box, Tuple
 from gymnasium.spaces.utils import flatten_space
 
 from utils import get_random_pos_on_border, get_relative_pos
-from envs.communication_v1.agents import Oracle, platform, Worker 
+from envs.communication_v1.agents import Oracle, Platform, Worker 
 
 
 class CommunicationV1_model(mesa.Model):
@@ -23,7 +24,8 @@ class CommunicationV1_model(mesa.Model):
                  platform_distance: int, oracle_burn_in: int, p_oracle_change: float,
                  n_tiles_x: int, n_tiles_y: int,
                  size_com_vec: int, com_range: int, len_trace: int,
-                 policy_net: Algorithm = None) -> None:
+                 policy_net: Algorithm = None,
+                 platform_placement: str = None) -> None:
         super().__init__()
 
         self.policy_net = policy_net # not None in inference mode
@@ -66,10 +68,11 @@ class CommunicationV1_model(mesa.Model):
 
         # place oracle in the middle and lightswitch around it
         self.oracle = Oracle(self._next_id(), self)
-        self.platform = platform(self._next_id(), self)
+        self.platform = Platform(self._next_id(), self)
         self.grid.place_agent(agent=self.oracle, pos=(x_mid, y_mid))
+        platform_distance = platform_distance if platform_placement is None else random.randint(1, platform_distance)
         self.grid.place_agent(agent=self.platform, pos=get_random_pos_on_border(center=(x_mid, y_mid), dist=platform_distance))
-
+        print(f"place plattform at {platform_distance}")
         # track reward, max reward is the optimal case
         self.accumulated_reward = 0
         self.last_reward = 0
@@ -142,7 +145,7 @@ class CommunicationV1_model(mesa.Model):
             neighbors = self.grid.get_neighbors(worker.pos, moore=True, radius=self.com_range, include_center=True)
             for n in neighbors:
                 rel_pos = get_relative_pos(worker.pos, n.pos)
-                if type(n) is platform:
+                if type(n) is Platform:
                     obs[obs_offset], obs[obs_offset + 1] = rel_pos
                     obs[obs_offset + 4] = 1 if n.is_occupied() else 0
                 elif type(n) is Oracle:

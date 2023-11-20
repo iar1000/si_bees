@@ -37,6 +37,18 @@
                     "n_tiles_x": 11,
                     "n_tiles_y": 11
                 }
+            },
+            "2": {
+                "description": "find_plattform_2",
+                "model_params": {
+                    "agent_placement": "random",
+                    "platform_placement": "random",
+                    "platform_distance": 10,
+                    "oracle_burn_in": 10,
+                    "p_oracle_change": 0.05,
+                    "n_tiles_x": 21,
+                    "n_tiles_y": 21
+                }
             }
         }
     }

@@ -37,19 +37,19 @@ class Worker(mesa.Agent):
         
         flag_active: if the state is to be used
         trace: neihbourhood with past positions
-        plattform_location: one_hot encoded location in neighbourhood
-        plattform_occupation: -1 if not visible, else 0/1 if it is occupied
+        platform_location: one_hot encoded location in neighbourhood
+        platform_occupation: -1 if not visible, else 0/1 if it is occupied
         oracle_loaction: one_hot encoded location in neighbourhood
         oracle_state: -1 if not visible, else what the oracle is saying
         """
         # agent state
         flag_active = Box(0, 1, shape=(1,), dtype=np.int8)
         trace = Box(0, 1, shape=(self.nh_size,), dtype=np.int8)
-        plattform_location = Box(0, 1, shape=(self.nh_size,), dtype=np.int8)
-        plattform_occupation = Box(-1, 1, shape=(1,), dtype=np.int8)
+        platform_location = Box(0, 1, shape=(self.nh_size,), dtype=np.int8)
+        platform_occupation = Box(-1, 1, shape=(1,), dtype=np.int8)
         oracle_location = Box(0, 1, shape=(self.nh_size,), dtype=np.int8)
         oracle_state = Box(-1, 1, shape=(1,), dtype=np.int8)
-        agent_state_obs_space = Tuple([flag_active, trace, plattform_location, plattform_occupation, oracle_location, oracle_state])
+        agent_state_obs_space = Tuple([flag_active, trace, platform_location, platform_occupation, oracle_location, oracle_state])
 
         return Tuple([agent_state_obs_space for _ in range(self.nh_size + 1)])
     
@@ -58,8 +58,8 @@ class Worker(mesa.Agent):
         # observations
         is_active = np.array([1], dtype=np.int8)
         trace = np.zeros(shape=(self.nh_size,), dtype=np.int8)
-        plattform_location = np.zeros(shape=(self.nh_size,), dtype=np.int8)
-        plattform_occupation = np.array([-1], dtype=np.int8)
+        platform_location = np.zeros(shape=(self.nh_size,), dtype=np.int8)
+        platform_occupation = np.array([-1], dtype=np.int8)
         oracle_location = np.zeros(shape=(self.nh_size,), dtype=np.int8)
         oracle_state = np.array([-1], dtype=np.int8)
 
@@ -69,18 +69,18 @@ class Worker(mesa.Agent):
             if relative_moore_to_linear(get_relative_pos(self.pos, p_trace), radius=self.com_range) < self.nh_size:
                 trace[relative_moore_to_linear(get_relative_pos(self.pos, p_trace), radius=self.com_range)] = 1
             
-        # set plattform and oracle observations
+        # set platform and oracle observations
         neighbors = self.model.grid.get_neighbors(self.pos, moore=True, radius=self.com_range, include_center=True)
         for n in neighbors:
             rel_pos = get_relative_pos(self.pos, n.pos)
             if type(n) is Oracle:
                 oracle_location[relative_moore_to_linear(rel_pos, radius=self.com_range)] = 1
                 oracle_state[0] = n.get_state()
-            elif type(n) is Plattform:
-                plattform_location[relative_moore_to_linear(rel_pos, radius=self.com_range)] = 1
-                plattform_occupation[0] = 1 if n.is_occupied() else 0
+            elif type(n) is Platform:
+                platform_location[relative_moore_to_linear(rel_pos, radius=self.com_range)] = 1
+                platform_occupation[0] = 1 if n.is_occupied() else 0
 
-        return tuple([is_active, trace, plattform_location, plattform_occupation, oracle_location, oracle_state])
+        return tuple([is_active, trace, platform_location, platform_occupation, oracle_location, oracle_state])
 
     def observe(self) -> tuple:
         """get observation in the form of get_obs_space()"""
@@ -164,21 +164,21 @@ class Worker(mesa.Agent):
 
 class Platform(mesa.Agent):
     """
-    plattform that can be stepped on
+    platform that can be stepped on
     """
     def __init__(self, unique_id: int, model: mesa.Model):
         super().__init__(unique_id, model)
-        self.name = f"plattform_{unique_id}"
+        self.name = f"platform_{unique_id}"
 
     def is_occupied(self) -> bool:
         nbs = self.model.grid.get_neighbors(self.pos, moore=True, include_center=True, radius=0)
-        nbs = [nb for nb in nbs if type(nb) is not Plattform]
+        nbs = [nb for nb in nbs if type(nb) is not Platform]
         return len(nbs) > 0
 
 
 class Oracle(mesa.Agent):
     """
-    oracle that displays which plattform to step on
+    oracle that displays which platform to step on
     """
     def __init__(self, unique_id: int, model: mesa.Model, 
                  is_active: bool = False, 
