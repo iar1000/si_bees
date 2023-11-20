@@ -6,9 +6,7 @@ class Worker(mesa.Agent):
     """
     workers that can walk around, communicate with each other
     """
-    def __init__(self, unique_id: int, model: mesa.Model,
-                 size_com_vec: int = 8, com_range: int = 4,
-                 len_trace: int = 1):
+    def __init__(self, unique_id: int, model: mesa.Model):
         super().__init__(unique_id, model)
         self.name = f"worker_{unique_id}"
 

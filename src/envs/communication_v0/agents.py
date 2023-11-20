@@ -1,10 +1,7 @@
-import gymnasium
-from gymnasium.spaces import Discrete, Box, Tuple, Dict
-from gymnasium.spaces.utils import flatten_space, flatdim
-
-import numpy as np
 import mesa
-from typing import List
+import numpy as np
+import gymnasium
+from gymnasium.spaces import Discrete, Box, Tuple
 
 from utils import get_relative_pos, relative_moore_to_linear
     

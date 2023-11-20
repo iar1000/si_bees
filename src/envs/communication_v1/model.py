@@ -72,7 +72,7 @@ class CommunicationV1_model(mesa.Model):
         self.grid.place_agent(agent=self.oracle, pos=(x_mid, y_mid))
         platform_distance = platform_distance if platform_placement is None else random.randint(1, platform_distance)
         self.grid.place_agent(agent=self.platform, pos=get_random_pos_on_border(center=(x_mid, y_mid), dist=platform_distance))
-        print(f"place plattform at {platform_distance}")
+
         # track reward, max reward is the optimal case
         self.accumulated_reward = 0
         self.last_reward = 0
