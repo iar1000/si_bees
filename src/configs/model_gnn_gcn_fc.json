@@ -1,0 +1,11 @@
+
+{
+    "model": "PyG_GCN",
+    "model_config": {
+    },
+    
+    "critic": "fc",
+    "critic_config": {
+        "hiddens": [64]
+    }
+}

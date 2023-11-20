@@ -9,14 +9,22 @@ from ray.air.integrations.wandb import WandbLoggerCallback
 from ray.rllib.utils.from_config import NotProvided
 from datetime import datetime
 
-from envs.communication_v0.environment import CommunicationV0_env 
-
-from envs.communication_v0.models.fully_connected import FullyConnected
-from envs.communication_v0.models.gnn_base import GNN_ComNet
 from configs.utils import load_config_dict
 from callbacks import ReportModelStateCallback
 from curriculum import curriculum_fn
+from envs.communication_v0.environment import CommunicationV0_env 
+from envs.communication_v0.models.fully_connected import FullyConnected
+from envs.communication_v0.models.gnn_base import GNN_ComNet
+from envs.communication_v1.environment import CommunicationV1_env
+from envs.communication_v1.models.gnn_base import GNN_PyG
 
+
+# --- todo monday:
+# create parameterisation for pyg  
+# create run integration for pyg
+# test curriculum from last level with comnet model
+# create random placement with max distance curriculum
+# create inference ability for pyg model
 
 def run(logging_config: dict, 
         model_config: dict,
@@ -41,17 +49,21 @@ def run(logging_config: dict,
     min_checkpoint_frequency = int(checkpoint_every_n_timesteps/max_training_batch_size)
     print(f"checkpointing schedule every {min_checkpoint_frequency} iterations")
 
-    # set task environment
-    env = CommunicationV0_env
-    
     # create internal model from config
     model = {}
     if model_config["model"] == "FullyConnected":
+        env = CommunicationV0_env
         model = {"custom_model": FullyConnected,
                 "custom_model_config": model_config["model_config"]}
     elif model_config["model"] == "GNN_ComNet":
+        env = CommunicationV0_env
         model = {"custom_model": GNN_ComNet,
                 "custom_model_config": model_config["model_config"]}
+    elif "PyG" in model_config["model"]:
+        env = CommunicationV1_env
+        model = {"custom_model": GNN_PyG,
+                "custom_model_config": model_config}
+        
     nh_size = (2 * env_config["env_config"]["agent_config"]["com_range"] + 1)**2
     model["custom_model_config"]["n_states"] = nh_size + 1 # pass in neighborhood size to calculate per agent space size automatically
     model["custom_model_config"]["n_agents"] = env_config["env_config"]["agent_config"]["n_agents"]
@@ -131,11 +143,11 @@ def run(logging_config: dict,
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='script to setup hyperparameter tuning')
-    parser.add_argument('-location', default="local", choices=['cluster', 'local'], help='execution location, setting depending variables')
-    parser.add_argument('-logging_config', default=None, help="path to the logging config json, defaults to *_local or cluster, depending on location")
-    parser.add_argument('-model_config', default="model_fc.json", help="path to the NN model config")
-    parser.add_argument('-env_config', default="env_comv0.json", help="path to task/ env config")
-    parser.add_argument('-tune_config', default="tune_ppo.json", help="path to tune config")
+    parser.add_argument('--location', default="local", choices=['cluster', 'local'], help='execution location, setting depending variables')
+    parser.add_argument('--logging_config', default=None, help="path to the logging config json, defaults to *_local or cluster, depending on location")
+    parser.add_argument('--model_config', default="model_fc.json", help="path to the NN model config")
+    parser.add_argument('--env_config', default="env_comv0.json", help="path to task/ env config")
+    parser.add_argument('--tune_config', default="tune_ppo.json", help="path to tune config")
 
     args = parser.parse_args()
 

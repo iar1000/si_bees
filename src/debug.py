@@ -10,7 +10,7 @@ from envs.communication_v0.models.fully_connected import FullyConnected
 from envs.communication_v0.models.gnn_base import GNN_ComNet
 from callbacks import ReportModelStateCallback
 from envs.communication_v1.environment import CommunicationV1_env
-from envs.communication_v1.models.gnn_base import GNN_PyG_base
+from envs.communication_v1.models.gnn_base import GNN_PyG
 
 
 config_dir = os.path.join("src", "configs") 
@@ -31,9 +31,9 @@ gnn_config = load_config_dict(os.path.join(config_dir, "model_gnn_comnet.json"))
 model_gnn = {"custom_model": GNN_ComNet,
         "custom_model_config": gnn_config["model_config"]}
 
-gnn_pyg_config = load_config_dict(os.path.join(config_dir, "model_gnn_pyg_0.json")) 
-model_gnn_pyg = {"custom_model": GNN_PyG_base,
-        "custom_model_config": gnn_pyg_config["model_config"]}
+gnn_pyg_config = load_config_dict(os.path.join(config_dir, "model_gnn_gcn_fc.json")) 
+model_gnn_pyg = {"custom_model": GNN_PyG,
+        "custom_model_config": gnn_pyg_config}
 model_gnn_pyg["custom_model_config"]["n_agents"] = env_config["env_config"]["agent_config"]["n_agents"]
 
 

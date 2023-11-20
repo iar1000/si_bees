@@ -1,0 +1,13 @@
+
+{
+    "model": "PyG_GAT",
+    "model_config": {
+        "heads": 2,
+        "dropout": 0.1
+    },
+    
+    "critic": "fc",
+    "critic_config": {
+        "hiddens": [64]
+    }
+}
