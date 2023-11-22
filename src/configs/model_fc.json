@@ -1,9 +1,9 @@
 
 {
     "model": "fc",
-    "num_hidden_layers": {
+    "mlp_hiddens": {
         "min": 0,
         "max": 4
     },
-    "size_hidden": [16, 32, 64]
+    "mlp_hiddens_size": [16, 32, 64]
 }

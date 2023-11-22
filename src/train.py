@@ -43,15 +43,19 @@ def run(logging_config: dict,
             else:
                 tunable_config[k] = v
         return tunable_config
+    
+    # set num rounds of actor config to one, as being overriden in a later stage
+    def filter_actor_gnn_tunables(config):
+        config["gnn_num_rounds"] = 1
+        config["gnn_hiddens_size"] = -1
+        return config
 
-    model = {}
+    env = CommunicationV1_env
     tunable_model_config = {}
-    tunable_model_config["actor_config"] = create_tunable_config(actor_config)
+    tunable_model_config["actor_config"] = filter_actor_gnn_tunables(create_tunable_config(actor_config))
     tunable_model_config["critic_config"] = create_tunable_config(critic_config)
-    if "PyG" in actor_config["model"]:
-        env = CommunicationV1_env
-        model = {"custom_model": GNN_PyG,
-                "custom_model_config": tunable_model_config}
+    model = {"custom_model": GNN_PyG,
+            "custom_model_config": tunable_model_config}
     model["custom_model_config"]["n_agents"] = env_config["env_config"]["agent_config"]["n_agents"]
 
     # ppo config

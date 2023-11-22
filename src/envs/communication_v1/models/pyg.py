@@ -2,6 +2,7 @@ from typing import Dict, List
 import torch
 from torch import TensorType
 from torch.nn import Module, Sequential
+from torch_geometric.nn import Sequential as PyG_Sequential, global_mean_pool
 from torch_geometric.nn.conv.gin_conv import GINConv
 from torch_geometric.nn.conv.gcn_conv import GCNConv
 from torch_geometric.nn.conv.gat_conv import GATConv
@@ -26,17 +27,18 @@ class GNN_PyG(TorchModelV2, Module):
 
         # custom parameters are passed via the model_config dict from ray
         self.custom_config = self.model_config["custom_model_config"]
-        self.gnn_config = self.custom_config["gnn_config"]
+        self.actor_config = self.custom_config["actor_config"]
         self.critic_config = self.custom_config["critic_config"]
         self.n_agents = self.custom_config["n_agents"]
 
         self.num_inputs = flatdim(obs_space)
         self.num_outputs = num_outputs
         self.agent_state_size = int((self.num_inputs - self.n_agents**2) / self.n_agents)
+        self.agent_action_size = int(self.num_outputs / self.n_agents)
         
-        self._gnn = self._build_gnn()
-        self._critic = self._build_critic()
         self.last_values = None
+        self._actor = self._build_model(config=self.actor_config)
+        self._critic = self._build_model(config=self.critic_config, is_critic=True)
         
         print("\n=== backend model ===")
         print(f"num_inputes      = {self.num_inputs}")
@@ -45,7 +47,7 @@ class GNN_PyG(TorchModelV2, Module):
         print(f"agent_state_size = {self.agent_state_size}")
         print(f"size adj. mat    = {self.n_agents ** 2}")
         print(f"total obs_space  = {self.num_inputs}")
-        print("gnn: ", self._gnn)
+        print("actor: ", self._actor)
         print("critic: ", self._critic)
         print()
 
@@ -56,7 +58,7 @@ class GNN_PyG(TorchModelV2, Module):
         """
         extract the node info from the flat observation to create an X tensor
         extract the adjacency relations to create the edge_indexes
-        feed it to the _gnn and _critic methods to get the outputs, those methods are implemented by a subclass
+        feed it to the _actor and _critic methods to get the outputs, those methods are implemented by a subclass
 
         note: the construction of the graph is tightly coupled to the format of the obs_space defined in the model class
         """    
@@ -81,8 +83,17 @@ class GNN_PyG(TorchModelV2, Module):
                     tos.append(i % self.n_agents)
             edge_index = torch.tensor([froms, tos], dtype=torch.int64)
 
-            outs.append(torch.flatten(self._gnn(x, edge_index)))
-            values.append(self._critic(sample))
+            # compute actions
+            if self.actor_config["model"] in ["PyG_GIN", "PyG_GCN", "PyG_GAT"]:
+                outs.append(torch.flatten(self._actor(x, edge_index, batch=torch.zeros(x.shape[0],dtype=int))))
+            elif self.actor_config["model"] == "fc":
+                outs.append(torch.flatten(self._actor(sample)))
+           
+            # compute values
+            if self.critic_config["model"] in ["PyG_GIN", "PyG_GCN", "PyG_GAT"]:
+                values.append(torch.flatten(self._critic(x=x, edge_index=edge_index, batch=torch.zeros(x.shape[0],dtype=int))))
+            elif self.critic_config["model"] == "fc":
+                values.append(torch.flatten(self._critic(sample)))
        
         # re-batch outputs
         outs = torch.stack(outs)
@@ -90,36 +101,60 @@ class GNN_PyG(TorchModelV2, Module):
 
         return outs, state
     
-    def _build_gnn(self):
-        """
-        builds the model that is used to compute the node embeddings
-        """
-        ins = self.agent_state_size
-        outs = int(self.num_outputs/ self.n_agents)
-
-        if self.gnn_config["model"] == "PyG_GIN":
+    def _build_gnn(self, config: dict, ins: int, outs: int):
+        """creates one instance of the in the config specified gnn"""
+        if config["model"] == "PyG_GIN":
             layers = list()
             prev_layer_size = ins
-            for curr_layer_size in [self.gnn_config["size_hidden"] for _ in range(self.gnn_config["num_hidden_layers"])]:
+            for curr_layer_size in [config["mlp_hiddens_size"] for _ in range(config["mlp_hiddens"])]:
                 layers.append(SlimFC(in_size=prev_layer_size, out_size=curr_layer_size, activation_fn="relu"))           
                 prev_layer_size = curr_layer_size
             layers.append(SlimFC(in_size=prev_layer_size, out_size=outs))
             return GINConv(Sequential(*layers))
-        elif self.gnn_config["model"] == "PyG_GCN":
+        elif config["model"] == "PyG_GCN":
             return GCNConv(ins, outs)
-        elif self.gnn_config["model"] == "PyG_GAT":
-            return GATConv(ins, outs, heads=self.gnn_config["heads"], concat=False, dropout=self.gnn_config["dropout"])
-    
-    def _build_critic(self):
-        """
-        builds the model that is used to compute the value of a step
-        """
-        # fully connected critic that takes the whole observation as input and outputs value
-        if self.critic_config["model"] == "fc":
+        elif config["model"] == "PyG_GAT":
+            return GATConv(ins, outs, heads=config["heads"], concat=False, dropout=config["dropout"])
+
+    def _build_model(self, config: dict, is_critic = False):
+        """creates an NN model based on the config dict"""
+        assert config["model"] in ["PyG_GIN", "PyG_GCN", "PyG_GAT", "fc"], f"unknown model {config['model']}"
+
+        if "PyG" in config["model"]:
+            # if used as critic, can use multiple message passing rounds, before flatten all agents outputs and connect them to a single output
+            gnn_rounds = list()
+            if is_critic:
+                prev_gnn_layer_size = self.agent_state_size
+                for curr_gnn_layer_size in [config["gnn_hiddens_size"] for _ in range(config["gnn_num_rounds"] - 1)]:
+                    gnn_rounds.append((self._build_gnn(config, prev_gnn_layer_size, curr_gnn_layer_size), 'x, edge_index -> x'))
+                    gnn_rounds.append(torch.nn.ReLU(inplace=True))
+                    prev_gnn_layer_size = curr_gnn_layer_size
+                gnn_rounds.append((self._build_gnn(config, prev_gnn_layer_size, config["gnn_hiddens_size"]), 'x, edge_index -> x'))
+                gnn_rounds.append((global_mean_pool, 'x, batch -> x'))
+                gnn_rounds.append(SlimFC(in_size=config["gnn_hiddens_size"], out_size=1))
+            else:
+                gnn_rounds.append((self._build_gnn(config, self.agent_state_size, self.agent_action_size), 'x, edge_index -> x'))
+
+            return PyG_Sequential('x, edge_index, batch', gnn_rounds)
+
+
+        elif config["model"] == "fc":
+            # fc specific inputs and outputs
+            ins = self.num_inputs
+            outs = self.num_outputs if not is_critic else 32
+            
             layers = list()
-            prev_layer_size = self.num_inputs
-            for curr_layer_size in [self.critic_config["size_hidden"] for _ in range(self.critic_config["num_hidden_layers"])]:
+            prev_layer_size = ins
+            for curr_layer_size in [config["mlp_hiddens_size"] for _ in range(config["mlp_hiddens"])]:
                 layers.append(SlimFC(in_size=prev_layer_size, out_size=curr_layer_size, activation_fn="relu"))           
                 prev_layer_size = curr_layer_size
-            layers.append(SlimFC(in_size=prev_layer_size, out_size=1))
+            layers.append(SlimFC(in_size=prev_layer_size, out_size=outs))
+
+            # if used as critic, flatten all agents outputs and connect them to a single output
+            if is_critic:
+                layers.append(SlimFC(in_size=outs, out_size=1))
+
             return Sequential(*layers)
+        
+        else:
+            raise NotImplementedError(f"unknown model {config['model']}")        
