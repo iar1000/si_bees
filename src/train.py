@@ -17,7 +17,7 @@ from envs.communication_v1.models.pyg import GNN_PyG
 
 
 def run(logging_config: dict, 
-        model_config: dict,
+        actor_config: dict,
         critic_config: dict,
         env_config: dict,
         tune_config: dict):
@@ -25,7 +25,7 @@ def run(logging_config: dict,
 
     ray.init()
     
-    run_name = env_config["task_name"] + "_" + model_config["model"] + "_" + datetime.now().strftime("%Y-%m-%d-%H-%M")
+    run_name = env_config["task_name"] + "_" + actor_config["model"] + "_" + datetime.now().strftime("%Y-%m-%d-%H-%M")
     storage_path = os.path.join(logging_config["storage_path"], run_name)
     train_batch_size = 8192
 
@@ -46,9 +46,9 @@ def run(logging_config: dict,
 
     model = {}
     tunable_model_config = {}
-    tunable_model_config["gnn_config"] = create_tunable_config(model_config)
+    tunable_model_config["actor_config"] = create_tunable_config(actor_config)
     tunable_model_config["critic_config"] = create_tunable_config(critic_config)
-    if "PyG" in model_config["model"]:
+    if "PyG" in actor_config["model"]:
         env = CommunicationV1_env
         model = {"custom_model": GNN_PyG,
                 "custom_model_config": tunable_model_config}
@@ -124,7 +124,7 @@ def run(logging_config: dict,
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='script to setup hyperparameter tuning')
     parser.add_argument('--location', default="local", choices=['cluster', 'local'], help='execution location, setting depending variables')
-    parser.add_argument('--model_config', default=None, help="path to the NN model config")
+    parser.add_argument('--actor_config', default=None, help="path to the NN model config")
     parser.add_argument('--critic_config', default=None, help="path to the critic model config, only for PyG models")
     parser.add_argument('--env_config', default=None, help="path to task/ env config")
     parser.add_argument('--tune_config', default="tune_ppo.json", help="path to tune config")
@@ -133,7 +133,7 @@ if __name__ == '__main__':
 
     # load configs
     config_dir = os.path.join("src", "configs")
-    model_config = load_config_dict(os.path.join(config_dir, args.model_config))
+    actor_config = load_config_dict(os.path.join(config_dir, args.actor_config))
     critic_config = load_config_dict(os.path.join(config_dir, args.critic_config))
     env_config = load_config_dict(os.path.join(config_dir, args.env_config))
     tune_config = load_config_dict(os.path.join(config_dir, args.tune_config))
@@ -151,7 +151,7 @@ if __name__ == '__main__':
     print("\n")
 
     run(logging_config=logging_config,
-        model_config=model_config,
+        actor_config=actor_config,
         critic_config=critic_config,
         env_config=env_config,
         tune_config=tune_config)
