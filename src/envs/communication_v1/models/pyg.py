@@ -45,6 +45,7 @@ class GNN_PyG(TorchModelV2, Module):
         print(f"num_outputs      = {self.num_outputs}")
         print(f"n_agents         = {self.n_agents}")
         print(f"agent_state_size = {self.agent_state_size}")
+        print(f"agent_action_size = {self.agent_action_size}")
         print(f"size adj. mat    = {self.n_agents ** 2}")
         print(f"total obs_space  = {self.num_inputs}")
         print("actor: ", self._actor)

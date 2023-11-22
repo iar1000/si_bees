@@ -31,6 +31,7 @@ class CommunicationV1_model(mesa.Model):
         self.policy_net = policy_net # not None in inference mode
 
         self.n_agents = n_agents
+        self.size_com_vec = size_com_vec
         self.com_range = com_range
         self.n_tiles_x = n_tiles_x
         self.n_tiles_y = n_tiles_y
@@ -51,7 +52,7 @@ class CommunicationV1_model(mesa.Model):
 
         # create workers
         for _ in range(n_agents):
-            new_worker = Worker(self._next_id(), self)
+            new_worker = Worker(self._next_id(), self, comm_vec=np.random.rand(size_com_vec))
             self.schedule.add(new_worker)
             self.grid.place_agent(agent=new_worker, pos=(x_mid, y_mid))
             if agent_placement == "random":
@@ -98,9 +99,11 @@ class CommunicationV1_model(mesa.Model):
     
     def get_action_space(self) -> gymnasium.spaces.Space:
         """action spaces of all agents"""
-        move = Box(-1, 1, shape=(2,), dtype=np.int8) # relative movement in x and y direction
+        move = Box(0, 1, shape=(2,)) # relative movement in x and y direction, 0 - 0.33 = left/down, 0.33 - 0.66 = stay, 0.66 - 1 = right/up
+        comm_vec = Box(0, 1, shape=(self.size_com_vec,)) # communication vector
+        agent_actions = flatten_space(Tuple([move, comm_vec]))
 
-        return flatten_space(Tuple([move for _ in range(self.n_agents)]))
+        return flatten_space(Tuple([agent_actions for _ in range(self.n_agents)]))
     
     def get_obs_space(self) -> gymnasium.spaces.Space:
         """obs space consisting of all agent states + adjacents matrix"""
@@ -108,7 +111,8 @@ class CommunicationV1_model(mesa.Model):
         oracle_location = Box(-self.com_range, self.com_range, shape=(2,)) # relative position of oracle
         platform_occupation = Box(-1, 1, shape=(1,)) # -1 if not visible, else 0/1 if it is occupied
         oracle_state = Box(-1, 1, shape=(1,)) # -1 if not visible, else what the oracle is saying
-        agent_state = flatten_space(Tuple([platform_location, oracle_location, platform_occupation, oracle_state]))
+        comm_vec = Box(0, 1, shape=(self.size_com_vec,)) # communication vector
+        agent_state = flatten_space(Tuple([platform_location, oracle_location, platform_occupation, oracle_state, comm_vec]))
         all_agent_states = flatten_space(Tuple([agent_state for _ in range(self.n_agents)]))
 
         adj_matrix = Box(0, 1, shape=(self.n_agents * self.n_agents,), dtype=np.int8)        
@@ -124,7 +128,10 @@ class CommunicationV1_model(mesa.Model):
         obs = np.zeros(shape=(self.total_obs_size,))
         adj_matrix_offset = self.n_agents * self.agent_obs_size
         for worker in self.schedule.agents:
-            obs_offset = worker.unique_id * self.agent_obs_size 
+            obs_offset = worker.unique_id * self.agent_obs_size
+            # comm vec
+            obs[obs_offset + 6: obs_offset + 6 + self.size_com_vec] = worker.get_comm_vec()
+            # positional data 
             neighbors = self.grid.get_neighbors(worker.pos, moore=True, radius=self.com_range, include_center=True)
             for n in neighbors:
                 rel_pos = get_relative_pos(worker.pos, n.pos)
@@ -143,12 +150,23 @@ class CommunicationV1_model(mesa.Model):
         
     def apply_actions(self, actions) -> None:
         """apply the actions to the indivdual agents"""
+        def _decode_action(a: float) -> int:
+            if a < 0.33:
+                return -1
+            elif a < 0.66:
+                return 0
+            else:
+                return 1
+
         for i, worker in enumerate(self.schedule.agents):
+            # move 
             x_old, y_old = worker.pos
-            x_new = max(0, min(self.n_tiles_x - 1, x_old + actions[i * self.agent_action_size]))
-            y_new = max(0, min(self.n_tiles_y - 1, y_old + actions[i * self.agent_action_size + 1]))
+            x_new = max(0, min(self.n_tiles_x - 1, x_old + _decode_action(actions[i * self.agent_action_size])))
+            y_new = max(0, min(self.n_tiles_y - 1, y_old + _decode_action(actions[i * self.agent_action_size + 1])))
             self.grid.move_agent(worker, (x_new, y_new))
-        
+            # comm vector
+            worker.set_comm_vec(actions[i * self.agent_action_size + 2: i * self.agent_action_size + 2 + self.size_com_vec])
+
     def finish_round(self) -> [int, bool]:
         """
         finish up a round

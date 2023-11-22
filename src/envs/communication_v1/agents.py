@@ -1,14 +1,22 @@
 
 import mesa
+import numpy as np
 
     
 class Worker(mesa.Agent):
     """
     workers that can walk around, communicate with each other
     """
-    def __init__(self, unique_id: int, model: mesa.Model):
+    def __init__(self, unique_id: int, model: mesa.Model, comm_vec: np.array):
         super().__init__(unique_id, model)
         self.name = f"worker_{unique_id}"
+        self.comm_vec = comm_vec
+    
+    def set_comm_vec(self, comm_vec):
+        self.comm_vec = comm_vec
+
+    def get_comm_vec(self):
+        return self.comm_vec
 
 class Platform(mesa.Agent):
     """

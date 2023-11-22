@@ -6,8 +6,8 @@
 
         "agent_config": {
             "n_agents": 5,
-            "size_com_vec": 2,
-            "com_range": 2,
+            "size_com_vec": 6,
+            "com_range": 3,
             "len_trace": 2
         },
         
