@@ -27,6 +27,7 @@ def run(logging_config: dict,
     
     run_name = env_config["task_name"] + "_" + actor_config["model"] + "_" + datetime.now().strftime("%Y-%m-%d-%H-%M")
     storage_path = os.path.join(logging_config["storage_path"], run_name)
+    local_dir = os.path.join(logging_config["storage_path"], "ray_results")
     train_batch_size = 8192
 
     # create internal model from config
@@ -97,6 +98,7 @@ def run(logging_config: dict,
         name=run_name,
         stop={"timesteps_total": tune_config["max_timesteps"]}, # https://docs.ray.io/en/latest/tune/tutorials/tune-metrics.html#tune-autofilled-metrics
         storage_path=storage_path,
+        local_dir=local_dir,
         callbacks=callbacks,
         checkpoint_config=CheckpointConfig(
             checkpoint_frequency=checkpoint_freq,
