@@ -53,14 +53,14 @@ tunable_model_config["critic_config"] = create_tunable_config(critic_config)
 env = CommunicationV1_env
 model = {"custom_model": GNN_PyG,
         "custom_model_config": tunable_model_config}
-model["custom_model_config"]["n_agents"] = env_config["env_config"]["agent_config"]["n_agents"]
+model["custom_model_config"]["n_agents"] = env_config["agent_config"]["n_agents"]
 
 
 ppo_config = (
     PPOConfig()
     .environment(
         env, # @todo: need to build wrapper
-        env_config=env_config["env_config"],
+        env_config=env_config,
         disable_env_checking=True)
     .training(
         gamma=0.1,
