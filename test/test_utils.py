@@ -1,7 +1,9 @@
+import os
 import unittest
 import numpy as np
 
 from src import utils
+from src.configs.utils import load_config_dict
 
 class TestUtils(unittest.TestCase):
 
@@ -32,3 +34,12 @@ class TestUtils(unittest.TestCase):
                 self.assertGreaterEqual(i, 0)
                 worker[i] = 1
             self.assertTrue(np.all(worker == 1))
+
+    def test_create_tunable_dict(self):
+        config_dir = os.path.join("src", "configs", "model_fc.json")
+        config = load_config_dict(config_dir)
+        print(config)
+        tunable_config = utils.create_tunable_config(config)
+        print(tunable_config)
+        filtered_config = utils.filter_actor_gnn_tunables(tunable_config)
+        print(filtered_config)

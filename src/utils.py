@@ -1,5 +1,6 @@
 
 import random
+from ray import tune
 
 def get_relative_pos(p1, p2) -> [int, int]:
     """
@@ -47,3 +48,23 @@ def get_random_pos_on_border(center, dist: int):
 
     return (pos_x, pos_y)
 
+# create internal model from config
+def create_tunable_config(config):
+    tunable_config = {}
+    for k, v in config.items(): 
+        if isinstance(v, dict):
+            if isinstance(v["min"], int) and isinstance(v["max"], int):
+                tunable_config[k] = tune.choice(list(range(v["min"], v["max"] + 1)))
+            else:
+                tunable_config[k] = tune.uniform(v["min"], v["max"])       
+        elif isinstance(v, list):
+            tunable_config[k] = tune.choice(v)
+        else:
+            tunable_config[k] = v
+    return tunable_config
+
+# set num rounds of actor config to one, as being overriden in a later stage
+def filter_actor_gnn_tunables(config):
+    config["gnn_num_rounds"] = 1
+    config["gnn_hiddens_size"] = -1
+    return config

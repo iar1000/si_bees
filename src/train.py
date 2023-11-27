@@ -14,6 +14,7 @@ from callbacks import ReportModelStateCallback
 from curriculum import curriculum_fn
 from envs.communication_v1.environment import CommunicationV1_env
 from envs.communication_v1.models.pyg import GNN_PyG
+from utils import create_tunable_config, filter_actor_gnn_tunables
 
 
 def run(logging_config: dict, 
@@ -29,27 +30,6 @@ def run(logging_config: dict,
     storage_path = os.path.join(logging_config["storage_path"], run_name)
     local_dir = os.path.join(logging_config["storage_path"], "ray_results")
     train_batch_size = 8192
-
-    # create internal model from config
-    def create_tunable_config(config):
-        tunable_config = {}
-        for k, v in config.items(): 
-            if isinstance(v, dict):
-                if isinstance(v["min"], int) and isinstance(v["max"], int):
-                    tunable_config[k] = tune.choice(list(range(v["min"], v["max"] + 1)))
-                else:
-                    tunable_config[k] = tune.uniform(v["min"], v["max"])       
-            elif isinstance(v, list):
-                tunable_config[k] = tune.choice(v)
-            else:
-                tunable_config[k] = v
-        return tunable_config
-    
-    # set num rounds of actor config to one, as being overriden in a later stage
-    def filter_actor_gnn_tunables(config):
-        config["gnn_num_rounds"] = 1
-        config["gnn_hiddens_size"] = -1
-        return config
 
     env = CommunicationV1_env
     tunable_model_config = {}
@@ -130,9 +110,9 @@ def run(logging_config: dict,
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='script to setup hyperparameter tuning')
     parser.add_argument('--location', default="local", choices=['cluster', 'local'], help='execution location, setting depending variables')
-    parser.add_argument('--actor_config', default=None, help="path to the NN model config")
-    parser.add_argument('--critic_config', default=None, help="path to the critic model config, only for PyG models")
-    parser.add_argument('--env_config', default=None, help="path to task/ env config")
+    parser.add_argument('--actor_config', default=None, help="path to the actor model config")
+    parser.add_argument('--critic_config', default=None, help="path to the critic model config")
+    parser.add_argument('--env_config', default=None, help="path to env config")
     parser.add_argument('--tune_config', default="tune_ppo.json", help="path to tune config")
 
     args = parser.parse_args()
