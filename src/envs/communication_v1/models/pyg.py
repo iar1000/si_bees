@@ -69,6 +69,7 @@ class GNN_PyG(TorchModelV2, Module):
         # iterate through the batch
         for sample in input_dict["obs"]:
             # node values
+            sample = sample.float()
             x = []
             for i in range(self.n_agents):
                 x.append(sample[i * self.agent_state_size: (i+1) * self.agent_state_size])

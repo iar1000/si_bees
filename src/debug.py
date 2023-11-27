@@ -10,6 +10,7 @@ from envs.communication_v0.models.gnn_base import GNN_ComNet
 from callbacks import ReportModelStateCallback
 from envs.communication_v1.environment import CommunicationV1_env
 from envs.communication_v1.models.pyg import GNN_PyG
+from utils import create_tunable_config, filter_actor_gnn_tunables
 
 
 config_dir = os.path.join("src", "configs") 
@@ -23,27 +24,6 @@ critic_config = load_config_dict(os.path.join(config_dir, "model_pyg_gin.json"))
 ray.init(num_cpus=1, local_mode=True)
 
 env = CommunicationV1_env
-
-# create internal model from config
-def create_tunable_config(config):
-    tunable_config = {}
-    for k, v in config.items(): 
-        if isinstance(v, dict):
-            if isinstance(v["min"], int) and isinstance(v["max"], int):
-                tunable_config[k] = tune.choice(list(range(v["min"], v["max"] + 1)))
-            else:
-                tunable_config[k] = tune.uniform(v["min"], v["max"])       
-        elif isinstance(v, list):
-            tunable_config[k] = tune.choice(v)
-        else:
-            tunable_config[k] = v
-    return tunable_config
-
-# set num rounds of actor config to one, as being overriden in a later stage
-def filter_actor_gnn_tunables(config):
-    config["gnn_num_rounds"] = 1
-    config["gnn_hiddens_size"] = -1
-    return config
 
 model = {}
 tunable_model_config = {}

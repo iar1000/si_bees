@@ -99,7 +99,7 @@ class CommunicationV1_model(mesa.Model):
     
     def get_action_space(self) -> gymnasium.spaces.Space:
         """action spaces of all agents"""
-        move = Box(0, 1, shape=(2,)) # relative movement in x and y direction, 0 - 0.33 = left/down, 0.33 - 0.66 = stay, 0.66 - 1 = right/up
+        move = Box(-1, 1, shape=(2,), dtype=np.int32) # relative movement in x and y direction, 0 - 0.33 = left/down, 0.33 - 0.66 = stay, 0.66 - 1 = right/up
         comm_vec = Box(0, 1, shape=(self.size_com_vec,)) # communication vector
         agent_actions = flatten_space(Tuple([move]))
 
@@ -107,10 +107,10 @@ class CommunicationV1_model(mesa.Model):
     
     def get_obs_space(self) -> gymnasium.spaces.Space:
         """obs space consisting of all agent states + adjacents matrix"""
-        platform_location = Box(-self.com_range, self.com_range, shape=(2,)) # relative position of platform
-        oracle_location = Box(-self.com_range, self.com_range, shape=(2,)) # relative position of oracle
-        platform_occupation = Box(-1, 1, shape=(1,)) # -1 if not visible, else 0/1 if it is occupied
-        oracle_state = Box(-1, 1, shape=(1,)) # -1 if not visible, else what the oracle is saying
+        platform_location = Box(-self.com_range, self.com_range, shape=(2,), dtype=np.int32) # relative position of platform
+        oracle_location = Box(-self.com_range, self.com_range, shape=(2,), dtype=np.int32) # relative position of oracle
+        platform_occupation = Box(-1, 1, shape=(1,), dtype=np.int32) # -1 if not visible, else 0/1 if it is occupied
+        oracle_state = Box(-1, 1, shape=(1,), dtype=np.int32) # -1 if not visible, else what the oracle is saying
         comm_vec = Box(0, 1, shape=(self.size_com_vec,)) # communication vector
         agent_state = flatten_space(Tuple([platform_location, oracle_location, platform_occupation, oracle_state]))
         all_agent_states = flatten_space(Tuple([agent_state for _ in range(self.n_agents)]))
@@ -125,7 +125,7 @@ class CommunicationV1_model(mesa.Model):
         gather information about all agents states and their connectivity.
         fill the observation in the linear obs_space with the same format as described in get_obs_space
         """
-        obs = np.zeros(shape=(self.total_obs_size,))
+        obs = np.zeros(shape=(self.total_obs_size,), dtype=np.int32)
         adj_matrix_offset = self.n_agents * self.agent_obs_size
         for worker in self.schedule.agents:
             obs_offset = worker.unique_id * self.agent_obs_size
@@ -161,8 +161,8 @@ class CommunicationV1_model(mesa.Model):
         for i, worker in enumerate(self.schedule.agents):
             # move 
             x_old, y_old = worker.pos
-            x_new = max(0, min(self.n_tiles_x - 1, x_old + _decode_action(actions[i * self.agent_action_size])))
-            y_new = max(0, min(self.n_tiles_y - 1, y_old + _decode_action(actions[i * self.agent_action_size + 1])))
+            x_new = max(0, min(self.n_tiles_x - 1, x_old + actions[i * self.agent_action_size]))
+            y_new = max(0, min(self.n_tiles_y - 1, y_old + actions[i * self.agent_action_size + 1]))
             self.grid.move_agent(worker, (x_new, y_new))
             # comm vector
             # worker.set_comm_vec(actions[i * self.agent_action_size + 2: i * self.agent_action_size + 2 + self.size_com_vec])
