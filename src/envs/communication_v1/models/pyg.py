@@ -66,36 +66,45 @@ class GNN_PyG(TorchModelV2, Module):
         outs = []
         values = []
 
+        obss = input_dict["obs"]
+        obss_flat = input_dict["obs_flat"]
+        agent_obss = obss[0]
+        adj_matrix = obss[1]
+
+        batch_size = len(obss_flat)
+        num_agents = len(agent_obss)
+        assert len(adj_matrix[0]) == num_agents ** 2, f"adjacency matrix has wrong size {len(adj_matrix[0])} != {num_agents ** 2}"
+
         # iterate through the batch
-        for sample in input_dict["obs"]:
-            # node values
-            sample = sample.float()
+        for i in range(batch_size):
+            # build node values from agent observations
             x = []
-            for i in range(self.n_agents):
-                x.append(sample[i * self.agent_state_size: (i+1) * self.agent_state_size])
+            for j in range(num_agents):
+                # concatenate all agent observations into a single tensor
+                curr_agent_obs = torch.cat(agent_obss[j], dim=1)
+                x.append(curr_agent_obs[i])
             x = torch.stack(x)
 
-            # edge indexes
+            # build edge index from adjacency matrix
             froms = []
             tos = []
-            adj_matrix_offset = self.n_agents * self.agent_state_size # skip the part of the obs which dedicated to states
-            for i in range(self.n_agents**2):
-                if sample[adj_matrix_offset + i] == 1:
-                    froms.append(i // self.n_agents)
-                    tos.append(i % self.n_agents)
+            for j in range(num_agents**2):
+                if adj_matrix[i][j] == 1:
+                    froms.append(j // num_agents)
+                    tos.append(j % num_agents)
             edge_index = torch.tensor([froms, tos], dtype=torch.int64)
 
             # compute actions
             if self.actor_config["model"] in ["PyG_GIN", "PyG_GCN", "PyG_GAT"]:
                 outs.append(torch.flatten(self._actor(x, edge_index, batch=torch.zeros(x.shape[0],dtype=int))))
             elif self.actor_config["model"] == "fc":
-                outs.append(torch.flatten(self._actor(sample)))
+                outs.append(torch.flatten(self._actor((obss_flat[i]))))
            
             # compute values
             if self.critic_config["model"] in ["PyG_GIN", "PyG_GCN", "PyG_GAT"]:
                 values.append(torch.flatten(self._critic(x=x, edge_index=edge_index, batch=torch.zeros(x.shape[0],dtype=int))))
             elif self.critic_config["model"] == "fc":
-                values.append(torch.flatten(self._critic(sample)))
+                values.append(torch.flatten(self._critic(obss_flat[i])))
        
         # re-batch outputs
         outs = torch.stack(outs)
