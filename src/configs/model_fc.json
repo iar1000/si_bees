@@ -3,7 +3,7 @@
     "model": "fc",
     "mlp_hiddens": {
         "min": 0,
-        "max": 4
+        "max": 2
     },
     "mlp_hiddens_size": [16, 32, 64]
 }

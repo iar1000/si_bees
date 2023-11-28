@@ -9,7 +9,7 @@
 
     "heads": {
         "min": 1,
-        "max": 8
+        "max": 2
     },
     "dropout": {
         "min": 0,

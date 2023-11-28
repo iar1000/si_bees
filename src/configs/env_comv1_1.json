@@ -1,5 +1,5 @@
 {
-    "task_name": "comV1",
+    "task_name": "comV1_1",
     
     "render_mode": "silent",
 
@@ -42,47 +42,35 @@
             "model_params": {
                 "agent_placement": "random",
                 "platform_placement": "random",
-                "platform_distance": 3,
-                "oracle_burn_in": 5,
-                "p_oracle_change": 0.05,
-                "n_tiles_x": 7,
-                "n_tiles_y": 7
-            }
-        },
-        "3": {
-            "description": "find_plattform",
-            "model_params": {
-                "agent_placement": "random",
-                "platform_placement": "random",
-                "platform_distance": 4,
-                "oracle_burn_in": 5,
-                "p_oracle_change": 0.05,
-                "n_tiles_x": 9,
-                "n_tiles_y": 9
-            }
-        },
-        "4": {
-            "description": "find_plattform_2",
-            "model_params": {
-                "agent_placement": "random",
-                "platform_placement": "random",
                 "platform_distance": 5,
-                "oracle_burn_in": 5,
+                "oracle_burn_in": 8,
                 "p_oracle_change": 0.05,
                 "n_tiles_x": 11,
                 "n_tiles_y": 11
             }
         },
-        "5": {
+        "3": {
+            "description": "find_plattform_2",
+            "model_params": {
+                "agent_placement": "random",
+                "platform_placement": "random",
+                "platform_distance": 5,
+                "oracle_burn_in": 10,
+                "p_oracle_change": 0.05,
+                "n_tiles_x": 21,
+                "n_tiles_y": 21
+            }
+        },
+        "4": {
             "description": "find_plattform_3",
             "model_params": {
                 "agent_placement": "random",
                 "platform_placement": "random",
-                "platform_distance": 6,
+                "platform_distance": 10,
                 "oracle_burn_in": 10,
                 "p_oracle_change": 0.05,
-                "n_tiles_x": 13,
-                "n_tiles_y": 13
+                "n_tiles_x": 21,
+                "n_tiles_y": 21
             }
         }
     }
