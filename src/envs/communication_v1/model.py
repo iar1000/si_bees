@@ -23,7 +23,7 @@ class CommunicationV1_model(mesa.Model):
                  n_agents: int, agent_placement: str,
                  platform_distance: int, oracle_burn_in: int, p_oracle_change: float,
                  n_tiles_x: int, n_tiles_y: int,
-                 size_com_vec: int, com_range: int, len_trace: int,
+                 size_hidden_vec: int, com_range: int, len_trace: int,
                  policy_net: Algorithm = None,
                  platform_placement: str = None) -> None:
         super().__init__()
@@ -31,7 +31,7 @@ class CommunicationV1_model(mesa.Model):
         self.policy_net = policy_net # not None in inference mode
 
         self.n_agents = n_agents
-        self.size_com_vec = size_com_vec
+        self.size_hidden_vec = size_hidden_vec
         self.com_range = com_range
         self.n_tiles_x = n_tiles_x
         self.n_tiles_y = n_tiles_y
@@ -52,7 +52,7 @@ class CommunicationV1_model(mesa.Model):
 
         # create workers
         for _ in range(n_agents):
-            new_worker = Worker(self._next_id(), self, comm_vec=np.random.rand(size_com_vec))
+            new_worker = Worker(self._next_id(), self, hidden_vec=np.random.rand(size_hidden_vec))
             self.schedule.add(new_worker)
             self.grid.place_agent(agent=new_worker, pos=(x_mid, y_mid))
             if agent_placement == "random":
@@ -101,7 +101,7 @@ class CommunicationV1_model(mesa.Model):
         """action spaces of all agents"""
         agent_actions = [
             Box(-1, 1, shape=(2,), dtype=np.int32), # move
-            Box(0, 1, shape=(self.size_com_vec,), dtype=np.float32), # communication vector
+            Box(0, 1, shape=(self.size_hidden_vec,), dtype=np.float32), # hidden vector
         ]
         return Tuple([Tuple(agent_actions) for _ in range(self.n_agents)])
     
@@ -112,7 +112,7 @@ class CommunicationV1_model(mesa.Model):
             Box(-self.com_range, self.com_range, shape=(2,), dtype=np.int32), # relative position of oracle
             Box(-1, 1, shape=(1,), dtype=np.int32), # plattform state, -1 if not visible, else occupation
             Box(-1, 1, shape=(1,), dtype=np.int32), # oracle state, -1 if not visible, else what the oracle is saying
-            #Box(0, 1, shape=(self.size_com_vec,), dtype=np.float32) # communication vector
+            Box(0, 1, shape=(self.size_hidden_vec,), dtype=np.float32) # hidden vector
         ]
         all_agent_obss = Tuple([Tuple(agent_obs) for _ in range(self.n_agents)])
 
@@ -133,7 +133,7 @@ class CommunicationV1_model(mesa.Model):
                 np.array([-2000000000, -2000000000], dtype=np.int32), # relative position of oracle,
                 np.array([-1], dtype=np.int32), # plattform state, -1 if not visible, else occupation
                 np.array([-1], dtype=np.int32), # oracle state, -1 if not visible, else what the oracle is saying
-                #np.zeros(shape=(self.size_com_vec,), dtype=np.float32) # communication vector
+                np.zeros(shape=(self.size_hidden_vec,), dtype=np.float32) # hidden vector
             ]
 
             # positional data 
@@ -152,8 +152,8 @@ class CommunicationV1_model(mesa.Model):
                     adj_matrix[worker.unique_id * self.n_agents + n.unique_id] = 1
             agent_obss.append(tuple(agent_obs))
             
-            # comm vec
-            # obs[obs_offset + 6: obs_offset + 6 + self.size_com_vec] = worker.get_comm_vec()
+            # hidden vec
+            agent_obs[4] = worker.get_hidden_vec()
 
         return tuple([tuple(agent_obss), adj_matrix])
         
@@ -163,7 +163,7 @@ class CommunicationV1_model(mesa.Model):
         for i, worker in enumerate(self.schedule.agents):
             # decode actions
             x_action, y_action = actions[i][0]
-            comm_vec = actions[i][1]
+            hidden_vec = actions[i][1]
 
             # move 
             x_old, y_old = worker.pos
@@ -172,7 +172,7 @@ class CommunicationV1_model(mesa.Model):
             self.grid.move_agent(worker, (x_new, y_new))
             
             # comm vector
-            worker.set_comm_vec(comm_vec)
+            worker.set_hidden_vec(hidden_vec)
 
     def finish_round(self) -> [int, bool]:
         """

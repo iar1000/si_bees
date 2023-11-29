@@ -14,7 +14,7 @@ from utils import create_tunable_config, filter_actor_gnn_tunables
 
 
 config_dir = os.path.join("src", "configs") 
-env_config = load_config_dict(os.path.join(config_dir, "env_comv1.json"))
+env_config = load_config_dict(os.path.join(config_dir, "env_comv1_2.json"))
 tune_config = load_config_dict(os.path.join(config_dir, "tune_ppo.json"))
 logging_config = load_config_dict(os.path.join(config_dir, "logging_local.json"))
 
