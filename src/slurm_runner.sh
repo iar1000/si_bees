@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH --nodes=1
-#SBATCH --cpus-per-task=38
+#SBATCH --cpus-per-task=36
 #SBATCH --gres=gpu:0
 #SBATCH --exclude=tikgpu[01-10]
 #SBATCH --time=1-00:00:00
