@@ -14,12 +14,13 @@ from utils import create_tunable_config, filter_actor_gnn_tunables
 
 
 config_dir = os.path.join("src", "configs") 
-env_config = load_config_dict(os.path.join(config_dir, "env_comv1_2.json"))
+env_config = load_config_dict(os.path.join(config_dir, "env_comv1_1.json"))
 tune_config = load_config_dict(os.path.join(config_dir, "tune_ppo.json"))
 logging_config = load_config_dict(os.path.join(config_dir, "logging_local.json"))
 
-actor_config = load_config_dict(os.path.join(config_dir, "model_pyg_gat.json"))
-critic_config = load_config_dict(os.path.join(config_dir, "model_pyg_gin.json"))
+actor_config = load_config_dict(os.path.join(config_dir, "model_GATv2.json"))
+critic_config = load_config_dict(os.path.join(config_dir, "model_fc.json"))
+encoders = load_config_dict(os.path.join(config_dir, "encoders_fc.json"))
 
 ray.init(num_cpus=1, local_mode=True)
 
@@ -29,11 +30,11 @@ model = {}
 tunable_model_config = {}
 tunable_model_config["actor_config"] = filter_actor_gnn_tunables(create_tunable_config(actor_config))
 tunable_model_config["critic_config"] = create_tunable_config(critic_config)
+tunable_model_config["encoders_config"] = create_tunable_config(encoders)
     
 env = CommunicationV1_env
 model = {"custom_model": GNN_PyG,
         "custom_model_config": tunable_model_config}
-model["custom_model_config"]["n_agents"] = env_config["agent_config"]["n_agents"]
 
 
 ppo_config = (

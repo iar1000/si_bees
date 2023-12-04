@@ -5,12 +5,16 @@ import numpy as np
 from ray.rllib.algorithms import Algorithm
 
 import gymnasium
-from gymnasium.spaces import Box, Tuple
+from gymnasium.spaces import Box, Tuple, Discrete
 from gymnasium.spaces.utils import flatdim
 
 from utils import get_random_pos_on_border, get_relative_pos
 from envs.communication_v1.agents import Oracle, Platform, Worker 
 
+MAX_COMMUNICATION_RANGE = 20
+TYPE_ORACLE = 0
+TYPE_PLATFORM = 1
+TYPE_WORKER = 2
 
 class CommunicationV1_model(mesa.Model):
     """
@@ -20,7 +24,7 @@ class CommunicationV1_model(mesa.Model):
 
     def __init__(self,
                  max_steps: int,
-                 n_agents: int, agent_placement: str,
+                 n_workers: int, worker_placement: str,
                  platform_distance: int, oracle_burn_in: int, p_oracle_change: float,
                  n_tiles_x: int, n_tiles_y: int,
                  size_hidden_vec: int, com_range: int, len_trace: int,
@@ -30,12 +34,13 @@ class CommunicationV1_model(mesa.Model):
 
         self.policy_net = policy_net # not None in inference mode
 
-        self.n_agents = n_agents
+        self.n_workers = n_workers
         self.size_hidden_vec = size_hidden_vec
         self.com_range = com_range
         self.n_tiles_x = n_tiles_x
         self.n_tiles_y = n_tiles_y
-
+        assert com_range <= MAX_COMMUNICATION_RANGE, f"communication range is bigger than MAX_COMMUNICATION_RANGE ({MAX_COMMUNICATION_RANGE}), with which the observation space is computed"
+        
         self.max_steps = max_steps
         self.n_steps = 0 # current number of steps
         self.oracle_burn_in = oracle_burn_in
@@ -44,26 +49,32 @@ class CommunicationV1_model(mesa.Model):
         # grid coordinates, bottom left = (0,0)
         self.grid = mesa.space.MultiGrid(n_tiles_x, n_tiles_y, False)
         self.schedule = mesa.time.BaseScheduler(self)
+        self.current_id = 0
 
         # map centerpoint
         y_mid = floor(n_tiles_y / 2)
         x_mid = floor(n_tiles_x / 2)
         assert x_mid >= platform_distance and y_mid >= platform_distance, "platform distance to oracle is too large, placement will be out-of-bounds"
 
+        # place oracle in the middle
+        self.oracle = Oracle(self._next_id(), self)
+        self.grid.place_agent(agent=self.oracle, pos=(x_mid, y_mid))
+        self.schedule.add(self.oracle)
+
+        # place n platforms around it
+        self.n_platforms = 1
+        self.platform = Platform(self._next_id(), self)
+        platform_distance = platform_distance if platform_placement is None else random.randint(1, platform_distance)
+        self.grid.place_agent(agent=self.platform, pos=get_random_pos_on_border(center=(x_mid, y_mid), dist=platform_distance))
+        self.schedule.add(self.platform)
+
         # create workers
-        for _ in range(n_agents):
+        for _ in range(n_workers):
             new_worker = Worker(self._next_id(), self, hidden_vec=np.random.rand(size_hidden_vec))
             self.schedule.add(new_worker)
             self.grid.place_agent(agent=new_worker, pos=(x_mid, y_mid))
-            if agent_placement == "random":
+            if worker_placement == "random":
                 self.grid.move_to_empty(agent=new_worker)
-
-        # place oracle in the middle and lightswitch around it
-        self.oracle = Oracle(self._next_id(), self)
-        self.platform = Platform(self._next_id(), self)
-        self.grid.place_agent(agent=self.oracle, pos=(x_mid, y_mid))
-        platform_distance = platform_distance if platform_placement is None else random.randint(1, platform_distance)
-        self.grid.place_agent(agent=self.platform, pos=get_random_pos_on_border(center=(x_mid, y_mid), dist=platform_distance))
 
         # track reward, max reward is the optimal case
         self.accumulated_reward = 0
@@ -73,11 +84,7 @@ class CommunicationV1_model(mesa.Model):
         self.time_to_reward = 0
 
         # observation and action space sizes
-        self.total_obs_size = flatdim(self.get_obs_space())
-        self.total_actions_size = flatdim(self.get_action_space())
-        self.adj_matrix_size = self.n_agents ** 2
-        self.agent_obs_size = int((self.total_obs_size - self.adj_matrix_size) / self.n_agents)
-        self.agent_action_size = int(self.total_actions_size / self.n_agents)
+        self.n_total_agents = self.n_workers + self.n_platforms + 1 # workers + platforms + oracle
 
     def _next_id(self) -> int:
         """Return the next unique ID for agents, increment current_id"""
@@ -98,69 +105,67 @@ class CommunicationV1_model(mesa.Model):
         print(out)
     
     def get_action_space(self) -> gymnasium.spaces.Space:
-        """action spaces of all agents"""
+        """
+        tuple of action spaces for all workers
+        oracle and platform don't get actions or are set manually
+        """
         agent_actions = [
             Box(-1, 1, shape=(2,), dtype=np.int32), # move
             Box(0, 1, shape=(self.size_hidden_vec,), dtype=np.float32), # hidden vector
         ]
-        return Tuple([Tuple(agent_actions) for _ in range(self.n_agents)])
+        return Tuple([Tuple(agent_actions) for _ in range(self.n_workers)])
     
     def get_obs_space(self) -> gymnasium.spaces.Space:
-        """obs space consisting of all agent states + adjacents matrix"""
-        agent_obs = [
-            Box(-self.com_range, self.com_range, shape=(2,), dtype=np.int32), # relative position of platform
-            Box(-self.com_range, self.com_range, shape=(2,), dtype=np.int32), # relative position of oracle
-            Box(-1, 1, shape=(1,), dtype=np.int32), # plattform state, -1 if not visible, else occupation
-            Box(-1, 1, shape=(1,), dtype=np.int32), # oracle state, -1 if not visible, else what the oracle is saying
+        """
+        obs space consisting of all agent states + adjacents matrix with edge attributes
+        keep it as list to keep flexibility in adding/removing attributes
+        """
+        agent_state = [
+            Discrete(3), # agent type
             Box(0, 1, shape=(self.size_hidden_vec,), dtype=np.float32) # hidden vector
         ]
-        all_agent_obss = Tuple([Tuple(agent_obs) for _ in range(self.n_agents)])
+        agent_states = Tuple([Tuple(agent_state) for _ in range(self.n_total_agents)])
 
-        adj_matrix = Box(0, 1, shape=(self.n_agents * self.n_agents,), dtype=np.int8)        
+        edge_state = [
+            Discrete(2), # exists flag
+            Box(-MAX_COMMUNICATION_RANGE, MAX_COMMUNICATION_RANGE, shape=(2,), dtype=np.int32), # relative position to the given node
+        ]
+        edge_states = Tuple([Tuple(edge_state) for _ in range(self.n_total_agents * self.n_total_agents)])
 
-        return Tuple([all_agent_obss, adj_matrix])
+        return Tuple([agent_states, edge_states])
     
     def get_obs(self) -> dict:
         """
         gather information about all agents states and their connectivity.
         fill the observation in the linear obs_space with the same format as described in get_obs_space
         """
-        agent_obss = []
-        adj_matrix = np.zeros(shape=(self.n_agents * self.n_agents,), dtype=np.int8)
-        for worker in self.schedule.agents:
-            agent_obs = [
-                np.array([-2000000000, -2000000000], dtype=np.int32), # relative position of platform,
-                np.array([-2000000000, -2000000000], dtype=np.int32), # relative position of oracle,
-                np.array([-1], dtype=np.int32), # plattform state, -1 if not visible, else occupation
-                np.array([-1], dtype=np.int32), # oracle state, -1 if not visible, else what the oracle is saying
-                np.zeros(shape=(self.size_hidden_vec,), dtype=np.float32) # hidden vector
-            ]
+        agent_states = [None for _ in range(self.n_total_agents)]
+        edge_states = [tuple([0, np.zeros(shape=(2,), dtype=np.int32)]) for _ in range(self.n_total_agents * self.n_total_agents)]
+        for i, worker in enumerate(self.schedule.agents):
+            # add agent states
+            if type(worker) is Oracle:
+                oracle_state_one_hot = np.zeros(self.size_hidden_vec, dtype=np.float32)
+                oracle_state_one_hot[0] = worker.get_state()
+                agent_states[i] = tuple([TYPE_ORACLE, oracle_state_one_hot])
+            if type(worker) is Platform:
+                platform_occupation = worker.is_occupied()
+                agent_states[i] = tuple([TYPE_PLATFORM, np.array([platform_occupation] * self.size_hidden_vec, dtype=np.float32)])
+            if type(worker) is Worker:
+                agent_states[i] = tuple([TYPE_WORKER, worker.get_hidden_vec()])
 
-            # positional data 
+            # edge states
             neighbors = self.grid.get_neighbors(worker.pos, moore=True, radius=self.com_range, include_center=True)
             for n in neighbors:
                 rel_pos = get_relative_pos(worker.pos, n.pos)
-                if type(n) is Platform:
-                    agent_obs[0][0:2] = rel_pos
-                    agent_obs[2] = np.array([1 if n.is_occupied() else 0], dtype=np.int32)
-                elif type(n) is Oracle:
-                    agent_obs[1][0:2] = rel_pos
-                    agent_obs[3] = np.array([n.get_state()], dtype=np.int32)
-                # adj. matrix
-                elif type(n) is Worker and n is not worker:
-                    adj_matrix[n.unique_id * self.n_agents + worker.unique_id] = 1
-                    adj_matrix[worker.unique_id * self.n_agents + n.unique_id] = 1
-            agent_obss.append(tuple(agent_obs))
-            
-            # hidden vec
-            agent_obs[4] = worker.get_hidden_vec()
-
-        return tuple([tuple(agent_obss), adj_matrix])
+                edge_states[i * self.n_total_agents + n.unique_id] = tuple([1, np.array(rel_pos, dtype=np.int32)])
+        
+        assert all([x is not None for x in agent_states]), "agent states are not complete"
+        return tuple([tuple(agent_states), tuple(edge_states)])
         
     def apply_actions(self, actions) -> None:
         """apply the actions to the indivdual agents"""
 
-        for i, worker in enumerate(self.schedule.agents):
+        for i, worker in enumerate([x for x in self.schedule.agents if type(x) is Worker]):
             # decode actions
             x_action, y_action = actions[i][0]
             hidden_vec = actions[i][1]

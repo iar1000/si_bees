@@ -1,0 +1,3 @@
+actor, critic, gamma, lr, mlp_hiddens, mlp_hiddens_size
+gcn, fc, 0.7438, 0.0005, 1, 16
+

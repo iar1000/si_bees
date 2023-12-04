@@ -65,6 +65,5 @@ def create_tunable_config(config):
 
 # set num rounds of actor config to one, as being overriden in a later stage
 def filter_actor_gnn_tunables(config):
-    config["gnn_num_rounds"] = 1
-    config["gnn_hiddens_size"] = -1
+    config["critic_rounds"] = 1
     return config

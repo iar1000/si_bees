@@ -20,6 +20,7 @@ from utils import create_tunable_config, filter_actor_gnn_tunables
 def run(logging_config: dict, 
         actor_config: dict,
         critic_config: dict,
+        encoders_config: dict,
         env_config: dict,
         tune_config: dict):
     """starts a run with the given configurations"""
@@ -35,9 +36,9 @@ def run(logging_config: dict,
     tunable_model_config = {}
     tunable_model_config["actor_config"] = filter_actor_gnn_tunables(create_tunable_config(actor_config))
     tunable_model_config["critic_config"] = create_tunable_config(critic_config)
+    tunable_model_config["encoders_config"] = create_tunable_config(encoders_config)
     model = {"custom_model": GNN_PyG,
             "custom_model_config": tunable_model_config}
-    model["custom_model_config"]["n_agents"] = env_config["agent_config"]["n_agents"]
 
     # ppo config
     ppo_config = (
@@ -112,6 +113,7 @@ if __name__ == '__main__':
     parser.add_argument('--location', default="local", choices=['cluster', 'local'], help='execution location, setting depending variables')
     parser.add_argument('--actor_config', default=None, help="path to the actor model config")
     parser.add_argument('--critic_config', default=None, help="path to the critic model config")
+    parser.add_argument('--encoders_config', default=None, help="path to the encoders config")
     parser.add_argument('--env_config', default=None, help="path to env config")
     parser.add_argument('--tune_config', default="tune_ppo.json", help="path to tune config")
 
@@ -121,6 +123,7 @@ if __name__ == '__main__':
     config_dir = os.path.join("src", "configs")
     actor_config = load_config_dict(os.path.join(config_dir, args.actor_config))
     critic_config = load_config_dict(os.path.join(config_dir, args.critic_config))
+    encoders_config = load_config_dict(os.path.join(config_dir, args.encoders_config))
     env_config = load_config_dict(os.path.join(config_dir, args.env_config))
     tune_config = load_config_dict(os.path.join(config_dir, args.tune_config))
     
@@ -139,6 +142,7 @@ if __name__ == '__main__':
     run(logging_config=logging_config,
         actor_config=actor_config,
         critic_config=critic_config,
+        encoders_config=encoders_config,
         env_config=env_config,
         tune_config=tune_config)
 

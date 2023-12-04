@@ -1,0 +1,13 @@
+
+{
+    "model": "GATv2Conv",
+    "critic_rounds": {
+        "min": 1,
+        "max": 4
+    },
+
+    "dropout": {
+        "min": 0,
+        "max": 0.1
+    }
+}

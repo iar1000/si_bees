@@ -1,11 +1,10 @@
 
 {
-    "model": "PyG_GIN",
-    "gnn_num_rounds": {
+    "model": "GINEConv",
+    "critic_rounds": {
         "min": 1,
         "max": 4
     },
-    "gnn_hiddens_size": [16, 32, 64],
 
     "mlp_hiddens": {
         "min": 0,
