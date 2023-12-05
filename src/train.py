@@ -27,7 +27,8 @@ def run(logging_config: dict,
 
     ray.init()
     
-    run_name = env_config["task_name"] + "_" + actor_config["model"] + "_" + datetime.now().strftime("%Y-%m-%d-%H-%M")
+    group_name = f"a-{actor_config['model']}_c-{critic_config['model']}_e-{encoders_config['model']}"
+    run_name = f"{group_name}_{datetime.now().strftime('%Y%m%d%H%M-%S')}"
     storage_path = os.path.join(logging_config["storage_path"], run_name)
     local_dir = os.path.join(logging_config["storage_path"], "ray_results")
     train_batch_size = 8192
@@ -69,7 +70,7 @@ def run(logging_config: dict,
                             project=logging_config["project"],
                             group=run_name,
                             api_key_file=logging_config["api_key_file"],
-                            log_config=logging_config["log_config"],
+                            log_config=True,
     ))
         
     # run and checkpoint config
@@ -82,6 +83,7 @@ def run(logging_config: dict,
         local_dir=local_dir,
         callbacks=callbacks,
         checkpoint_config=CheckpointConfig(
+            checkpoint_score_attribute="custom_metrics/curr_learning_score_mean",
             checkpoint_frequency=checkpoint_freq,
             checkpoint_at_end=True),
     )
