@@ -54,7 +54,7 @@ def run(logging_config: dict,
             grad_clip=1,
             grad_clip_by="value",
             model=model,
-            train_batch_size=tune.choice([256, 512, 1024]),
+            train_batch_size=tune.choice([128, 256, 512, 1024]),
             _enable_learner_api=False
         )
         .rl_module(_enable_rl_module_api=False)
