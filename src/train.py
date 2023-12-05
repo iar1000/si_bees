@@ -27,11 +27,10 @@ def run(logging_config: dict,
 
     ray.init()
     
-    group_name = f"a-{actor_config['model']}_c-{critic_config['model']}_e-{encoders_config['model']}"
+    group_name = f"a-{actor_config['model']}_c-{critic_config['model']}_e-{encoders_config['edge_encoder']}"
     run_name = f"{group_name}_{datetime.now().strftime('%Y%m%d%H%M-%S')}"
-    storage_path = os.path.join(logging_config["storage_path"], run_name)
+    storage_path = os.path.join(logging_config["storage_path"])
     local_dir = os.path.join(logging_config["storage_path"], "ray_results")
-    train_batch_size = 8192
 
     env = CommunicationV1_env
     tunable_model_config = {}
@@ -55,7 +54,7 @@ def run(logging_config: dict,
             grad_clip=1,
             grad_clip_by="value",
             model=model,
-            train_batch_size=train_batch_size,
+            train_batch_size=tune.choice([256, 512, 1024]),
             _enable_learner_api=False
         )
         .rl_module(_enable_rl_module_api=False)
@@ -74,8 +73,6 @@ def run(logging_config: dict,
     ))
         
     # run and checkpoint config
-    checkpoint_every_n_timesteps = tune_config["checkpoint_every_n_timesteps"]
-    checkpoint_freq = int(checkpoint_every_n_timesteps/train_batch_size)
     run_config = air.RunConfig(
         name=run_name,
         stop={"timesteps_total": tune_config["max_timesteps"]}, # https://docs.ray.io/en/latest/tune/tutorials/tune-metrics.html#tune-autofilled-metrics
@@ -84,7 +81,8 @@ def run(logging_config: dict,
         callbacks=callbacks,
         checkpoint_config=CheckpointConfig(
             checkpoint_score_attribute="custom_metrics/curr_learning_score_mean",
-            checkpoint_frequency=checkpoint_freq,
+            num_to_keep=10,
+            checkpoint_frequency=200,
             checkpoint_at_end=True),
     )
 

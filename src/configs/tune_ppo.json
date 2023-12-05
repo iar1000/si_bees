@@ -1,6 +1,5 @@
 {
     "num_samples": 10000,
-    "checkpoint_every_n_timesteps": 200000,
     "min_timesteps": 50000,
     "max_timesteps": 10000000
 }
