@@ -28,11 +28,9 @@ class CommunicationV1_model(mesa.Model):
                  platform_distance: int, oracle_burn_in: int, p_oracle_change: float,
                  n_tiles_x: int, n_tiles_y: int,
                  size_hidden_vec: int, com_range: int, len_trace: int,
-                 policy_net: Algorithm = None,
-                 platform_placement: str = None) -> None:
+                 platform_placement: str = None,
+                 policy_net: Algorithm = None, inference_mode: bool = False) -> None:
         super().__init__()
-
-        self.policy_net = policy_net # not None in inference mode
 
         self.n_workers = n_workers
         self.size_hidden_vec = size_hidden_vec
@@ -85,6 +83,17 @@ class CommunicationV1_model(mesa.Model):
 
         # observation and action space sizes
         self.n_total_agents = self.n_workers + self.n_platforms + 1 # workers + platforms + oracle
+
+        # inference mode
+        if inference_mode:
+            self.policy_net = policy_net
+            self.datacollector = mesa.DataCollector(model_reporters={
+                "max_reward": lambda x: self.max_reward,
+                "accumulated_reward": lambda x: self.accumulated_reward,
+                "last_reward": lambda x: self.last_reward,
+                "score": lambda x: max(0, self.accumulated_reward) / self.max_reward * 100 if self.max_reward > 0 else 0,
+                }
+            )
 
     def _next_id(self) -> int:
         """Return the next unique ID for agents, increment current_id"""
@@ -235,6 +244,26 @@ class CommunicationV1_model(mesa.Model):
                     return -1, 0
                 else:
                     return 0, 0
+                
+    
+    def step(self) -> None:
+        """advance the model one step in inference mode"""
+
+        # get actions
+        if self.policy_net is None:
+            actions = self.get_action_space().sample()
+        else:
+            actions = self.policy_net.compute_actions(self.get_obs())
+        
+        # apply actions
+        self.apply_actions(actions)
+        
+        # finish round
+        self.finish_round()
+
+        # collect data
+        self.datacollector.collect(self)
+
 
     
 
