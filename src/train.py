@@ -82,7 +82,7 @@ def run(logging_config: dict,
         checkpoint_config=CheckpointConfig(
             checkpoint_score_attribute="custom_metrics/curr_learning_score_mean",
             num_to_keep=10,
-            checkpoint_frequency=200,
+            checkpoint_frequency=50,
             checkpoint_at_end=True),
     )
 

@@ -1,5 +1,5 @@
 {
     "num_samples": 10000,
-    "min_timesteps": 10000,
+    "min_timesteps": 20000,
     "max_timesteps": 1000000
 }
