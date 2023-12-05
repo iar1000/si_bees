@@ -65,7 +65,8 @@ class GNN_PyG(TorchModelV2, Module):
             edge_dim=self.encoding_size)
         self._critic = self._build_critic(
             config=self.critic_config, 
-            ins=self.num_inputs if self.critic_config["model"] == "fc" else self.encoding_size)
+            ins=self.num_inputs if self.critic_config["model"] == "fc" else self.encoding_size,
+            edge_dim=self.encoding_size)
         
         print("\n=== backend model ===")
         print(f"num_agents        = {self.num_agents}")
@@ -91,7 +92,7 @@ class GNN_PyG(TorchModelV2, Module):
         layers.append(SlimFC(in_size=prev_layer_size, out_size=outs))
         return Sequential(*layers)
 
-    def __build_gnn(self, config: dict, ins: int, outs: int, edge_dim: int = None):
+    def __build_gnn(self, config: dict, ins: int, outs: int, edge_dim: int):
         """creates one instance of the in the config specified gnn"""
         if config["model"] == "GATConv":
             return GATConv(ins, outs, dropout=config["dropout"])
@@ -128,7 +129,7 @@ class GNN_PyG(TorchModelV2, Module):
         
         return node_encoder, edge_encoder, encoding_size
 
-    def _build_critic(self, config: dict, ins: int):
+    def _build_critic(self, config: dict, ins: int, edge_dim: int) -> Module:
         """creates an NN model based on the config dict"""
         outs = 1
 
@@ -137,9 +138,9 @@ class GNN_PyG(TorchModelV2, Module):
             # note: hidden_size = encoding_size, because output of one round is used as input for the next round, while shape of edge_attr is not changed 
             gnn_rounds = list()
             for _ in range(config["critic_rounds"] - 1):
-                gnn_rounds.append((self.__build_gnn(config, ins=ins, outs=ins), 'x, edge_index, edge_attr -> x'))                   
+                gnn_rounds.append((self.__build_gnn(config, ins=ins, outs=ins, edge_dim=edge_dim), 'x, edge_index, edge_attr -> x'))                   
                 gnn_rounds.append(torch.nn.ReLU(inplace=True))
-            gnn_rounds.append((self.__build_gnn(config, ins=ins, outs=ins), 'x, edge_index, edge_attr -> x'))                   
+            gnn_rounds.append((self.__build_gnn(config, ins=ins, outs=ins, edge_dim=edge_dim), 'x, edge_index, edge_attr -> x'))                   
             gnn_rounds.append((global_mean_pool, 'x, batch -> x'))
             gnn_rounds.append(SlimFC(in_size=ins, out_size=outs))
 
