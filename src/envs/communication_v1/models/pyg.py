@@ -12,7 +12,7 @@ from ray.rllib.models.torch.misc import SlimFC
 from gymnasium.spaces import Space
 from gymnasium.spaces.utils import flatdim
 
-from envs.communication_v1.model import MAX_COMMUNICATION_RANGE
+from envs.communication_v1.model import MAX_AGENT_DISTANCE
 SUPPORTED_ENCODERS = ["identity", "fc", "sincos"]
 SUPPORTED_ACTORS = ["GATConv", "GATv2Conv", "GINEConv"]
 SUPPORTED_CRITICS = ["fc", "GATConv", "GATv2Conv", "GINEConv"]
@@ -73,11 +73,11 @@ class GNN_PyG(TorchModelV2, Module):
         # build sincos helper for edge encoder
         if self.encoders_config["edge_encoder"] == "sincos":
             self.pos_encoding_size = self.encoding_size // 2 # concat x and y positional encodings, e.g. each pos_encoding only half as big as encoding_size
-            max_sequnce_length = 2 * MAX_COMMUNICATION_RANGE + 1
+            max_sequnce_length = 2 * MAX_AGENT_DISTANCE + 1
             angle_lookup = [1 / (10000 ** (2 * i / self.pos_encoding_size)) for i in range(self.pos_encoding_size // 2)]
             self.sin_encodings = [[np.sin(seq_num * angle_lookup[i]) for seq_num in range(max_sequnce_length)] for i in range(self.pos_encoding_size // 2)]
             self.cos_encodings = [[np.cos(seq_num * angle_lookup[i]) for seq_num in range(max_sequnce_length)] for i in range(self.pos_encoding_size // 2)]
-            self.rel_to_sequence = lambda relative_position: relative_position + MAX_COMMUNICATION_RANGE
+            self.rel_to_sequence = lambda relative_position: relative_position + MAX_AGENT_DISTANCE
 
         
         print("\n=== backend model ===")
@@ -203,31 +203,39 @@ class GNN_PyG(TorchModelV2, Module):
             x = torch.stack(x)
 
             # build edge index from adjacency matrix
-            froms = []
-            tos = []
-            edge_attr = []
+            actor_froms, actor_tos, actor_edge_attr = [], [], []
+            fc_froms, fc_tos, fc_edge_attr = [], [], []
             for j in range(self.adj_matrix_size):
-                is_active = edge_obss[j][0][i][1] == 1 # gym.Discrete(2) maps to one-hot encoding, 0 = [1,0], 1 = [0,1]
                 curr_edge_obs = torch.cat(edge_obss[j], dim=1)
-                if is_active: 
-                    froms.append(j // self.num_agents)
-                    tos.append(j % self.num_agents)
-                    edge_attr.append(self._edge_encoder(curr_edge_obs[i]))
-            edge_index = torch.tensor([froms, tos], dtype=torch.int64)
-            if edge_attr:
-                edge_attr = torch.stack(edge_attr)
-            else:
-                edge_attr = torch.zeros((0, self.encoding_size), dtype=torch.float32)
+                
+                # add edge to actor graph
+                if edge_obss[j][0][i][1] == 1: # gym.Discrete(2) maps to one-hot encoding, 0 = [1,0], 1 = [0,1]
+                    actor_froms.append(j // self.num_agents)
+                    actor_tos.append(j % self.num_agents)
+                    actor_edge_attr.append(self._edge_encoder(curr_edge_obs[i]))
+                # add edge to fc graph
+                fc_froms.append(j // self.num_agents)
+                fc_tos.append(j % self.num_agents)
+                fc_edge_attr.append(self._edge_encoder(curr_edge_obs[i]))
+
+            # build edge attributes for actor and fc graph
+            actor_edge_index = torch.tensor([actor_froms, actor_tos], dtype=torch.int64)
+            actor_edge_attr = torch.stack(actor_edge_attr) if actor_edge_attr else torch.zeros((0, self.encoding_size), dtype=torch.float32)
+
+            fc_edge_index = torch.tensor([fc_froms, fc_tos], dtype=torch.int64)
+            fc_edge_attr = torch.stack(fc_edge_attr) if fc_edge_attr else torch.zeros((0, self.encoding_size), dtype=torch.float32)
 
             # compute actions
-            all_actions = self._actor(x=x, edge_index=edge_index, edge_attr=edge_attr)
+            all_actions = self._actor(x=x, edge_index=actor_edge_index, edge_attr=actor_edge_attr)
             outs.append(torch.flatten(all_actions[self.n_non_worker_agents:]))
             
             # compute values
             if self.critic_config["model"] == "fc":
                 values.append(torch.flatten(self._critic(obss_flat[i])))
-            else:
-                values.append(torch.flatten(self._critic(x=x, edge_index=edge_index, edge_attr=edge_attr, batch=torch.zeros(x.shape[0],dtype=int))))
+            elif self.critic_config["critic_fc"]:
+                values.append(torch.flatten(self._critic(x=x, edge_index=fc_edge_index, edge_attr=fc_edge_attr, batch=torch.zeros(x.shape[0],dtype=int))))
+            elif not self.critic_config["critic_fc"]:
+                values.append(torch.flatten(self._critic(x=x, edge_index=actor_edge_index, edge_attr=actor_edge_attr, batch=torch.zeros(x.shape[0],dtype=int))))
        
         # re-batch outputs
         outs = torch.stack(outs)

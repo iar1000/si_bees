@@ -11,7 +11,7 @@ from gymnasium.spaces.utils import flatdim
 from utils import get_random_pos_on_border, get_relative_pos
 from envs.communication_v1.agents import Oracle, Platform, Worker 
 
-MAX_COMMUNICATION_RANGE = 20
+MAX_AGENT_DISTANCE = 20
 TYPE_ORACLE = 0
 TYPE_PLATFORM = 1
 TYPE_WORKER = 2
@@ -37,7 +37,9 @@ class CommunicationV1_model(mesa.Model):
         self.com_range = com_range
         self.n_tiles_x = n_tiles_x
         self.n_tiles_y = n_tiles_y
-        assert com_range <= MAX_COMMUNICATION_RANGE, f"communication range is bigger than MAX_COMMUNICATION_RANGE ({MAX_COMMUNICATION_RANGE}), with which the observation space is computed"
+        assert self.n_tiles_x > 0 and self.n_tiles_y > 0, "grid size must be positive"
+        assert self.n_tiles_x <= MAX_AGENT_DISTANCE + 1 and self.n_tiles_y <= MAX_AGENT_DISTANCE + 1, f"grid size is bigger than MAX_AGENT_DISTANCE ({MAX_AGENT_DISTANCE}), with which the observation space is computed"
+        assert com_range <= MAX_AGENT_DISTANCE, f"communication range is bigger than MAX_AGENT_DISTANCE ({MAX_AGENT_DISTANCE}), with which the observation space is computed"
         
         self.max_steps = max_steps
         self.n_steps = 0 # current number of steps
@@ -137,7 +139,7 @@ class CommunicationV1_model(mesa.Model):
 
         edge_state = [
             Discrete(2), # exists flag
-            Box(-MAX_COMMUNICATION_RANGE, MAX_COMMUNICATION_RANGE, shape=(2,), dtype=np.int32), # relative position to the given node
+            Box(-MAX_AGENT_DISTANCE, MAX_AGENT_DISTANCE, shape=(2,), dtype=np.int32), # relative position to the given node
         ]
         edge_states = Tuple([Tuple(edge_state) for _ in range(self.n_total_agents * self.n_total_agents)])
 
@@ -148,10 +150,9 @@ class CommunicationV1_model(mesa.Model):
         gather information about all agents states and their connectivity.
         fill the observation in the linear obs_space with the same format as described in get_obs_space
         """
+        # add agent states
         agent_states = [None for _ in range(self.n_total_agents)]
-        edge_states = [tuple([0, np.zeros(shape=(2,), dtype=np.int32)]) for _ in range(self.n_total_agents * self.n_total_agents)]
         for i, worker in enumerate(self.schedule.agents):
-            # add agent states
             if type(worker) is Oracle:
                 oracle_state_one_hot = np.zeros(self.size_hidden_vec, dtype=np.float32)
                 oracle_state_one_hot[0] = worker.get_state()
@@ -162,13 +163,23 @@ class CommunicationV1_model(mesa.Model):
             if type(worker) is Worker:
                 agent_states[i] = tuple([TYPE_WORKER, worker.get_hidden_vec()])
 
-            # edge states
+        # edge attributes
+        edge_states = [None for _ in range(self.n_total_agents * self.n_total_agents)]
+        for i, worker in enumerate(self.schedule.agents):
+            # fill in all edge_attributes from worker_from to all other workers for the fully connected graph
+            for j, destination in enumerate(self.schedule.agents):
+                rel_pos = get_relative_pos(worker.pos, destination.pos)
+                edge_states[i * self.n_total_agents + j] = tuple([0, np.array(rel_pos, dtype=np.int32)])
+
+            # fill in edge_attributes of all neighbors, exclude self edges
             neighbors = self.grid.get_neighbors(worker.pos, moore=True, radius=self.com_range, include_center=True)
+            neighbors = [n for n in neighbors if n is not self]
             for n in neighbors:
                 rel_pos = get_relative_pos(worker.pos, n.pos)
                 edge_states[i * self.n_total_agents + n.unique_id] = tuple([1, np.array(rel_pos, dtype=np.int32)])
         
         assert all([x is not None for x in agent_states]), "agent states are not complete"
+        assert all([x is not None for x in edge_states]), "edge attributes are not complete"
         return tuple([tuple(agent_states), tuple(edge_states)])
         
     def apply_actions(self, actions) -> None:
