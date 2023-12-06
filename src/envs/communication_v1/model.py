@@ -253,10 +253,11 @@ class CommunicationV1_model(mesa.Model):
         if self.policy_net is None:
             actions = self.get_action_space().sample()
         else:
-            actions = self.policy_net.compute_actions(self.get_obs())
+            obs = self.get_obs()
+            action = self.policy_net.compute_single_action(obs)
         
         # apply actions
-        self.apply_actions(actions)
+        self.apply_actions(action)
         
         # finish round
         self.finish_round()
