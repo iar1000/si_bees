@@ -6,6 +6,7 @@ README.md
 
 # Output files
 *.out
+*.mov
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
