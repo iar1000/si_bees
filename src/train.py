@@ -1,4 +1,5 @@
 import argparse
+import logging
 import os
 import ray
 from ray import air, tune
@@ -16,6 +17,9 @@ from envs.communication_v1.environment import CommunicationV1_env
 from envs.communication_v1.models.pyg import GNN_PyG
 from utils import create_tunable_config, filter_actor_gnn_tunables
 
+# set logging
+wandb_logger = logging.getLogger("wandb")
+wandb_logger.setLevel(logging.WARNING)
 
 def run(logging_config: dict, 
         actor_config: dict,

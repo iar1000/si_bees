@@ -1,0 +1,13 @@
+
+{
+    "encoding_size": [4, 8, 12, 16],
+
+    "node_encoder": "fc",
+    "node_encoder_hiddens": {
+        "min": 0,
+        "max": 2
+    },
+    "node_encoder_hiddens_size": [4, 8, 16],
+
+    "edge_encoder": "sincos"
+}

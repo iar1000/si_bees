@@ -18,7 +18,7 @@ logging_config = load_config_dict(os.path.join(config_dir, "logging_local.json")
 
 actor_config = load_config_dict(os.path.join(config_dir, "model_GINE.json"))
 critic_config = load_config_dict(os.path.join(config_dir, "model_GATv2.json"))
-encoders = load_config_dict(os.path.join(config_dir, "encoders_fc.json"))
+encoders = load_config_dict(os.path.join(config_dir, "encoders_sincos.json"))
 
 ray.init(num_cpus=1, local_mode=True)
 

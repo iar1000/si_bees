@@ -1,4 +1,5 @@
 from typing import Dict, List
+import numpy as np
 import torch
 from torch import TensorType
 from torch.nn import Module, Sequential, Identity
@@ -11,6 +12,7 @@ from ray.rllib.models.torch.misc import SlimFC
 from gymnasium.spaces import Space
 from gymnasium.spaces.utils import flatdim
 
+from envs.communication_v1.model import MAX_COMMUNICATION_RANGE
 SUPPORTED_ENCODERS = ["identity", "fc", "sincos"]
 SUPPORTED_ACTORS = ["GATConv", "GATv2Conv", "GINEConv"]
 SUPPORTED_CRITICS = ["fc", "GATConv", "GATv2Conv", "GINEConv"]
@@ -68,6 +70,16 @@ class GNN_PyG(TorchModelV2, Module):
             ins=self.num_inputs if self.critic_config["model"] == "fc" else self.encoding_size,
             edge_dim=self.encoding_size)
         
+        # build sincos helper for edge encoder
+        if self.encoders_config["edge_encoder"] == "sincos":
+            self.pos_encoding_size = self.encoding_size // 2 # concat x and y positional encodings, e.g. each pos_encoding only half as big as encoding_size
+            max_sequnce_length = 2 * MAX_COMMUNICATION_RANGE + 1
+            angle_lookup = [1 / (10000 ** (2 * i / self.pos_encoding_size)) for i in range(self.pos_encoding_size // 2)]
+            self.sin_encodings = [[np.sin(seq_num * angle_lookup[i]) for seq_num in range(max_sequnce_length)] for i in range(self.pos_encoding_size // 2)]
+            self.cos_encodings = [[np.cos(seq_num * angle_lookup[i]) for seq_num in range(max_sequnce_length)] for i in range(self.pos_encoding_size // 2)]
+            self.rel_to_sequence = lambda relative_position: relative_position + MAX_COMMUNICATION_RANGE
+
+        
         print("\n=== backend model ===")
         print(f"num_agents        = {self.num_agents}")
         print(f"num_inputs        = {self.num_inputs}")
@@ -124,6 +136,16 @@ class GNN_PyG(TorchModelV2, Module):
                 ins=edge_state_size, 
                 outs=encoding_size, 
                 hiddens=[config["edge_encoder_hiddens_size"] for _ in range(config["edge_encoder_hiddens"])])
+        elif config["edge_encoder"] == "sincos":
+            def sincos(edge_attr):
+                encoding = torch.empty(size=(self.encoding_size,))
+                for i in range(self.pos_encoding_size // 2):
+                    encoding[2*i] = self.sin_encodings[i][self.rel_to_sequence(int(edge_attr[2]))]
+                    encoding[2*i + 1] = self.cos_encodings[i][self.rel_to_sequence(int(edge_attr[2]))]
+                    encoding[2*i + (self.encoding_size // 2)] = self.sin_encodings[i][self.rel_to_sequence(int(edge_attr[3]))]
+                    encoding[2*i + 1 + (self.encoding_size // 2)] = self.cos_encodings[i][self.rel_to_sequence(int(edge_attr[3]))]
+                return encoding
+            edge_encoder = sincos
         else:
             raise NotImplementedError(f"unknown edge encoder {config['edge_encoder']}")
         
