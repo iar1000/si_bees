@@ -34,9 +34,8 @@ def run(logging_config: dict,
     group_name = f"a-{actor_config['model']}_c-{critic_config['model']}_e-{encoders_config['edge_encoder']}"
     run_name = f"{group_name}_{datetime.now().strftime('%Y%m%d%H%M-%S')}"
     storage_path = os.path.join(logging_config["storage_path"])
-    local_dir = os.path.join(logging_config["storage_path"], "ray_results")
 
-    env = CommunicationV1_env
+    tune.register_env("CommunicationV1_env", lambda env_config: CommunicationV1_env(env_config))
     tunable_model_config = {}
     tunable_model_config["actor_config"] = filter_actor_gnn_tunables(create_tunable_config(actor_config))
     tunable_model_config["critic_config"] = create_tunable_config(critic_config)
@@ -48,7 +47,7 @@ def run(logging_config: dict,
     ppo_config = (
         PPOConfig()
         .environment(
-            env, # @todo: need to build wrapper
+            "CommunicationV1_env", # @todo: need to build wrapper
             env_config=env_config,
             env_task_fn=curriculum_fn if env_config["curriculum_learning"] else NotProvided,
             disable_env_checking=True)
@@ -58,12 +57,19 @@ def run(logging_config: dict,
             grad_clip=1,
             grad_clip_by="value",
             model=model,
-            train_batch_size=tune.choice([256, 512]),
-            _enable_learner_api=False
+            train_batch_size=450,
+            _enable_learner_api=False,
+        )
+        .rollouts(
+            num_rollout_workers=3
+        )
+        .resources(
+            num_cpus_per_worker=1,
+            num_cpus_for_local_worker=1,
+            placement_strategy="PACK",
         )
         .rl_module(_enable_rl_module_api=False)
         .callbacks(ReportModelStateCallback)
-        .multi_agent(count_steps_by="env_steps")
     )
 
     # logging callback
@@ -81,7 +87,6 @@ def run(logging_config: dict,
         name=run_name,
         stop={"timesteps_total": tune_config["max_timesteps"]}, # https://docs.ray.io/en/latest/tune/tutorials/tune-metrics.html#tune-autofilled-metrics
         storage_path=storage_path,
-        local_dir=local_dir,
         callbacks=callbacks,
         checkpoint_config=CheckpointConfig(
             checkpoint_score_attribute="custom_metrics/curr_learning_score_mean",

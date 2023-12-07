@@ -10,7 +10,7 @@
         "len_trace": 2
     },
     
-    "max_steps": 127,
+    "max_steps": 150,
     "curriculum_learning": true,
     "model_configs": {
         "0": {
