@@ -86,7 +86,7 @@ def run(logging_config: dict,
     run_config = air.RunConfig(
         name=run_name,
         stop={"timesteps_total": tune_config["max_timesteps"]}, # https://docs.ray.io/en/latest/tune/tutorials/tune-metrics.html#tune-autofilled-metrics
-        #storage_path=storage_path,
+        storage_path=storage_path,
         callbacks=callbacks,
         # checkpoint_config=CheckpointConfig(
         #     checkpoint_score_attribute="custom_metrics/curr_learning_score_mean",
