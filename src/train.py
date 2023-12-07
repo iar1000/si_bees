@@ -29,7 +29,7 @@ def run(logging_config: dict,
         tune_config: dict):
     """starts a run with the given configurations"""
 
-    ray.init()
+    ray.init(cpus=4)
     
     group_name = f"a-{actor_config['model']}_c-{critic_config['model']}_e-{encoders_config['edge_encoder']}"
     run_name = f"{group_name}_{datetime.now().strftime('%Y%m%d%H%M-%S')}"
@@ -86,7 +86,7 @@ def run(logging_config: dict,
     run_config = air.RunConfig(
         name=run_name,
         stop={"timesteps_total": tune_config["max_timesteps"]}, # https://docs.ray.io/en/latest/tune/tutorials/tune-metrics.html#tune-autofilled-metrics
-        storage_path=storage_path,
+        #storage_path=storage_path,
         callbacks=callbacks,
         # checkpoint_config=CheckpointConfig(
         #     checkpoint_score_attribute="custom_metrics/curr_learning_score_mean",
