@@ -31,7 +31,7 @@ ENCODERS_CONFIG="encoders_fc.json"
 # check for user flags
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    -env_config)
+    --env_config)
       if [[ -n $2 ]]; then
         ENV_CONFIG=$2
         shift 2
@@ -40,7 +40,7 @@ while [[ $# -gt 0 ]]; do
         exit 1
       fi
       ;;
-    -actor_config)
+    --actor_config)
       if [[ -n $2 ]]; then
         ACTOR_CONFIG=$2
         shift 2
@@ -49,7 +49,7 @@ while [[ $# -gt 0 ]]; do
         exit 1
       fi
       ;;
-    -critic_config)
+    --critic_config)
       if [[ -n $2 ]]; then
         CRITIC_CONFIG=$2
         shift 2
@@ -58,7 +58,7 @@ while [[ $# -gt 0 ]]; do
         exit 1
       fi
       ;;
-    -encoders_config)
+    --encoders_config)
       if [[ -n $2 ]]; then
         ENCODERS_CONFIG=$2
         shift 2
