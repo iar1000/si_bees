@@ -56,12 +56,17 @@ def run(logging_config: dict,
         encoders_config: dict,
         env_config: dict,
         tune_config: dict,
-        performance_study: bool = True):
+        min_episodes: int = 100, max_episodes: int = 200,
+        performance_study: bool = False, ray_threads = None,
+        rollout_workers: int = 0, cpus_per_worker: int = 1, cpus_for_local_worker: int = 1):
     """starts a run with the given configurations"""
 
-    ray.init(num_cpus=20)
+    if ray_threads:
+        ray.init(num_cpus=ray_threads)
+    else:
+        ray.init()
     
-    group_name = f"perf_study_GINE_GAT"
+    group_name = f"perf_study_rollies-{rollout_workers}_cpus-{cpus_per_worker}_cpus_local-{cpus_for_local_worker}"
     run_name = f"{group_name}_{datetime.now().strftime('%Y%m%d%H%M-%S')}"
     storage_path = os.path.join(logging_config["storage_path"])
 
@@ -70,7 +75,8 @@ def run(logging_config: dict,
             "custom_model_config": build_model_config(actor_config, critic_config, encoders_config, performance_study)}
     curriculum = curriculum_fn if env_config["curriculum_learning"] and not performance_study else NotProvided
     episode_len = env_config["max_steps"]
-    max_timesteps = 100 * episode_len
+    min_timesteps = min_episodes * episode_len
+    max_timesteps = max_episodes * episode_len
 
     # ppo config
     ppo_config = (
@@ -90,10 +96,10 @@ def run(logging_config: dict,
             train_batch_size=tune.choice([2 * episode_len, 10 * episode_len]),
             _enable_learner_api=False,
         )
-        .rollouts(num_rollout_workers=0)
+        .rollouts(num_rollout_workers=rollout_workers)
         .resources(
-            num_cpus_per_worker=0,
-            num_cpus_for_local_worker=1,
+            num_cpus_per_worker=cpus_per_worker,
+            num_cpus_for_local_worker=cpus_for_local_worker,
             placement_strategy="PACK",
         )
         .rl_module(_enable_rl_module_api=False)
@@ -130,8 +136,8 @@ def run(logging_config: dict,
                 time_attr='timesteps_total',
                 metric='custom_metrics/curr_learning_score_mean',
                 mode='max',
-                max_t=max_timesteps+1,
-                grace_period=max_timesteps,
+                grace_period=min_timesteps,
+                max_t=min_timesteps + 1 if performance_study else max_timesteps,
                 reduction_factor=2)
         )
 
@@ -153,8 +159,14 @@ if __name__ == '__main__':
     parser.add_argument('--encoders_config', default=None, help="path to the encoders config")
     parser.add_argument('--env_config', default=None, help="path to env config")
     parser.add_argument('--tune_config', default="tune_ppo.json", help="path to tune config")
+    parser.add_argument('--performance_study', default=False, action='store_true', help='run performance study with fixed set of parameters and run length')
+    parser.add_argument('--ray_threads', default=None, type=int, help="number of threads to use for ray")
+    parser.add_argument('--rollout_workers', default=0, type=int, help="number of rollout workers")
+    parser.add_argument('--cpus_per_worker', default=1, type=int, help="number of cpus per rollout worker")
+    parser.add_argument('--cpus_for_local_worker', default=1, type=int, help="number of cpus for local worker")
 
     args = parser.parse_args()
+    print(args)
 
     # load configs
     config_dir = os.path.join("src", "configs")
@@ -181,7 +193,12 @@ if __name__ == '__main__':
         critic_config=critic_config,
         encoders_config=encoders_config,
         env_config=env_config,
-        tune_config=tune_config)
+        tune_config=tune_config,
+        performance_study=args.performance_study,
+        ray_threads=args.ray_threads, 
+        rollout_workers=args.rollout_workers, 
+        cpus_per_worker=args.cpus_per_worker,
+        cpus_for_local_worker=args.cpus_for_local_worker)
 
 
 
