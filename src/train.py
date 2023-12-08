@@ -168,21 +168,7 @@ if __name__ == '__main__':
     parser.add_argument('--rollout_workers', default=0, type=int, help="number of rollout workers")
     parser.add_argument('--cpus_per_worker', default=1, type=int, help="number of cpus per rollout worker")
     parser.add_argument('--cpus_for_local_worker', default=1, type=int, help="number of cpus for local worker")
-
     args = parser.parse_args()
-
-    # load configs
-    config_dir = os.path.join("src", "configs")
-    actor_config = load_config_dict(os.path.join(config_dir, args.actor_config))
-    critic_config = load_config_dict(os.path.join(config_dir, args.critic_config))
-    encoders_config = load_config_dict(os.path.join(config_dir, args.encoders_config))
-    env_config = load_config_dict(os.path.join(config_dir, args.env_config))
-    
-    # logging config
-    if args.location == 'cluster':
-        logging_config = load_config_dict(os.path.join(config_dir, "logging_cluster.json"))
-    else:
-        logging_config = load_config_dict(os.path.join(config_dir, "logging_local.json"))
 
     # sanity print
     print("===== run hyperparameter tuning =======")
@@ -190,11 +176,18 @@ if __name__ == '__main__':
         print(f"\t{k}: {v}")
     print("\n")
 
-    run(logging_config=logging_config,
-        actor_config=actor_config,
-        critic_config=critic_config,
-        encoders_config=encoders_config,
-        env_config=env_config,
+    config_dir = os.path.join("src", "configs")
+    # logging config
+    if args.location == 'cluster':
+        logging_config_path = load_config_dict(os.path.join(config_dir, "logging_cluster.json"))
+    else:
+        logging_config_path = load_config_dict(os.path.join(config_dir, "logging_local.json"))
+
+    run(logging_config_path=logging_config_path,
+        actor_config_path=os.path.join(config_dir, args.actor_config),
+        critic_config_path=os.path.join(config_dir, args.critic_config),
+        encoders_config_path=os.path.join(config_dir, args.encoders_config),
+        env_config_path=os.path.join(config_dir, args.env_config),
         performance_study=args.performance_study,
         ray_threads=args.ray_threads, 
         rollout_workers=args.rollout_workers, 
