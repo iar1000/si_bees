@@ -60,15 +60,15 @@ def run(logging_config: dict,
             train_batch_size=450,
             _enable_learner_api=False,
         )
-        # .rollouts(
-        #     num_rollout_workers=1
-        # )
-        # .resources(
-        #     num_learner_workers=4,
-        #     num_cpus_per_worker=1,
-        #     num_cpus_for_local_worker=1,
-        #     placement_strategy="PACK",
-        # )
+        .rollouts(
+            num_rollout_workers=1
+        )
+        .resources(
+            #num_learner_workers=4,
+            num_cpus_per_worker=1,
+            num_cpus_for_local_worker=2,
+            placement_strategy="PACK",
+        )
         .rl_module(_enable_rl_module_api=False)
         .callbacks(ReportModelStateCallback)
     )
