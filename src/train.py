@@ -50,13 +50,12 @@ def build_model_config(actor_config: dict, critic_config: dict, encoders_config:
     return tunable_model_config
 
 
-def run(logging_config: dict,
-        actor_config: dict,
-        critic_config: dict,
-        encoders_config: dict,
-        env_config: dict,
-        tune_config: dict,
-        min_episodes: int = 100, max_episodes: int = 200,
+def run(logging_config_path: str,
+        actor_config_path: str,
+        critic_config_path: str,
+        encoders_config_path: str,
+        env_config_path: str,
+        tune_samples: int = 1000, min_episodes: int = 100, max_episodes: int = 200,
         performance_study: bool = False, ray_threads = None,
         rollout_workers: int = 0, cpus_per_worker: int = 1, cpus_for_local_worker: int = 1):
     """starts a run with the given configurations"""
@@ -71,8 +70,14 @@ def run(logging_config: dict,
     storage_path = os.path.join(logging_config["storage_path"])
 
     tune.register_env("CommunicationV1_env", lambda env_config: CommunicationV1_env(env_config))
+    env_config = load_config_dict(env_config_path)
+    logging_config = load_config_dict(logging_config_path)
     model = {"custom_model": GNN_PyG,
-            "custom_model_config": build_model_config(actor_config, critic_config, encoders_config, performance_study)}
+            "custom_model_config": build_model_config(
+                load_config_dict(actor_config_path), 
+                load_config_dict(critic_config_path), 
+                load_config_dict(encoders_config_path), 
+                performance_study)}
     curriculum = curriculum_fn if env_config["curriculum_learning"] and not performance_study else NotProvided
     episode_len = env_config["max_steps"]
     min_timesteps = min_episodes * episode_len
@@ -119,7 +124,7 @@ def run(logging_config: dict,
     # run and checkpoint config
     run_config = air.RunConfig(
         name=run_name,
-        stop={"timesteps_total": tune_config["max_timesteps"]}, # https://docs.ray.io/en/latest/tune/tutorials/tune-metrics.html#tune-autofilled-metrics
+        stop={"timesteps_total": max_timesteps}, # https://docs.ray.io/en/latest/tune/tutorials/tune-metrics.html#tune-autofilled-metrics
         #storage_path=storage_path,
         callbacks=callbacks,
         # checkpoint_config=CheckpointConfig(
@@ -131,7 +136,7 @@ def run(logging_config: dict,
 
     # tune config
     tune_config = tune.TuneConfig(
-            num_samples=tune_config["num_samples"],
+            num_samples=tune_samples,
             scheduler= ASHAScheduler(
                 time_attr='timesteps_total',
                 metric='custom_metrics/curr_learning_score_mean',
@@ -158,7 +163,6 @@ if __name__ == '__main__':
     parser.add_argument('--critic_config', default=None, help="path to the critic model config")
     parser.add_argument('--encoders_config', default=None, help="path to the encoders config")
     parser.add_argument('--env_config', default=None, help="path to env config")
-    parser.add_argument('--tune_config', default="tune_ppo.json", help="path to tune config")
     parser.add_argument('--performance_study', default=False, action='store_true', help='run performance study with fixed set of parameters and run length')
     parser.add_argument('--ray_threads', default=None, type=int, help="number of threads to use for ray")
     parser.add_argument('--rollout_workers', default=0, type=int, help="number of rollout workers")
@@ -166,7 +170,6 @@ if __name__ == '__main__':
     parser.add_argument('--cpus_for_local_worker', default=1, type=int, help="number of cpus for local worker")
 
     args = parser.parse_args()
-    print(args)
 
     # load configs
     config_dir = os.path.join("src", "configs")
@@ -174,7 +177,6 @@ if __name__ == '__main__':
     critic_config = load_config_dict(os.path.join(config_dir, args.critic_config))
     encoders_config = load_config_dict(os.path.join(config_dir, args.encoders_config))
     env_config = load_config_dict(os.path.join(config_dir, args.env_config))
-    tune_config = load_config_dict(os.path.join(config_dir, args.tune_config))
     
     # logging config
     if args.location == 'cluster':
@@ -193,7 +195,6 @@ if __name__ == '__main__':
         critic_config=critic_config,
         encoders_config=encoders_config,
         env_config=env_config,
-        tune_config=tune_config,
         performance_study=args.performance_study,
         ray_threads=args.ray_threads, 
         rollout_workers=args.rollout_workers, 
