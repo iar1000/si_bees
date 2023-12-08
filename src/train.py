@@ -64,6 +64,7 @@ def run(logging_config: dict,
             num_rollout_workers=1
         )
         .resources(
+            num_learner_workers=4,
             num_cpus_per_worker=1,
             num_cpus_for_local_worker=1,
             placement_strategy="PACK",
