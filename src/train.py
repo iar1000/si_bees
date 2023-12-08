@@ -60,9 +60,10 @@ def run(logging_config: dict,
             train_batch_size=450,
             _enable_learner_api=False,
         )
+        .rollouts(num_rollout_workers=0)
         .resources(
             #num_learner_workers=4,
-            num_cpus_per_worker=1,
+            num_cpus_per_worker=2,
             num_cpus_for_local_worker=4,
             placement_strategy="PACK",
         )
