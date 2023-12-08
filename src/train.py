@@ -50,11 +50,11 @@ def build_model_config(actor_config: dict, critic_config: dict, encoders_config:
     return tunable_model_config
 
 
-def run(logging_config_path: str,
-        actor_config_path: str,
-        critic_config_path: str,
-        encoders_config_path: str,
-        env_config_path: str,
+def run(logging_config: str,
+        actor_config: str,
+        critic_config: str,
+        encoders_config: str,
+        env_config: str,
         tune_samples: int = 1000, min_episodes: int = 100, max_episodes: int = 200,
         performance_study: bool = False, ray_threads = None,
         rollout_workers: int = 0, cpus_per_worker: int = 1, cpus_for_local_worker: int = 1):
@@ -70,14 +70,8 @@ def run(logging_config_path: str,
     storage_path = os.path.join(logging_config["storage_path"])
 
     tune.register_env("CommunicationV1_env", lambda env_config: CommunicationV1_env(env_config))
-    env_config = load_config_dict(env_config_path)
-    logging_config = load_config_dict(logging_config_path)
     model = {"custom_model": GNN_PyG,
-            "custom_model_config": build_model_config(
-                load_config_dict(actor_config_path), 
-                load_config_dict(critic_config_path), 
-                load_config_dict(encoders_config_path), 
-                performance_study)}
+            "custom_model_config": build_model_config(actor_config, critic_config, encoders_config, performance_study)}
     curriculum = curriculum_fn if env_config["curriculum_learning"] and not performance_study else NotProvided
     episode_len = env_config["max_steps"]
     min_timesteps = min_episodes * episode_len
@@ -159,16 +153,30 @@ def run(logging_config_path: str,
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='script to setup hyperparameter tuning')
     parser.add_argument('--location', default="local", choices=['cluster', 'local'], help='execution location, setting depending variables')
-    parser.add_argument('--actor_config', default=None, help="path to the actor model config")
-    parser.add_argument('--critic_config', default=None, help="path to the critic model config")
-    parser.add_argument('--encoders_config', default=None, help="path to the encoders config")
-    parser.add_argument('--env_config', default=None, help="path to env config")
+    parser.add_argument('--actor_config', default="model_GINE.json", help="path to the actor model config")
+    parser.add_argument('--critic_config', default="model_GAT.json", help="path to the critic model config")
+    parser.add_argument('--encoders_config', default="encoders_sincos.json", help="path to the encoders config")
+    parser.add_argument('--env_config', default="env_comv1_1.json", help="path to env config")
     parser.add_argument('--performance_study', default=False, action='store_true', help='run performance study with fixed set of parameters and run length')
     parser.add_argument('--ray_threads', default=None, type=int, help="number of threads to use for ray")
     parser.add_argument('--rollout_workers', default=0, type=int, help="number of rollout workers")
     parser.add_argument('--cpus_per_worker', default=1, type=int, help="number of cpus per rollout worker")
     parser.add_argument('--cpus_for_local_worker', default=1, type=int, help="number of cpus for local worker")
+
     args = parser.parse_args()
+
+    # load configs
+    config_dir = os.path.join("src", "configs")
+    actor_config = load_config_dict(os.path.join(config_dir, args.actor_config))
+    critic_config = load_config_dict(os.path.join(config_dir, args.critic_config))
+    encoders_config = load_config_dict(os.path.join(config_dir, args.encoders_config))
+    env_config = load_config_dict(os.path.join(config_dir, args.env_config))
+    
+    # logging config
+    if args.location == 'cluster':
+        logging_config = load_config_dict(os.path.join(config_dir, "logging_cluster.json"))
+    else:
+        logging_config = load_config_dict(os.path.join(config_dir, "logging_local.json"))
 
     # sanity print
     print("===== run hyperparameter tuning =======")
@@ -176,18 +184,11 @@ if __name__ == '__main__':
         print(f"\t{k}: {v}")
     print("\n")
 
-    config_dir = os.path.join("src", "configs")
-    # logging config
-    if args.location == 'cluster':
-        logging_config_path = load_config_dict(os.path.join(config_dir, "logging_cluster.json"))
-    else:
-        logging_config_path = load_config_dict(os.path.join(config_dir, "logging_local.json"))
-
-    run(logging_config_path=logging_config_path,
-        actor_config_path=os.path.join(config_dir, args.actor_config),
-        critic_config_path=os.path.join(config_dir, args.critic_config),
-        encoders_config_path=os.path.join(config_dir, args.encoders_config),
-        env_config_path=os.path.join(config_dir, args.env_config),
+    run(logging_config=logging_config,
+        actor_config=actor_config,
+        critic_config=critic_config,
+        encoders_config=encoders_config,
+        env_config=env_config,
         performance_study=args.performance_study,
         ray_threads=args.ray_threads, 
         rollout_workers=args.rollout_workers, 
