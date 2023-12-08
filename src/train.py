@@ -21,50 +21,79 @@ from utils import create_tunable_config, filter_actor_gnn_tunables
 wandb_logger = logging.getLogger("wandb")
 wandb_logger.setLevel(logging.WARNING)
 
+# create tunable configs
+def build_model_config(actor_config: dict, critic_config: dict, encoders_config: dict, performance_study: bool):
+    tunable_model_config = dict()
+    # create fixed set of model parameters for performance study
+    if performance_study:
+        tunable_model_config["actor_config"] = {
+            "model": "GINEConv",
+            "mlp_hiddens": 2,
+            "mlp_hiddens_size": 32}
+        tunable_model_config["critic_config"] = {
+            "model": "GATConv",
+            "critic_rounds": 2,
+            "critic_fc": True,
+            "dropout": 0.003}
+        tunable_model_config["encoders_config"] = {
+            "encoding_size": 8,
+            "node_encoder": "fc",
+            "node_encoder_hiddens": 2,
+            "node_encoder_hiddens_size": 16,
+            "edge_encoder": "sincos"}
+    # make configs tunable
+    else:
+        tunable_model_config["actor_config"] = filter_actor_gnn_tunables(create_tunable_config(actor_config))
+        tunable_model_config["critic_config"] = create_tunable_config(critic_config)
+        tunable_model_config["encoders_config"] = create_tunable_config(encoders_config)
+    
+    return tunable_model_config
+
+
 def run(logging_config: dict,
         actor_config: dict,
         critic_config: dict,
         encoders_config: dict,
         env_config: dict,
-        tune_config: dict):
+        tune_config: dict,
+        performance_study: bool = True):
     """starts a run with the given configurations"""
 
-    ray.init(num_cpus=12)
+    ray.init(num_cpus=20)
     
-    group_name = f"a-{actor_config['model']}_c-{critic_config['model']}_e-{encoders_config['edge_encoder']}"
+    group_name = f"perf_study_GINE_GAT"
     run_name = f"{group_name}_{datetime.now().strftime('%Y%m%d%H%M-%S')}"
     storage_path = os.path.join(logging_config["storage_path"])
 
     tune.register_env("CommunicationV1_env", lambda env_config: CommunicationV1_env(env_config))
-    tunable_model_config = {}
-    tunable_model_config["actor_config"] = filter_actor_gnn_tunables(create_tunable_config(actor_config))
-    tunable_model_config["critic_config"] = create_tunable_config(critic_config)
-    tunable_model_config["encoders_config"] = create_tunable_config(encoders_config)
     model = {"custom_model": GNN_PyG,
-            "custom_model_config": tunable_model_config}
+            "custom_model_config": build_model_config(actor_config, critic_config, encoders_config, performance_study)}
+    curriculum = curriculum_fn if env_config["curriculum_learning"] and not performance_study else NotProvided
+    episode_len = env_config["max_steps"]
+    max_timesteps = 100 * episode_len
 
     # ppo config
     ppo_config = (
         PPOConfig()
         .environment(
-            "CommunicationV1_env", # @todo: need to build wrapper
+            "CommunicationV1_env",
             env_config=env_config,
-            env_task_fn=curriculum_fn if env_config["curriculum_learning"] else NotProvided,
-            disable_env_checking=True)
+            disable_env_checking=True,
+            env_task_fn=curriculum
+        )
         .training(
             gamma=tune.uniform(0.1, 0.9),
             lr=tune.uniform(1e-4, 1e-1),
             grad_clip=1,
             grad_clip_by="value",
             model=model,
-            train_batch_size=450,
+            train_batch_size=tune.choice([2 * episode_len, 10 * episode_len]),
             _enable_learner_api=False,
         )
         .rollouts(num_rollout_workers=0)
         .resources(
-            #num_learner_workers=4,
-            num_cpus_per_worker=2,
-            num_cpus_for_local_worker=4,
+            num_cpus_per_worker=0,
+            num_cpus_for_local_worker=1,
             placement_strategy="PACK",
         )
         .rl_module(_enable_rl_module_api=False)
@@ -97,13 +126,13 @@ def run(logging_config: dict,
     # tune config
     tune_config = tune.TuneConfig(
             num_samples=tune_config["num_samples"],
-            # scheduler= ASHAScheduler(
-            #     time_attr='timesteps_total',
-            #     metric='custom_metrics/curr_learning_score_mean',
-            #     mode='max',
-            #     max_t=tune_config["max_timesteps"],
-            #     grace_period=tune_config["min_timesteps"],
-            #     reduction_factor=2)
+            scheduler= ASHAScheduler(
+                time_attr='timesteps_total',
+                metric='custom_metrics/curr_learning_score_mean',
+                mode='max',
+                max_t=max_timesteps+1,
+                grace_period=max_timesteps,
+                reduction_factor=2)
         )
 
     tuner = tune.Tuner(
