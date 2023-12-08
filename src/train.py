@@ -29,7 +29,7 @@ def run(logging_config: dict,
         tune_config: dict):
     """starts a run with the given configurations"""
 
-    ray.init(num_cpus=4)
+    ray.init(num_cpus=10)
     
     group_name = f"a-{actor_config['model']}_c-{critic_config['model']}_e-{encoders_config['edge_encoder']}"
     run_name = f"{group_name}_{datetime.now().strftime('%Y%m%d%H%M-%S')}"
@@ -98,15 +98,14 @@ def run(logging_config: dict,
 
     # tune config
     tune_config = tune.TuneConfig(
-            resources_per_trial={"cpu": 2},
             num_samples=tune_config["num_samples"],
-            scheduler= ASHAScheduler(
-                time_attr='timesteps_total',
-                metric='custom_metrics/curr_learning_score_mean',
-                mode='max',
-                max_t=tune_config["max_timesteps"],
-                grace_period=tune_config["min_timesteps"],
-                reduction_factor=2)
+            # scheduler= ASHAScheduler(
+            #     time_attr='timesteps_total',
+            #     metric='custom_metrics/curr_learning_score_mean',
+            #     mode='max',
+            #     max_t=tune_config["max_timesteps"],
+            #     grace_period=tune_config["min_timesteps"],
+            #     reduction_factor=2)
         )
 
     tuner = tune.Tuner(
