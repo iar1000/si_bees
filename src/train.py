@@ -21,7 +21,7 @@ from utils import create_tunable_config, filter_actor_gnn_tunables
 wandb_logger = logging.getLogger("wandb")
 wandb_logger.setLevel(logging.WARNING)
 
-def run(logging_config: dict, 
+def run(logging_config: dict,
         actor_config: dict,
         critic_config: dict,
         encoders_config: dict,
