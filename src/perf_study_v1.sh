@@ -111,6 +111,7 @@ echo "CPUS_PER_WORKER:       $cpus_per_worker"
 echo "CPUS_FOR_LOCAL_WORKER: $cpus_for_local_worker"
 echo "min_episodes: $min_episodes"
 echo "batch_size_episodes: $batch_size_episodes"
+echo "tune_samples: $tune_samples"
 
 
 # Set a directory for temporary files unique to the job with automatic removal at job termination
