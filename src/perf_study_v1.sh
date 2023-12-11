@@ -3,7 +3,7 @@
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=20
 #SBATCH --gres=gpu:0
-#SBATCH --time=03:00:00
+#SBATCH --time=04:00:00
 
 ETH_USERNAME=kpius
 PROJECT_NAME=si_bees
