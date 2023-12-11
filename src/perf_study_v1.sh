@@ -27,7 +27,8 @@ rollout_workers=0
 cpus_per_worker=1
 cpus_for_local_worker=1
 batch_size_episodes=10
-min_episodes=1000
+min_episodes=100
+tune_samples=1000
 
 # check for user flags
 while [[ $# -gt 0 ]]; do
@@ -86,6 +87,15 @@ while [[ $# -gt 0 ]]; do
         exit 1
       fi
       ;;
+    --tune_samples)
+      if [[ -n $2 ]]; then
+        tune_samples=$2
+        shift 2
+      else
+        echo "Error: Missing value for --tune_samples flag."
+        exit 1
+      fi
+      ;;
     *)
       shift
       ;;
@@ -127,7 +137,7 @@ cd ${DIRECTORY}
 
 # Binary or script to execute
 echo "-> run train.py from directory $(pwd)"
-python /itet-stor/kpius/net_scratch/si_bees/src/train.py --location "cluster" --performance_study --ray_threads $ray_threads --rollout_workers $rollout_workers --cpus_per_worker $cpus_per_worker --cpus_for_local_worker $cpus_for_local_worker --min_episodes $min_episodes --batch_size_episodes $batch_size_episodes
+python /itet-stor/kpius/net_scratch/si_bees/src/train.py --location "cluster" --performance_study --ray_threads $ray_threads --rollout_workers $rollout_workers --cpus_per_worker $cpus_per_worker --cpus_for_local_worker $cpus_for_local_worker --min_episodes $min_episodes --batch_size_episodes $batch_size_episodes --tune_samples $tune_samples
 
 # Send more noteworthy information to the output log
 echo "Finished at:     $(date)"
