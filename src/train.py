@@ -56,7 +56,7 @@ def run(logging_config: str,
         encoders_config: str,
         env_config: str,
         tune_samples: int = 1000, 
-        min_episodes: int = 100, max_episodes: int = 200, batch_size_episodes: int = 2,
+        min_episodes: int = 100, max_episodes: int = 200, batch_size_episodes: int = 4,
         performance_study: bool = False, ray_threads = None,
         rollout_workers: int = 0, cpus_per_worker: int = 1, cpus_for_local_worker: int = 1):
     """starts a run with the given configurations"""
@@ -76,7 +76,7 @@ def run(logging_config: str,
     curriculum = curriculum_fn if env_config["curriculum_learning"] and not performance_study else NotProvided
     episode_len = env_config["max_steps"]
     min_timesteps = min_episodes * (episode_len + 1)
-    max_timesteps = max_episodes * (episode_len + 1)
+    max_timesteps = max_episodes * (episode_len + 1) if not performance_study else min_timesteps + 1
     batch_size = batch_size_episodes * (episode_len + 1)
 
     # ppo config
@@ -138,7 +138,7 @@ def run(logging_config: str,
                 metric='custom_metrics/curr_learning_score_mean',
                 mode='max',
                 grace_period=min_timesteps,
-                max_t=min_timesteps + 1 if performance_study else max_timesteps,
+                max_t=max_timesteps,
                 reduction_factor=2)
         )
 
@@ -165,9 +165,9 @@ if __name__ == '__main__':
     parser.add_argument('--cpus_per_worker', default=1, type=int, help="number of cpus per rollout worker")
     parser.add_argument('--cpus_for_local_worker', default=1, type=int, help="number of cpus for local worker")
     parser.add_argument('--batch_size_episodes', default=4, type=int, help="batch size episodes for training")
-    parser.add_argument('--min_episodes', default=1, type=int, help="min number of min_episodes to run")
-    parser.add_argument('--max_episodes', default=1, type=int, help="max number of min_episodes to run")
-    parser.add_argument('--tune_samples', default=1, type=int, help="number of samples to run")
+    parser.add_argument('--min_episodes', default=100, type=int, help="min number of min_episodes to run")
+    parser.add_argument('--max_episodes', default=1000, type=int, help="max number of min_episodes to run")
+    parser.add_argument('--tune_samples', default=1000, type=int, help="number of samples to run")
     
 
     args = parser.parse_args()
