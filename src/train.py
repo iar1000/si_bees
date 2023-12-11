@@ -66,8 +66,10 @@ def run(logging_config: str,
     else:
         ray.init()
     
-    group_name = f"perf_batchsize-{batch_size_episodes}_rollouts-{rollout_workers}_cpus-{cpus_per_worker}_cpus_local-{cpus_for_local_worker}"
-    run_name = f"{group_name}_{datetime.now().strftime('%Y%m%d%H%M-%S')}"
+    group_name = f"a{actor_config['model']}_c{critic_config['model']}_e{encoders_config['node_encoder']}_{encoders_config['edge_encoder']}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    if performance_study:
+        group_name = f"perf_batchsize-{batch_size_episodes}_rollouts-{rollout_workers}_cpus-{cpus_per_worker}_cpus_local-{cpus_for_local_worker}"
+    run_name = group_name
     storage_path = os.path.join(logging_config["storage_path"])
 
     tune.register_env("CommunicationV1_env", lambda env_config: CommunicationV1_env(env_config))
