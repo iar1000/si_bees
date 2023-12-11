@@ -66,7 +66,7 @@ def run(logging_config: str,
     else:
         ray.init()
     
-    group_name = f"perf_batchsize-{batch_size}_rollouts-{rollout_workers}_cpus-{cpus_per_worker}_cpus_local-{cpus_for_local_worker}"
+    group_name = f"perf_batchsize-{batch_size_episodes}_rollouts-{rollout_workers}_cpus-{cpus_per_worker}_cpus_local-{cpus_for_local_worker}"
     run_name = f"{group_name}_{datetime.now().strftime('%Y%m%d%H%M-%S')}"
     storage_path = os.path.join(logging_config["storage_path"])
 
