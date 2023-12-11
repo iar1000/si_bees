@@ -56,7 +56,7 @@ def run(logging_config: str,
         encoders_config: str,
         env_config: str,
         tune_samples: int = 1000, 
-        min_episodes: int = 100, max_episodes: int = 200, batch_size: int = 512,
+        min_episodes: int = 100, max_episodes: int = 200, batch_size_episodes: int = 2,
         performance_study: bool = False, ray_threads = None,
         rollout_workers: int = 0, cpus_per_worker: int = 1, cpus_for_local_worker: int = 1):
     """starts a run with the given configurations"""
@@ -75,8 +75,9 @@ def run(logging_config: str,
             "custom_model_config": build_model_config(actor_config, critic_config, encoders_config, performance_study)}
     curriculum = curriculum_fn if env_config["curriculum_learning"] and not performance_study else NotProvided
     episode_len = env_config["max_steps"]
-    min_timesteps = min_episodes * episode_len
-    max_timesteps = max_episodes * episode_len
+    min_timesteps = min_episodes * (episode_len + 1)
+    max_timesteps = max_episodes * (episode_len + 1)
+    batch_size = batch_size_episodes * (episode_len + 1)
 
     # ppo config
     ppo_config = (
@@ -163,7 +164,7 @@ if __name__ == '__main__':
     parser.add_argument('--rollout_workers', default=0, type=int, help="number of rollout workers")
     parser.add_argument('--cpus_per_worker', default=1, type=int, help="number of cpus per rollout worker")
     parser.add_argument('--cpus_for_local_worker', default=1, type=int, help="number of cpus for local worker")
-    parser.add_argument('--batch_size', default=512, type=int, help="batch size for training")
+    parser.add_argument('--batch_size_episodes', default=4, type=int, help="batch size episodes for training")
     parser.add_argument('--min_episodes', default=1, type=int, help="min number of min_episodes to run")
     parser.add_argument('--max_episodes', default=1, type=int, help="max number of min_episodes to run")
     parser.add_argument('--tune_samples', default=1, type=int, help="number of samples to run")
@@ -199,7 +200,7 @@ if __name__ == '__main__':
         tune_samples=args.tune_samples,
         min_episodes=args.min_episodes,
         max_episodes=args.max_episodes,
-        batch_size=args.batch_size,
+        batch_size_episodes=args.batch_size_episodes,
         ray_threads=args.ray_threads, 
         rollout_workers=args.rollout_workers, 
         cpus_per_worker=args.cpus_per_worker,

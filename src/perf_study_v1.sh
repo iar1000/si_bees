@@ -3,7 +3,7 @@
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=20
 #SBATCH --gres=gpu:0
-#SBATCH --time=02:00:00
+#SBATCH --time=03:00:00
 
 ETH_USERNAME=kpius
 PROJECT_NAME=si_bees
@@ -26,7 +26,7 @@ ray_threads=20
 rollout_workers=0
 cpus_per_worker=1
 cpus_for_local_worker=1
-batch_size=512
+batch_size_episodes=10
 min_episodes=1000
 
 # check for user flags
@@ -68,12 +68,12 @@ while [[ $# -gt 0 ]]; do
         exit 1
       fi
       ;;
-    --batch_size)
+    --batch_size_episodes)
       if [[ -n $2 ]]; then
-        batch_size=$2
+        batch_size_episodes=$2
         shift 2
       else
-        echo "Error: Missing value for --batch_size flag."
+        echo "Error: Missing value for --batch_size_episodes flag."
         exit 1
       fi
       ;;
@@ -100,7 +100,7 @@ echo "ROLLOUT_WORKERS:       $rollout_workers"
 echo "CPUS_PER_WORKER:       $cpus_per_worker"
 echo "CPUS_FOR_LOCAL_WORKER: $cpus_for_local_worker"
 echo "min_episodes: $min_episodes"
-echo "batch_size: $batch_size"
+echo "batch_size_episodes: $batch_size_episodes"
 
 
 # Set a directory for temporary files unique to the job with automatic removal at job termination
@@ -127,7 +127,7 @@ cd ${DIRECTORY}
 
 # Binary or script to execute
 echo "-> run train.py from directory $(pwd)"
-python /itet-stor/kpius/net_scratch/si_bees/src/train.py --location "cluster" --performance_study --ray_threads $ray_threads --rollout_workers $rollout_workers --cpus_per_worker $cpus_per_worker --cpus_for_local_worker $cpus_for_local_worker --min_episodes $min_episodes --batch_size $batch_size
+python /itet-stor/kpius/net_scratch/si_bees/src/train.py --location "cluster" --performance_study --ray_threads $ray_threads --rollout_workers $rollout_workers --cpus_per_worker $cpus_per_worker --cpus_for_local_worker $cpus_for_local_worker --min_episodes $min_episodes --batch_size_episodes $batch_size_episodes
 
 # Send more noteworthy information to the output log
 echo "Finished at:     $(date)"
