@@ -7,10 +7,13 @@ class Worker(mesa.Agent):
     """
     workers that can walk around, communicate with each other
     """
-    def __init__(self, unique_id: int, model: mesa.Model, hidden_vec: np.array):
+    def __init__(self, unique_id: int, model: mesa.Model, 
+                 hidden_vec: np.array,
+                 can_move: bool = True):
         super().__init__(unique_id, model)
         self.name = f"worker_{unique_id}"
         self.hidden_vec = hidden_vec
+        self.can_move = can_move
     
     def set_hidden_vec(self, hidden_vec):
         self.hidden_vec = hidden_vec

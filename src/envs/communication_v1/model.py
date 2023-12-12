@@ -1,6 +1,6 @@
 import random
 import mesa
-from math import floor
+from math import ceil, floor
 import numpy as np
 from ray.rllib.algorithms import Algorithm
 
@@ -28,7 +28,7 @@ class CommunicationV1_model(mesa.Model):
                  platform_distance: int, oracle_burn_in: int, p_oracle_change: float,
                  n_tiles_x: int, n_tiles_y: int,
                  size_hidden_vec: int, com_range: int, len_trace: int,
-                 platform_placement: str = None,
+                 platform_placement: str = "fixed",
                  policy_net: Algorithm = None, inference_mode: bool = False) -> None:
         super().__init__()
 
@@ -39,8 +39,9 @@ class CommunicationV1_model(mesa.Model):
         self.n_tiles_y = n_tiles_y
         assert self.n_tiles_x > 0 and self.n_tiles_y > 0, "grid size must be positive"
         assert self.n_tiles_x <= MAX_AGENT_DISTANCE + 1 and self.n_tiles_y <= MAX_AGENT_DISTANCE + 1, f"grid size is bigger than MAX_AGENT_DISTANCE ({MAX_AGENT_DISTANCE}), with which the observation space is computed"
-        assert com_range <= MAX_AGENT_DISTANCE, f"communication range is bigger than MAX_AGENT_DISTANCE ({MAX_AGENT_DISTANCE}), with which the observation space is computed"
-        
+        assert 0 < com_range <= MAX_AGENT_DISTANCE, f"communication range is bigger than MAX_AGENT_DISTANCE ({MAX_AGENT_DISTANCE}), with which the observation space is computed"
+        assert n_workers >= ((platform_distance - 2) // com_range) + 1, "not enough workers to build a communication line"
+
         self.max_steps = max_steps
         self.n_steps = 0 # current number of steps
         self.oracle_burn_in = oracle_burn_in
@@ -64,17 +65,64 @@ class CommunicationV1_model(mesa.Model):
         # place n platforms around it
         self.n_platforms = 1
         self.platform = Platform(self._next_id(), self)
-        platform_distance = platform_distance if platform_placement is None else random.randint(1, platform_distance)
+        platform_distance = platform_distance if platform_placement == "fixed" else random.randint(1, platform_distance)
         self.grid.place_agent(agent=self.platform, pos=get_random_pos_on_border(center=(x_mid, y_mid), dist=platform_distance))
         self.schedule.add(self.platform)
 
-        # create workers
-        for _ in range(n_workers):
-            new_worker = Worker(self._next_id(), self, hidden_vec=np.random.rand(size_hidden_vec))
-            self.schedule.add(new_worker)
-            self.grid.place_agent(agent=new_worker, pos=(x_mid, y_mid))
-            if worker_placement == "random":
-                self.grid.move_to_empty(agent=new_worker)
+        # get agent positions for communication line
+        if "commline" in worker_placement:
+            done = False
+            # find a valid placement for the workers
+            while not done:
+                workers = []
+                x_diff, y_diff = get_relative_pos(self.platform.pos, self.oracle.pos)
+                for d in range(1, 3):
+                    x_worker = self.platform.pos[0] if x_diff == 0 else self.platform.pos[0] + d * np.sign(x_diff) 
+                    y_worker = self.platform.pos[1] if y_diff == 0 else self.platform.pos[1] + d * np.sign(y_diff)
+                    last_worker_pos = (x_worker, y_worker)
+                    tmp_worker = Worker(self._next_id(), self, hidden_vec=np.random.rand(size_hidden_vec), can_move=True if d == 1 else False)
+                    workers.append((tmp_worker, last_worker_pos))
+                
+                # place workers in a line to the oracle, respecting each others communication range
+                while not [n for n in self.grid.get_neighbors(last_worker_pos, moore=True, radius=self.com_range, include_center=True) if type(n) is Oracle]:
+                    x_diff, y_diff = get_relative_pos(last_worker_pos, self.oracle.pos)
+                    x_step = random.randint(1, self.com_range) * np.sign(x_diff) if abs(x_diff) > self.com_range else 0
+                    y_step = random.randint(1, self.com_range) * np.sign(y_diff) if abs(y_diff) > self.com_range else 0
+                    x_worker += x_step
+                    y_worker += y_step
+                    last_worker_pos = (x_worker, y_worker)
+                    tmp_worker = Worker(self._next_id(), self, hidden_vec=np.random.rand(size_hidden_vec), can_move=False)
+                    workers.append((tmp_worker, last_worker_pos))
+
+                if len(workers) <= n_workers:
+                    n_og_workers = len(workers)
+                    workers_to_place = n_workers - n_og_workers
+                    # fill up the missing workers with duplicates
+                    if n_og_workers == 2:
+                        for _ in range(workers_to_place):
+                            duplicate_pos = workers[1][1]
+                            tmp_worker = Worker(self._next_id(), self, hidden_vec=np.random.rand(size_hidden_vec), can_move=False)
+                            workers.append((tmp_worker, duplicate_pos))
+                    if n_og_workers > 2:
+                        for _ in range(workers_to_place):
+                            duplicate_pos = workers[random.randint(1, n_og_workers - 1)][1]
+                            tmp_worker = Worker(self._next_id(), self, hidden_vec=np.random.rand(size_hidden_vec), can_move=False)
+                            workers.append((tmp_worker, duplicate_pos))
+                    done = True
+            # place workers
+            for worker, pos in workers:
+                self.schedule.add(worker)
+                self.grid.place_agent(agent=worker, pos=pos)
+  
+        
+        # place fixed number of workers
+        else:
+            for _ in range(n_workers):
+                new_worker = Worker(self._next_id(), self, hidden_vec=np.random.rand(size_hidden_vec))
+                self.schedule.add(new_worker)
+                self.grid.place_agent(agent=new_worker, pos=(x_mid, y_mid))
+                if worker_placement == "random":
+                    self.grid.move_to_empty(agent=new_worker)
 
         # track reward, max reward is the optimal case
         self.accumulated_reward = 0
@@ -84,7 +132,7 @@ class CommunicationV1_model(mesa.Model):
         self.time_to_reward = 0
 
         # observation and action space sizes
-        self.n_total_agents = self.n_workers + self.n_platforms + 1 # workers + platforms + oracle
+        self.n_total_agents = len(self.schedule.agents) # workers + platforms + oracle
 
         # inference mode
         if inference_mode:
@@ -187,7 +235,7 @@ class CommunicationV1_model(mesa.Model):
 
         for i, worker in enumerate([x for x in self.schedule.agents if type(x) is Worker]):
             # decode actions
-            x_action, y_action = actions[i][0]
+            x_action, y_action = actions[i][0] if worker.can_move else (0, 0)
             hidden_vec = actions[i][1]
 
             # move 
@@ -262,7 +310,7 @@ class CommunicationV1_model(mesa.Model):
 
         # get actions
         if self.policy_net is None:
-            actions = self.get_action_space().sample()
+            action = self.get_action_space().sample()
         else:
             obs = self.get_obs()
             action = self.policy_net.compute_single_action(obs)

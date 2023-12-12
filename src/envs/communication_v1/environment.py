@@ -42,7 +42,7 @@ class CommunicationV1_env(TaskSettableEnv):
     def reset(self, *, seed=None, options=None):
         super().reset(seed=seed)
 
-        self.model = self._create_model()                
+        self.model = self._create_model()            
         return self.model.get_obs(), {}
 
     def step(self, actions):
