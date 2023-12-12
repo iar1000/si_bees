@@ -12,8 +12,7 @@ from utils import create_tunable_config, filter_actor_gnn_tunables
 
 
 config_dir = os.path.join("src", "configs") 
-env_config = load_config_dict(os.path.join(config_dir, "env_comv1_1.json"))
-tune_config = load_config_dict(os.path.join(config_dir, "tune_ppo.json"))
+env_config = load_config_dict(os.path.join(config_dir, "env_comv1_2.json"))
 logging_config = load_config_dict(os.path.join(config_dir, "logging_local.json"))
 
 actor_config = load_config_dict(os.path.join(config_dir, "model_GINE.json"))
@@ -56,7 +55,6 @@ ppo_config = (
 )
 
 run_config = air.RunConfig(
-    name="debug",
     stop={"timesteps_total": 100000},
 )
 

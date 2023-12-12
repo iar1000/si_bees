@@ -23,10 +23,10 @@ echo "Starting on:     $(date)"
 echo "SLURM_JOB_ID:    ${SLURM_JOB_ID}"
 
 # user argumetns
-ENV_CONFIG="env_comv1_1.json"
+ENV_CONFIG=""
 ACTOR_CONFIG=""
-CRITIC_CONFIG="model_fc.json"
-ENCODERS_CONFIG="encoders_fc.json"
+CRITIC_CONFIG=""
+ENCODERS_CONFIG=""
 
 # check for user flags
 while [[ $# -gt 0 ]]; do

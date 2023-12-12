@@ -165,10 +165,10 @@ if __name__ == '__main__':
     parser.add_argument('--ray_threads', default=None, type=int, help="number of threads to use for ray")
     parser.add_argument('--rollout_workers', default=0, type=int, help="number of rollout workers")
     parser.add_argument('--cpus_per_worker', default=1, type=int, help="number of cpus per rollout worker")
-    parser.add_argument('--cpus_for_local_worker', default=1, type=int, help="number of cpus for local worker")
-    parser.add_argument('--batch_size_episodes', default=4, type=int, help="batch size episodes for training")
+    parser.add_argument('--cpus_for_local_worker', default=2, type=int, help="number of cpus for local worker")
+    parser.add_argument('--batch_size_episodes', default=8, type=int, help="batch size episodes for training")
     parser.add_argument('--min_episodes', default=100, type=int, help="min number of min_episodes to run")
-    parser.add_argument('--max_episodes', default=1000, type=int, help="max number of min_episodes to run")
+    parser.add_argument('--max_episodes', default=5000, type=int, help="max number of min_episodes to run")
     parser.add_argument('--tune_samples', default=1000, type=int, help="number of samples to run")
     
 
