@@ -55,10 +55,10 @@ def run(logging_config: str,
         critic_config: str,
         encoders_config: str,
         env_config: str,
-        tune_samples: int = 1000, 
-        min_episodes: int = 100, max_episodes: int = 200, batch_size_episodes: int = 4,
-        performance_study: bool = False, ray_threads = None,
-        rollout_workers: int = 0, cpus_per_worker: int = 1, cpus_for_local_worker: int = 1):
+        min_timesteps: int, max_timesteps: int, batch_size: int,
+        rollout_workers: int, cpus_per_worker: int, cpus_for_local_worker: int,
+        tune_samples: int, 
+        performance_study: bool = False, ray_threads = None):
     """starts a run with the given configurations"""
 
     if ray_threads:
@@ -68,7 +68,7 @@ def run(logging_config: str,
     
     group_name = f"a{actor_config['model']}_c{critic_config['model']}_e{encoders_config['node_encoder']}_{encoders_config['edge_encoder']}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
     if performance_study:
-        group_name = f"perf_batchsize-{batch_size_episodes}_rollouts-{rollout_workers}_cpus-{cpus_per_worker}_cpus_local-{cpus_for_local_worker}"
+        group_name = f"perf_batchsize-{batch_size}_rollouts-{rollout_workers}_cpus-{cpus_per_worker}_cpus_local-{cpus_for_local_worker}"
     run_name = group_name
     storage_path = os.path.join(logging_config["storage_path"])
 
@@ -76,10 +76,7 @@ def run(logging_config: str,
     model = {"custom_model": GNN_PyG,
             "custom_model_config": build_model_config(actor_config, critic_config, encoders_config, performance_study)}
     curriculum = curriculum_fn if env_config["curriculum_learning"] and not performance_study else NotProvided
-    episode_len = env_config["max_steps"]
-    min_timesteps = min_episodes * (episode_len + 1)
-    max_timesteps = max_episodes * (episode_len + 1) if not performance_study else min_timesteps + 1
-    batch_size = batch_size_episodes * (episode_len + 1)
+    max_timesteps = min_timesteps + 1 if performance_study else max_timesteps
 
     # ppo config
     ppo_config = (
@@ -156,20 +153,20 @@ def run(logging_config: str,
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='script to setup hyperparameter tuning')
-    parser.add_argument('--location', default="local", choices=['cluster', 'local'], help='execution location, setting depending variables')
-    parser.add_argument('--actor_config', default="model_GINE.json", help="path to the actor model config")
-    parser.add_argument('--critic_config', default="model_GAT.json", help="path to the critic model config")
-    parser.add_argument('--encoders_config', default="encoders_sincos.json", help="path to the encoders config")
-    parser.add_argument('--env_config', default="env_comv1_1.json", help="path to env config")
-    parser.add_argument('--performance_study', default=False, action='store_true', help='run performance study with fixed set of parameters and run length')
-    parser.add_argument('--ray_threads', default=None, type=int, help="number of threads to use for ray")
-    parser.add_argument('--rollout_workers', default=0, type=int, help="number of rollout workers")
-    parser.add_argument('--cpus_per_worker', default=1, type=int, help="number of cpus per rollout worker")
-    parser.add_argument('--cpus_for_local_worker', default=2, type=int, help="number of cpus for local worker")
-    parser.add_argument('--batch_size_episodes', default=8, type=int, help="batch size episodes for training")
-    parser.add_argument('--min_episodes', default=100, type=int, help="min number of min_episodes to run")
-    parser.add_argument('--max_episodes', default=5000, type=int, help="max number of min_episodes to run")
-    parser.add_argument('--tune_samples', default=1000, type=int, help="number of samples to run")
+    parser.add_argument('--location',               default="local", choices=['cluster', 'local'], help='execution location, setting depending variables')
+    parser.add_argument('--actor_config',           default="model_GINE.json", help="path to the actor model config")
+    parser.add_argument('--critic_config',          default="model_GAT.json", help="path to the critic model config")
+    parser.add_argument('--encoders_config',        default="encoders_sincos.json", help="path to the encoders config")
+    parser.add_argument('--env_config',             default="env_comv1_2.json", help="path to env config")
+    parser.add_argument('--min_timesteps',          default=1000, type=int, help="min number of min_timesteps to run")
+    parser.add_argument('--max_timesteps',          default=2000, type=int, help="max number of max_timesteps to run")
+    parser.add_argument('--batch_size',             default=512, type=int, help="batch size for training")
+    parser.add_argument('--rollout_workers',        default=0, type=int, help="number of rollout workers")
+    parser.add_argument('--cpus_per_worker',        default=1, type=int, help="number of cpus per rollout worker")
+    parser.add_argument('--cpus_for_local_worker',  default=2, type=int, help="number of cpus for local worker")
+    parser.add_argument('--tune_samples',           default=1000, type=int, help="number of samples to run")
+    parser.add_argument('--performance_study',      default=False, action='store_true', help='run performance study with fixed set of parameters and run length')
+    parser.add_argument('--ray_threads',            default=None, type=int, help="number of threads to use for ray")
     
 
     args = parser.parse_args()
@@ -198,15 +195,15 @@ if __name__ == '__main__':
         critic_config=critic_config,
         encoders_config=encoders_config,
         env_config=env_config,
-        performance_study=args.performance_study,
-        tune_samples=args.tune_samples,
-        min_episodes=args.min_episodes,
-        max_episodes=args.max_episodes,
-        batch_size_episodes=args.batch_size_episodes,
-        ray_threads=args.ray_threads, 
+        min_timesteps=args.min_timesteps,
+        max_timesteps=args.max_timesteps,
+        batch_size=args.batch_size,
         rollout_workers=args.rollout_workers, 
         cpus_per_worker=args.cpus_per_worker,
-        cpus_for_local_worker=args.cpus_for_local_worker)
+        cpus_for_local_worker=args.cpus_for_local_worker,
+        tune_samples=args.tune_samples,
+        performance_study=args.performance_study,
+        ray_threads=args.ray_threads) 
 
 
 
