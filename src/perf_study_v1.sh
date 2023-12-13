@@ -29,6 +29,7 @@ cpus_for_local_worker=1
 batch_size=128
 min_timesteps=2000
 max_timesteps=2001
+tune_samples=20
 
 # check for user flags
 while [[ $# -gt 0 ]]; do
