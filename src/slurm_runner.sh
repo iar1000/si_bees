@@ -26,6 +26,7 @@ ENV_CONFIG=""
 ACTOR_CONFIG=""
 CRITIC_CONFIG=""
 ENCODERS_CONFIG=""
+RAY_THREADS=""
 
 # check for user flags
 while [[ $# -gt 0 ]]; do
@@ -66,6 +67,15 @@ while [[ $# -gt 0 ]]; do
         exit 1
       fi
       ;;
+    --ray_threads)
+      if [[ -n $2 ]]; then
+        RAY_THREADS=$2
+        shift 2
+      else
+        echo "Error: Missing value for -ray_threads flag."
+        exit 1
+      fi
+      ;;
     *)
       shift
       ;;
@@ -78,6 +88,7 @@ echo "ENV_CONFIG:       $ENV_CONFIG"
 echo "ACTOR_CONFIG:     $ACTOR_CONFIG"
 echo "CRITIC_CONFIG:    $CRITIC_CONFIG"
 echo "ENCODERS_CONFIG:  $ENCODERS_CONFIG"
+echo "RAY_THREADS:      $RAY_THREADS"
 
 # Set a directory for temporary files unique to the job with automatic removal at job termination
 TMPDIR=$(mktemp -d)
@@ -103,7 +114,7 @@ cd ${DIRECTORY}
 
 # Binary or script to execute
 echo "-> run train.py from directory $(pwd)"
-python /itet-stor/kpius/net_scratch/si_bees/src/train.py --location "cluster" --env_config $ENV_CONFIG --actor_config $ACTOR_CONFIG --critic_config $CRITIC_CONFIG --encoders_config $ENCODERS_CONFIG
+python /itet-stor/kpius/net_scratch/si_bees/src/train.py --location "cluster" --env_config $ENV_CONFIG --actor_config $ACTOR_CONFIG --critic_config $CRITIC_CONFIG --encoders_config $ENCODERS_CONFIG --ray_threads $RAY_THREADS
 
 # Send more noteworthy information to the output log
 echo "Finished at:     $(date)"
