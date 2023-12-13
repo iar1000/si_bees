@@ -73,14 +73,13 @@ class CommunicationV1_model(mesa.Model):
             done = False
             # find a valid placement for the workers
             while not done:
-                workers = []
+                workers = [] # (location, movable)
                 x_diff, y_diff = get_relative_pos(self.platform.pos, self.oracle.pos)
                 for d in range(1, 3):
                     x_worker = self.platform.pos[0] if x_diff == 0 else self.platform.pos[0] + d * np.sign(x_diff) 
                     y_worker = self.platform.pos[1] if y_diff == 0 else self.platform.pos[1] + d * np.sign(y_diff)
                     last_worker_pos = (x_worker, y_worker)
-                    tmp_worker = Worker(self._next_id(), self, hidden_vec=np.random.rand(size_hidden_vec), can_move=True if d == 1 else False)
-                    workers.append((tmp_worker, last_worker_pos))
+                    workers.append((last_worker_pos, True if d == 1 else False))
                 
                 # place workers in a line to the oracle, respecting each others communication range
                 while not [n for n in self.grid.get_neighbors(last_worker_pos, moore=True, radius=self.com_range, include_center=True) if type(n) is Oracle]:
@@ -90,26 +89,29 @@ class CommunicationV1_model(mesa.Model):
                     x_worker += x_step
                     y_worker += y_step
                     last_worker_pos = (x_worker, y_worker)
-                    tmp_worker = Worker(self._next_id(), self, hidden_vec=np.random.rand(size_hidden_vec), can_move=False)
-                    workers.append((tmp_worker, last_worker_pos))
+                    workers.append((last_worker_pos, False))
 
+                # check if enough workers are placed
                 if len(workers) <= n_workers:
                     n_og_workers = len(workers)
                     workers_to_place = n_workers - n_og_workers
                     # fill up the missing workers with duplicates
-                    if n_og_workers == 2:
+                    if worker_placement == "commline_passive":
                         for _ in range(workers_to_place):
-                            duplicate_pos = workers[1][1]
-                            tmp_worker = Worker(self._next_id(), self, hidden_vec=np.random.rand(size_hidden_vec), can_move=False)
-                            workers.append((tmp_worker, duplicate_pos))
-                    if n_og_workers > 2:
+                            if n_og_workers == 2:
+                                workers.append((workers[1][0], False))
+                            if n_og_workers > 2:
+                                workers.append((workers[random.randint(1, n_og_workers - 1)][0], False))
+                    elif worker_placement == "commline_active":
                         for _ in range(workers_to_place):
-                            duplicate_pos = workers[random.randint(1, n_og_workers - 1)][1]
-                            tmp_worker = Worker(self._next_id(), self, hidden_vec=np.random.rand(size_hidden_vec), can_move=False)
-                            workers.append((tmp_worker, duplicate_pos))
+                            workers.append((workers[0][0], True))
+                    else:
+                        raise ValueError(f"unknown worker_placement={worker_placement}")
+
                     done = True
             # place workers
-            for worker, pos in workers:
+            for pos, can_move in workers:
+                worker = Worker(self._next_id(), self, hidden_vec=np.random.rand(size_hidden_vec), can_move=can_move)
                 self.schedule.add(worker)
                 self.grid.place_agent(agent=worker, pos=pos)
   
@@ -224,7 +226,7 @@ class CommunicationV1_model(mesa.Model):
             for n in neighbors:
                 rel_pos = get_relative_pos(worker.pos, n.pos)
                 edge_states[i * self.n_total_agents + n.unique_id] = tuple([1, np.array(rel_pos, dtype=np.int32)]) 
-        
+
         assert all([x is not None for x in agent_states]), "agent states are not complete"
         assert all([x is not None for x in edge_states]), "edge attributes are not complete"
         return tuple([tuple(agent_states), tuple(edge_states)])
