@@ -28,7 +28,7 @@
         "1": {
             "description": "learn_comm_better",
             "model_params": {
-                "worker_placement": "commline_fast",
+                "worker_placement": "commline",
                 "platform_placement": "random",
                 "platform_distance": 10,
                 "oracle_burn_in": 0,
@@ -40,7 +40,7 @@
         "2": {
             "description": "learn_comm_better",
             "model_params": {
-                "worker_placement": "commline_fast_fast",
+                "worker_placement": "commline",
                 "platform_placement": "random",
                 "platform_distance": 10,
                 "oracle_burn_in": 0,
