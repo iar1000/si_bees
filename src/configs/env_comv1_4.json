@@ -16,7 +16,7 @@
             "description": "learn_comm",
             "model_params": {
                 "max_steps": 10,
-                "worker_placement": "commline_active",
+                "worker_placement": "commline_passive",
                 "platform_placement": "random",
                 "platform_distance": 10,
                 "oracle_burn_in": 0,
@@ -29,7 +29,7 @@
             "description": "learn_comm",
             "model_params": {
                 "max_steps": 15,
-                "worker_placement": "commline_active",
+                "worker_placement": "commline_passive",
                 "platform_placement": "random",
                 "platform_distance": 10,
                 "oracle_burn_in": 0,
@@ -42,7 +42,7 @@
             "description": "learn_comm",
             "model_params": {
                 "max_steps": 20,
-                "worker_placement": "commline_active",
+                "worker_placement": "commline_passive",
                 "platform_placement": "random",
                 "platform_distance": 10,
                 "oracle_burn_in": 0,
@@ -55,7 +55,7 @@
             "description": "learn_comm",
             "model_params": {
                 "max_steps": 40,
-                "worker_placement": "commline_active",
+                "worker_placement": "commline_passive",
                 "platform_placement": "random",
                 "platform_distance": 10,
                 "oracle_burn_in": 0,
@@ -68,7 +68,7 @@
             "description": "learn_comm",
             "model_params": {
                 "max_steps": 100,
-                "worker_placement": "commline_active",
+                "worker_placement": "commline_passive",
                 "platform_placement": "random",
                 "platform_distance": 10,
                 "oracle_burn_in": 0,
