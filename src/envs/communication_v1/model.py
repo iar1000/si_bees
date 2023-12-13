@@ -1,12 +1,11 @@
 import random
 import mesa
-from math import ceil, floor
+from math import floor
 import numpy as np
 from ray.rllib.algorithms import Algorithm
 
 import gymnasium
 from gymnasium.spaces import Box, Tuple, Discrete
-from gymnasium.spaces.utils import flatdim
 
 from utils import get_random_pos_on_border, get_relative_pos
 from envs.communication_v1.agents import Oracle, Platform, Worker 
@@ -28,7 +27,7 @@ class CommunicationV1_model(mesa.Model):
                  platform_distance: int, oracle_burn_in: int, p_oracle_change: float,
                  n_tiles_x: int, n_tiles_y: int,
                  size_hidden_vec: int, com_range: int, len_trace: int,
-                 platform_placement: str = "fixed",
+                 platform_placement: str,
                  policy_net: Algorithm = None, inference_mode: bool = False) -> None:
         super().__init__()
 
@@ -224,7 +223,7 @@ class CommunicationV1_model(mesa.Model):
             neighbors = [n for n in neighbors if n is not self]
             for n in neighbors:
                 rel_pos = get_relative_pos(worker.pos, n.pos)
-                edge_states[i * self.n_total_agents + n.unique_id] = tuple([1, np.array(rel_pos, dtype=np.int32)])
+                edge_states[i * self.n_total_agents + n.unique_id] = tuple([1, np.array(rel_pos, dtype=np.int32)]) 
         
         assert all([x is not None for x in agent_states]), "agent states are not complete"
         assert all([x is not None for x in edge_states]), "edge attributes are not complete"

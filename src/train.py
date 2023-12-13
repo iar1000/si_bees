@@ -160,7 +160,7 @@ if __name__ == '__main__':
     parser.add_argument('--env_config',             default="env_comv1_2.json", help="path to env config")
     parser.add_argument('--min_timesteps',          default=1000, type=int, help="min number of min_timesteps to run")
     parser.add_argument('--max_timesteps',          default=2000, type=int, help="max number of max_timesteps to run")
-    parser.add_argument('--batch_size',             default=512, type=int, help="batch size for training")
+    parser.add_argument('--batch_size',             default=256, type=int, help="batch size for training")
     parser.add_argument('--rollout_workers',        default=0, type=int, help="number of rollout workers")
     parser.add_argument('--cpus_per_worker',        default=1, type=int, help="number of cpus per rollout worker")
     parser.add_argument('--cpus_for_local_worker',  default=2, type=int, help="number of cpus for local worker")

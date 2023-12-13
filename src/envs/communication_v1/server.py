@@ -46,7 +46,6 @@ def create_server(env_config: dict, curr_level: int,
 
     # merge config dict
     model_params = {}
-    model_params["max_steps"] = env_config["max_steps"]
     model_params["policy_net"] = policy_net
     model_params["inference_mode"] = True
     for k, i in env_config["agent_config"].items():

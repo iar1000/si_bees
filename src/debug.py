@@ -12,12 +12,14 @@ from utils import create_tunable_config, filter_actor_gnn_tunables
 
 
 config_dir = os.path.join("src", "configs") 
-env_config = load_config_dict(os.path.join(config_dir, "env_comv1_2.json"))
+env_config = load_config_dict(os.path.join(config_dir, "env_comv1_3.json"))
 logging_config = load_config_dict(os.path.join(config_dir, "logging_local.json"))
 
 actor_config = load_config_dict(os.path.join(config_dir, "model_GINE.json"))
 critic_config = load_config_dict(os.path.join(config_dir, "model_GATv2.json"))
 encoders = load_config_dict(os.path.join(config_dir, "encoders_sincos.json"))
+
+batch_size = 256
 
 ray.init(num_cpus=1, local_mode=True)
 
@@ -46,7 +48,7 @@ ppo_config = (
         grad_clip=1,
         grad_clip_by="value",
         model=model,
-        train_batch_size=128, # ts per iteration
+        train_batch_size=batch_size, 
         _enable_learner_api=False
     )
     .rl_module(_enable_rl_module_api=False)

@@ -24,10 +24,9 @@ class CommunicationV1_env(TaskSettableEnv):
         self.render_mode = config["render_mode"]
 
         # curriculum learning
-        self.max_steps = config["max_steps"]
         self.curriculum_learning = config["curriculum_learning"]
         self.curr_task = 0
-        self.max_task = len(self.model_configs.items()) - 1
+        self.max_task = len(self.model_configs.items()) - 1 if self.curriculum_learning else 0
 
         # model
         self.model = self._create_model()
@@ -37,6 +36,8 @@ class CommunicationV1_env(TaskSettableEnv):
         print("\n=== env ===")
         print(f"size action_space={flatdim(self.action_space)}")
         print(f"size obs_space={flatdim(self.observation_space)}")
+        print(f"curriculum_learning={self.curriculum_learning}")
+        print(f"max_task={self.max_task}")
         print()
 
     def reset(self, *, seed=None, options=None):
@@ -76,7 +77,7 @@ class CommunicationV1_env(TaskSettableEnv):
         # add the max_steps, as it is a parameter of the model
         parameter_dict = {}
         _, model_config = self._curr_model_config()
-        for d in [self.agent_config, model_config, {"max_steps":self.max_steps}]:
+        for d in [self.agent_config, model_config]:
             for k, v in d.items():
                 parameter_dict[k] = v
 
