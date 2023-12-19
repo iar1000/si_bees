@@ -25,26 +25,36 @@ class CommunicationV1_model(mesa.Model):
                  max_steps: int,
                  n_workers: int, worker_placement: str,
                  platform_distance: int, oracle_burn_in: int, p_oracle_change: float,
+                 reward_delay: int | str,
                  n_tiles_x: int, n_tiles_y: int,
                  size_hidden_vec: int, com_range: int, len_trace: int,
                  platform_placement: str,
                  policy_net: Algorithm = None, inference_mode: bool = False) -> None:
         super().__init__()
 
+        self.max_steps = max_steps
+        self.n_steps = 0 # current number of steps
         self.n_workers = n_workers
         self.size_hidden_vec = size_hidden_vec
         self.com_range = com_range
         self.n_tiles_x = n_tiles_x
         self.n_tiles_y = n_tiles_y
+        assert max_steps > 0, "max_steps must be positive"
         assert self.n_tiles_x > 0 and self.n_tiles_y > 0, "grid size must be positive"
         assert self.n_tiles_x <= MAX_AGENT_DISTANCE + 1 and self.n_tiles_y <= MAX_AGENT_DISTANCE + 1, f"grid size is bigger than MAX_AGENT_DISTANCE ({MAX_AGENT_DISTANCE}), with which the observation space is computed"
         assert 0 < com_range <= MAX_AGENT_DISTANCE, f"communication range is bigger than MAX_AGENT_DISTANCE ({MAX_AGENT_DISTANCE}), with which the observation space is computed"
         assert n_workers >= ((platform_distance - 2) // com_range) + 1, "not enough workers to build a communication line"
 
-        self.max_steps = max_steps
-        self.n_steps = 0 # current number of steps
-        self.oracle_burn_in = oracle_burn_in
+        # track reward, max reward is the optimal case
+        self.accumulated_reward = 0
+        self.last_reward = 0
+        self.max_reward = 0
+        self.reward_delay = int(floor(platform_distance / com_range)) + 1 if reward_delay == "optimal" else int(reward_delay)
+        self.time_to_reward = 0
+        self.change_delay = int(floor(platform_distance / com_range)) + 1 
+        self.time_to_change = 0
         self.p_oracle_change = p_oracle_change
+        self.oracle_burn_in = oracle_burn_in
 
         # grid coordinates, bottom left = (0,0)
         self.grid = mesa.space.MultiGrid(n_tiles_x, n_tiles_y, False)
@@ -125,12 +135,6 @@ class CommunicationV1_model(mesa.Model):
                 if worker_placement == "random":
                     self.grid.move_to_empty(agent=new_worker)
 
-        # track reward, max reward is the optimal case
-        self.accumulated_reward = 0
-        self.last_reward = 0
-        self.max_reward = 0
-        self.reward_delay = int(floor(platform_distance / com_range)) + 1
-        self.time_to_reward = 0
 
         # observation and action space sizes
         self.n_total_agents = len(self.schedule.agents) # workers + platforms + oracle
@@ -154,7 +158,7 @@ class CommunicationV1_model(mesa.Model):
     
     def print_status(self) -> None:
         """print status of the model"""
-        print(f"step {self.n_steps}: oracle is {'deactived' if not self.oracle.is_active() else self.oracle.get_state()}\n\ttime to reward={self.time_to_reward}\n\treward={self.last_reward}, acc_reward={self.accumulated_reward}/{self.max_reward}")
+        print(f"step {self.n_steps}: oracle is {'deactived' if not self.oracle.is_active() else self.oracle.get_state()}\n\ttime to change={self.time_to_change}\n\ttime to reward={self.time_to_reward}\n\treward={self.last_reward}, acc_reward={self.accumulated_reward}/{self.max_reward}")
 
     def print_agent_locations(self) -> None:
         """print a string with agent locations"""
@@ -267,14 +271,17 @@ class CommunicationV1_model(mesa.Model):
             self.oracle.activate()
             self.oracle.set_state(1)
             self.time_to_reward = self.reward_delay
+            self.time_to_change = self.change_delay
         # switch oracle state with certain probability
-        elif self.oracle.is_active() and self.time_to_reward == 0:
+        elif self.oracle.is_active() and self.time_to_change == 0:
             r = self.random.random()
             if r < self.p_oracle_change:
                 curr_state = self.oracle.get_state()
                 self.oracle.set_state((curr_state + 1) % 2)
                 self.time_to_reward = self.reward_delay
+                self.time_to_change = self.change_delay
         else:
+            self.time_to_change = max(0, self.time_to_change - 1)
             self.time_to_reward = max(0, self.time_to_reward - 1)
         
         return self.last_reward, self.max_steps <= self.n_steps
@@ -308,7 +315,8 @@ class CommunicationV1_model(mesa.Model):
     
     def step(self) -> None:
         """advance the model one step in inference mode"""
-
+        self.print_status()
+        
         # get actions
         if self.policy_net is None:
             action = self.get_action_space().sample()

@@ -21,6 +21,7 @@
                 "platform_distance": 10,
                 "oracle_burn_in": 0,
                 "p_oracle_change": 0.05,
+                "reward_delay": "optimal",
                 "n_tiles_x": 21,
                 "n_tiles_y": 21
             }
@@ -33,6 +34,7 @@
                 "platform_distance": 10,
                 "oracle_burn_in": 0,
                 "p_oracle_change": 0.1,
+                "reward_delay": "optimal",
                 "n_tiles_x": 21,
                 "n_tiles_y": 21
             }
@@ -45,6 +47,7 @@
                 "platform_distance": 10,
                 "oracle_burn_in": 0,
                 "p_oracle_change": 0.2,
+                "reward_delay": "optimal",
                 "n_tiles_x": 21,
                 "n_tiles_y": 21
             }
