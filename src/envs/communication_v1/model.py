@@ -167,8 +167,8 @@ class CommunicationV1_model(mesa.Model):
         print(f"\ttime to change={self.time_to_change}")
         print(f"\ttime to reward={self.time_to_reward}")
         print(f"\treward={self.last_reward}")
-        print(f"total reward={self.accumulated_reward}/{self.max_total_reward}")
-        print(f"obtainable reward={self.accumulated_obtainable_reward}/{self.max_obtainable_reward}")
+        print(f"\ttotal reward={self.accumulated_reward}/{self.max_total_reward}")
+        print(f"\tobtainable reward={self.accumulated_obtainable_reward}/{self.max_obtainable_reward}")
 
     def print_agent_locations(self) -> None:
         """print a string with agent locations"""
