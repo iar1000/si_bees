@@ -46,9 +46,12 @@ class CommunicationV1_model(mesa.Model):
         assert n_workers >= ((platform_distance - 2) // com_range) + 1, "not enough workers to build a communication line"
 
         # track reward, max reward is the optimal case
-        self.accumulated_reward = 0
         self.last_reward = 0
-        self.max_reward = 0
+        self.max_total_reward = 0
+        self.max_obtainable_reward = 0
+        self.accumulated_reward = 0
+        self.accumulated_obtainable_reward = 0
+
         self.reward_delay = int(floor(platform_distance / com_range)) + 1 if reward_delay == "optimal" else int(reward_delay)
         self.time_to_reward = 0
         self.change_delay = int(floor(platform_distance / com_range)) + 1 
@@ -143,10 +146,12 @@ class CommunicationV1_model(mesa.Model):
         if inference_mode:
             self.policy_net = policy_net
             self.datacollector = mesa.DataCollector(model_reporters={
-                "max_reward": lambda x: self.max_reward,
+                "max_total_reward": lambda x: self.max_total_reward,
                 "accumulated_reward": lambda x: self.accumulated_reward,
+                "max_obtainable_reward": lambda x: self.max_obtainable_reward,
+                "accumulated_obtainable_reward": lambda x: self.accumulated_obtainable_reward,
                 "last_reward": lambda x: self.last_reward,
-                "score": lambda x: max(0, self.accumulated_reward) / self.max_reward * 100 if self.max_reward > 0 else 0,
+                "score": lambda x: max(0, self.accumulated_obtainable_reward) / self.max_obtainable_reward * 100 if self.max_obtainable_reward > 0 else 0,
                 }
             )
 
@@ -158,7 +163,12 @@ class CommunicationV1_model(mesa.Model):
     
     def print_status(self) -> None:
         """print status of the model"""
-        print(f"step {self.n_steps}: oracle is {'deactived' if not self.oracle.is_active() else self.oracle.get_state()}\n\ttime to change={self.time_to_change}\n\ttime to reward={self.time_to_reward}\n\treward={self.last_reward}, acc_reward={self.accumulated_reward}/{self.max_reward}")
+        print(f"step {self.n_steps}: oracle is {'deactived' if not self.oracle.is_active() else self.oracle.get_state()}")
+        print(f"\ttime to change={self.time_to_change}")
+        print(f"\ttime to reward={self.time_to_reward}")
+        print(f"\treward={self.last_reward}")
+        print(f"total reward={self.accumulated_reward}/{self.max_total_reward}")
+        print(f"obtainable reward={self.accumulated_obtainable_reward}/{self.max_obtainable_reward}")
 
     def print_agent_locations(self) -> None:
         """print a string with agent locations"""
@@ -264,7 +274,13 @@ class CommunicationV1_model(mesa.Model):
         last_reward_is, last_reward_could = self.compute_reward()
         self.last_reward = last_reward_is
         self.accumulated_reward += last_reward_is
-        self.max_reward += last_reward_could
+        self.max_total_reward += last_reward_could
+        # calculate the obtainable rewards with respect to information transfer time
+        if self.time_to_change > 0 and self.oracle.get_state() == 0:
+            self.accumulated_obtainable_reward += min(0, last_reward_is)
+        if self.time_to_change == 0:
+            self.max_obtainable_reward += last_reward_could
+            self.accumulated_obtainable_reward += last_reward_is
 
         # activate oracle
         if not self.oracle.is_active() and self.n_steps >= self.oracle_burn_in:
@@ -314,9 +330,7 @@ class CommunicationV1_model(mesa.Model):
                 
     
     def step(self) -> None:
-        """advance the model one step in inference mode"""
-        self.print_status()
-        
+        """advance the model one step in inference mode"""        
         # get actions
         if self.policy_net is None:
             action = self.get_action_space().sample()
@@ -332,6 +346,9 @@ class CommunicationV1_model(mesa.Model):
 
         # collect data
         self.datacollector.collect(self)
+
+        self.print_status()
+
 
 
     

@@ -122,11 +122,11 @@ def run(logging_config: str,
         stop={"timesteps_total": max_timesteps}, # https://docs.ray.io/en/latest/tune/tutorials/tune-metrics.html#tune-autofilled-metrics
         storage_path=storage_path,
         callbacks=callbacks,
-        # checkpoint_config=CheckpointConfig(
-        #     checkpoint_score_attribute="custom_metrics/curr_learning_score_mean",
-        #     num_to_keep=10,
-        #     checkpoint_frequency=50,
-        #     checkpoint_at_end=True),
+        checkpoint_config=CheckpointConfig(
+            checkpoint_score_attribute="custom_metrics/learning_score_mean",
+            num_to_keep=4,
+            checkpoint_frequency=20,
+            checkpoint_at_end=True),
     )
 
     # tune config
@@ -134,7 +134,7 @@ def run(logging_config: str,
             num_samples=tune_samples,
             scheduler= ASHAScheduler(
                 time_attr='timesteps_total',
-                metric='custom_metrics/curr_learning_score_mean',
+                metric='custom_metrics/learning_score_mean',
                 mode='max',
                 grace_period=min_timesteps,
                 max_t=max_timesteps,

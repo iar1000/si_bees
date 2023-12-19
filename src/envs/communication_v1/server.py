@@ -63,8 +63,8 @@ def create_server(env_config: dict, curr_level: int,
     score = ChartModule([{"label": "score", "Label": "score", "Color": "Black"},],
                         data_collector_name='datacollector',
                         canvas_height=30, canvas_width=100)
-    points = ChartModule([{"label": "max_reward", "Label": "max_reward", "Color": "Black", "color": "Black"},
-                          {"label": "accumulated_reward", "Label": "accumulated_reward", "Color": "Black", "color": "Black"},],
+    points = ChartModule([{"label": "max_obtainable_reward", "Label": "max_obtainable_reward", "Color": "Black", "color": "Black"},
+                          {"label": "accumulated_obtainable_reward", "Label": "accumulated_obtainable_reward", "Color": "Black", "color": "Black"},],
                         data_collector_name='datacollector',
                         canvas_height=30, canvas_width=100)
 
