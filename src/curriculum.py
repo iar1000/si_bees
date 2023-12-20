@@ -5,8 +5,8 @@ def curriculum_fn(train_results, task_settable_env, env_ctx):
     current_task = task_settable_env.get_task()
 
     # increase task if it has been solve with 80% accuracy
-    if "episode_optimality_capped_mean" in train_results["custom_metrics"].keys() and \
-        train_results["custom_metrics"]["episode_optimality_capped_mean"] > 0.8:
+    if "obtainable_optimality_capped_mean" in train_results["custom_metrics"].keys() and \
+        train_results["custom_metrics"]["obtainable_optimality_capped_mean"] > 0.8:
         return current_task + 1
 
     else:
