@@ -1,11 +1,31 @@
-from mesa.visualization.ModularVisualization import ModularServer
+import os
+from matplotlib.figure import Figure
+from mesa.visualization.ModularVisualization import ModularServer, TextElement, VisualizationElement
 from mesa.visualization.modules import CanvasGrid, ChartModule
-
 from ray.rllib.algorithms.ppo import PPO
+import solara
 
 from envs.communication_v1.agents import Worker, Oracle, Platform
 from envs.communication_v1.model import CommunicationV1_model
 
+class GamestateTextElement(TextElement):
+    def __init__(self):
+        pass
+
+    def render(self, model):
+        out = [
+            f"total_reward      : {model.accumulated_reward}/{model.max_total_reward} (timeout {model.time_to_reward})",
+            f"obtainable_reward : {model.accumulated_obtainable_reward}/{model.max_obtainable_reward} (timeout {model.time_to_change})",
+            f"score             : {0 if model.max_obtainable_reward <= 0 else model.accumulated_obtainable_reward / model.max_obtainable_reward}",
+        ]
+
+        return "<h3>Gamestate</h3>" + "<br />".join(out)
+
+class GraphElement(TextElement):
+    def render(self, model):
+        path = os.path.join(os.path.dirname(__file__), "graph.png")
+        model.save_graph(path=path)
+        return f"<img src='{path}'>"
 
 def agent_visualisation(agent):
     if agent is None:
@@ -36,7 +56,7 @@ def agent_visualisation(agent):
         else:
             square["Color"] = "red"
         return square
-
+    
 def create_server(env_config: dict, curr_level: int,
                     model_checkpoint: str):
     
@@ -60,6 +80,8 @@ def create_server(env_config: dict, curr_level: int,
         canvas_width=300,
         canvas_height=300)
     
+    game_state = GamestateTextElement()
+    graph = GraphElement()
     score = ChartModule([{"label": "score", "Label": "score", "Color": "Black"},],
                         data_collector_name='datacollector',
                         canvas_height=30, canvas_width=100)
@@ -70,7 +92,7 @@ def create_server(env_config: dict, curr_level: int,
 
     server = ModularServer(
         CommunicationV1_model, 
-        [canvas, score, points], 
+        [canvas, game_state, graph, score, points], 
         env_config["task_name"], 
         model_params=model_params,
     )

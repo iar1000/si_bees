@@ -3,6 +3,11 @@ import mesa
 from math import floor
 import numpy as np
 from ray.rllib.algorithms import Algorithm
+import torch
+from torch_geometric.data import Data
+from torch_geometric.utils.convert import to_networkx
+import networkx as nx
+from matplotlib import pyplot as plt
 
 import gymnasium
 from gymnasium.spaces import Box, Tuple, Discrete
@@ -160,6 +165,44 @@ class CommunicationV1_model(mesa.Model):
         curr_id = self.current_id
         self.current_id += 1
         return curr_id
+    
+    def save_graph(self, path: str) -> None:
+        """save the current graph to a file"""
+        # build graph to plot
+        obs = self.get_obs()
+        edges = obs[1]
+        actor_froms, actor_tos, actor_edge_attr = [], [], []
+        fc_froms, fc_tos, fc_edge_attr = [], [], []
+        for j in range(self.n_total_agents ** 2):
+            if not j // self.n_total_agents == j % self.n_total_agents: # no self loops
+                if edges[j][0] == 1:
+                    actor_froms.append(j // self.n_total_agents)
+                    actor_tos.append(j % self.n_total_agents)
+                    actor_edge_attr.append(edges[j][1:])
+
+                # add edge to fc graph
+                fc_froms.append(j // self.n_total_agents)
+                fc_tos.append(j % self.n_total_agents)
+                fc_edge_attr.append(edges[j][1:])
+
+        
+
+        # build edge indexes
+        actor_edge_index = torch.tensor([actor_froms, actor_tos], dtype=torch.int64)
+        fc_edge_index = torch.tensor([fc_froms, fc_tos], dtype=torch.int64)
+
+        # plot graph
+        plt.figure(figsize=(8, 6))
+        data = Data(edge_index=actor_edge_index, num_nodes=self.n_total_agents)
+        g = to_networkx(data)
+        pos = nx.kamada_kawai_layout(g)  
+        nx.draw_networkx_edges(g, pos)
+        nx.draw_networkx_nodes(g, pos, 
+                               node_size=750,
+                               node_color=['green', 'blue'] + ['black'] * (self.n_total_agents - 2))
+        nx.draw_networkx_labels(g, pos, font_size=22, font_color="white")
+        nx.draw_networkx_edge_labels(g, pos, {e: actor_edge_attr[i][0].tolist() for i, e in enumerate(g.edges)})
+        plt.savefig(fname=path)
     
     def print_status(self) -> None:
         """print status of the model"""
