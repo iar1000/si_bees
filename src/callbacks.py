@@ -1,17 +1,10 @@
-from typing import Dict, Tuple
-import numpy as np
+from typing import Dict
 
-from pprint import pprint
 
-from ray import train
-from ray.rllib.algorithms.algorithm import Algorithm
-from ray.tune.callback import Callback
 from ray.rllib.env import BaseEnv
 from ray.rllib.evaluation import Episode, RolloutWorker
 from ray.rllib.policy import Policy
-from ray.rllib.policy.sample_batch import SampleBatch
 from ray.rllib.algorithms.callbacks import DefaultCallbacks
-from ray.rllib.env.multi_agent_env import MultiAgentEnvWrapper
 
 
 class ReportModelStateCallback(DefaultCallbacks):

@@ -6,8 +6,8 @@ from ray.rllib.algorithms.ppo import PPOConfig
 
 from configs.utils import load_config_dict
 from callbacks import ReportModelStateCallback
-from envs.communication_v1.environment import CommunicationV1_env
-from envs.communication_v1.models.pyg import GNN_PyG
+from envs.communication_v2.environment import CommunicationV2_env
+from envs.communication_v2.models.pyg import GNN_PyG
 from utils import create_tunable_config, filter_actor_gnn_tunables
 
 
@@ -23,7 +23,7 @@ batch_size = 256
 
 ray.init(num_cpus=1, local_mode=True)
 
-env = CommunicationV1_env
+env = CommunicationV2_env
 
 model = {}
 tunable_model_config = {}
@@ -31,7 +31,7 @@ tunable_model_config["actor_config"] = filter_actor_gnn_tunables(create_tunable_
 tunable_model_config["critic_config"] = create_tunable_config(critic_config)
 tunable_model_config["encoders_config"] = create_tunable_config(encoders)
     
-env = CommunicationV1_env
+env = CommunicationV2_env
 model = {"custom_model": GNN_PyG,
         "custom_model_config": tunable_model_config}
 
