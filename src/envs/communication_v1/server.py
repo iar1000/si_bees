@@ -1,9 +1,8 @@
 import os
-from matplotlib.figure import Figure
-from mesa.visualization.ModularVisualization import ModularServer, TextElement, VisualizationElement
+import shutil
+from mesa.visualization.ModularVisualization import ModularServer, TextElement
 from mesa.visualization.modules import CanvasGrid, ChartModule
 from ray.rllib.algorithms.ppo import PPO
-import solara
 
 from envs.communication_v1.agents import Worker, Oracle, Platform
 from envs.communication_v1.model import CommunicationV1_model
@@ -22,11 +21,24 @@ class GamestateTextElement(TextElement):
         return "<h3>Gamestate</h3>" + "<br />".join(out)
 
 class GraphElement(TextElement):
+    path = "/Users/sega/Code/si_bees/venv/lib/python3.11/site-packages/mesa_viz_tornado/assets"
+    for filename in os.listdir(path):
+        file_path = os.path.join(path, filename)
+        try:
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+        except Exception as e:
+            print('Failed to delete %s. Reason: %s' % (file_path, e))
+    
+    counter = 0
     def render(self, model):
-        path = os.path.join(os.path.dirname(__file__), "graph.png")
-        model.save_graph(path=path)
-        return f"<img src='{path}'>"
-
+        self.counter += 1
+        name = f"graph_{self.counter}.png"
+        model.save_graph(path=os.path.join(self.path, name))
+        return f"<img src='custom/{name}'>" 
+ 
 def agent_visualisation(agent):
     if agent is None:
         return

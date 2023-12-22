@@ -1,3 +1,4 @@
+import os
 import random
 import mesa
 from math import floor
@@ -185,23 +186,27 @@ class CommunicationV1_model(mesa.Model):
                 fc_tos.append(j % self.n_total_agents)
                 fc_edge_attr.append(edges[j][1:])
 
-        
-
         # build edge indexes
         actor_edge_index = torch.tensor([actor_froms, actor_tos], dtype=torch.int64)
         fc_edge_index = torch.tensor([fc_froms, fc_tos], dtype=torch.int64)
 
         # plot graph
-        plt.figure(figsize=(8, 6))
+        plt.figure(figsize=(10, 4))
         data = Data(edge_index=actor_edge_index, num_nodes=self.n_total_agents)
         g = to_networkx(data)
         pos = nx.kamada_kawai_layout(g)  
-        nx.draw_networkx_edges(g, pos)
+        nx.draw_networkx_edges(g, pos,
+                               connectionstyle='arc3, rad = 0')
         nx.draw_networkx_nodes(g, pos, 
-                               node_size=750,
+                               node_size=100,
                                node_color=['green', 'blue'] + ['black'] * (self.n_total_agents - 2))
-        nx.draw_networkx_labels(g, pos, font_size=22, font_color="white")
-        nx.draw_networkx_edge_labels(g, pos, {e: actor_edge_attr[i][0].tolist() for i, e in enumerate(g.edges)})
+        nx.draw_networkx_labels(g, pos, font_size=8, font_color="white")
+        nx.draw_networkx_edge_labels(g, pos, 
+                                     {e: actor_edge_attr[i][0].tolist() for i, e in enumerate(g.edges)},
+                                     label_pos=0.75,
+                                     font_size=7)
+        if os.path.isfile(path):
+            os.remove(path)   # Opt.: os.system("rm "+strFile)
         plt.savefig(fname=path)
     
     def print_status(self) -> None:
