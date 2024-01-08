@@ -13,12 +13,10 @@ class GamestateTextElement(TextElement):
 
     def render(self, model):
         out = [
-            f"total_reward      : {model.accumulated_reward}/{model.max_total_reward} (timeout {model.time_to_reward})",
-            f"obtainable_reward : {model.accumulated_obtainable_reward}/{model.max_obtainable_reward} (timeout {model.time_to_change})",
-            f"score             : {0 if model.max_obtainable_reward <= 0 else model.accumulated_obtainable_reward / model.max_obtainable_reward}",
+            f"terminated   : {0 == -sum([1 for a in model.schedule.agents if type(a) is Worker and a.output != model.oracle.state])}",
+            f"total_reward : {-sum([1 for a in model.schedule.agents if type(a) is Worker and a.output != model.oracle.state])}",
         ]
-
-        return "<h3>Gamestate</h3>" + "<br />".join(out)
+        return "<h3>Status</h3>" + "<br />".join(out)
 
 class GraphElement(TextElement):
     path = "/Users/sega/Code/si_bees/venv/lib/python3.11/site-packages/mesa_viz_tornado/assets"
@@ -34,51 +32,29 @@ class GraphElement(TextElement):
     
     counter = 0
     def render(self, model):
+        # delete old images to remove spam
+        path_old = os.path.join(self.path, f"graph_{self.counter}.png")
+        if os.path.isfile(path_old):
+            os.remove(path_old)
         self.counter += 1
-        name = f"graph_{self.counter}.png"
-        model.save_graph(path=os.path.join(self.path, name))
-        return f"<img src='custom/{name}'>" 
+        # save new graph image
+        path_new = os.path.join(self.path, f"graph_{self.counter}.png")
+        model.save_graph(path=path_new)
+        return f"<img src='custom/{path_new}'>" 
  
 def agent_visualisation(agent):
+    colors = ["green", "black", "red", "blue", "orange"]
     if agent is None:
         return
-
     if type(agent) is Worker:
-        return {"Shape": "circle", "r": 0.5, "Color": "black", "Filled": "true", "Layer": 1}
-    
-    if type(agent) is Platform:
-        is_reward, _ = agent.model.compute_reward()
-
-        circ = {"Shape": "circle", "r": 1, "Color": "green", "Filled": "true", "Layer": 0}
-        if is_reward == 0:
-            circ["Color"] = "orange"
-        elif is_reward > 0:
-            circ["Color"] = "green"
-        else:
-            circ["Color"] = "red"
-        
-        return circ
-    
+        return {"Shape": "circle", "r": 0.5, "Color": colors[agent.output % 6], "Filled": "true", "Layer": 1}
     if type(agent) is Oracle:
-        square = {"Shape": "rect", "w": 1, "h": 1, "Filled": "true", "Layer": 0}
-        if not agent.is_active():
-            square["Color"] = "orange"
-        elif agent.get_state() == 1:
-            square["Color"] = "green"
-        else:
-            square["Color"] = "red"
-        return square
+        return {"Shape": "rect", "w": 1, "h": 1, "Color": colors[agent.state % 6], "Filled": "true", "Layer": 0}
     
 def create_server(env_config: dict, curr_level: int,
                     model_checkpoint: str):
-    
-    policy_net = None
-    if model_checkpoint:
-        policy_net = PPO.from_checkpoint(model_checkpoint)
-
-    # merge config dict
     model_params = {}
-    model_params["policy_net"] = policy_net
+    model_params["policy_net"] = PPO.from_checkpoint(model_checkpoint) if model_checkpoint else None
     model_params["inference_mode"] = True
     for k, i in env_config["agent_config"].items():
         model_params[k] = i
@@ -94,17 +70,17 @@ def create_server(env_config: dict, curr_level: int,
     
     game_state = GamestateTextElement()
     graph = GraphElement()
-    score = ChartModule([{"label": "score", "Label": "score", "Color": "Black"},],
-                        data_collector_name='datacollector',
-                        canvas_height=30, canvas_width=100)
-    points = ChartModule([{"label": "max_obtainable_reward", "Label": "max_obtainable_reward", "Color": "Black", "color": "Black"},
-                          {"label": "accumulated_obtainable_reward", "Label": "accumulated_obtainable_reward", "Color": "Black", "color": "Black"},],
-                        data_collector_name='datacollector',
-                        canvas_height=30, canvas_width=100)
+    #score = ChartModule([{"label": "score", "Label": "score", "Color": "Black"},],
+     #                   data_collector_name='datacollector',
+     #                   canvas_height=30, canvas_width=100)
+    #points = ChartModule([{"label": "max_obtainable_reward", "Label": "max_obtainable_reward", "Color": "Black", "color": "Black"},
+    #                      {"label": "accumulated_obtainable_reward", "Label": "accumulated_obtainable_reward", "Color": "Black", "color": "Black"},],
+     #                   data_collector_name='datacollector',
+    #                    canvas_height=30, canvas_width=100)
 
     server = ModularServer(
         CommunicationV2_model, 
-        [canvas, game_state, graph, score, points], 
+        [canvas, game_state, graph], 
         env_config["task_name"], 
         model_params=model_params,
     )

@@ -1,11 +1,11 @@
 
 {
     "model": "GATv2Conv",
-    "critic_rounds": {
+    "critic_fc": true,
+    "rounds": {
         "min": 1,
         "max": 4
     },
-    "critic_fc": true,
 
     "dropout": {
         "min": 0,

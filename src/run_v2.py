@@ -9,7 +9,7 @@ if __name__ == "__main__":
 
     parser.add_argument("--name", default=None, help="folder name where checkpoints is stored")
     parser.add_argument("--task", default=0, help="curriculum level of the environment")
-    parser.add_argument('--env_config', default="env_comv1_1.json", help="config file for the environment")
+    parser.add_argument('--env_config', default="env_comv2_0.json", help="config file for the environment")
 
     args = parser.parse_args()
 

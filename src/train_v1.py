@@ -11,11 +11,11 @@ from ray.rllib.utils.from_config import NotProvided
 from datetime import datetime
 
 from configs.utils import load_config_dict
-from callbacks import ReportModelStateCallback
-from curriculum import curriculum_fn
+from callbacks_v1 import ReportModelStateCallback
+from curriculum_v1 import curriculum_fn
 from envs.communication_v1.environment import CommunicationV1_env
 from envs.communication_v1.models.pyg import GNN_PyG
-from utils import create_tunable_config, filter_actor_gnn_tunables
+from utils import create_tunable_config, filter_tunables
 
 # set logging
 wandb_logger = logging.getLogger("wandb")
@@ -43,7 +43,7 @@ def build_model_config(actor_config: dict, critic_config: dict, encoders_config:
             "edge_encoder": "sincos"}
     # make configs tunable
     else:
-        tunable_model_config["actor_config"] = filter_actor_gnn_tunables(create_tunable_config(actor_config))
+        tunable_model_config["actor_config"] = filter_tunables(create_tunable_config(actor_config))
         tunable_model_config["critic_config"] = create_tunable_config(critic_config)
         tunable_model_config["encoders_config"] = create_tunable_config(encoders_config)
     

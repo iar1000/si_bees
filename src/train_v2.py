@@ -11,11 +11,11 @@ from ray.rllib.utils.from_config import NotProvided
 from datetime import datetime
 
 from configs.utils import load_config_dict
-from callbacks import ReportModelStateCallback
-from curriculum import curriculum_fn
+from callbacks_v2 import ReportModelStateCallback
+from curriculum_v2 import curriculum_fn
 from envs.communication_v2.environment import CommunicationV2_env
 from envs.communication_v2.models.pyg import GNN_PyG
-from utils import create_tunable_config, filter_actor_gnn_tunables
+from utils import create_tunable_config, filter_tunables
 
 # set logging
 wandb_logger = logging.getLogger("wandb")
@@ -43,7 +43,7 @@ def build_model_config(actor_config: dict, critic_config: dict, encoders_config:
             "edge_encoder": "sincos"}
     # make configs tunable
     else:
-        tunable_model_config["actor_config"] = filter_actor_gnn_tunables(create_tunable_config(actor_config))
+        tunable_model_config["actor_config"] = create_tunable_config(filter_tunables(actor_config))
         tunable_model_config["critic_config"] = create_tunable_config(critic_config)
         tunable_model_config["encoders_config"] = create_tunable_config(encoders_config)
     
@@ -68,11 +68,11 @@ def run(logging_config: str,
     
     group_name = f"a{actor_config['model']}_c{critic_config['model']}_e{encoders_config['node_encoder']}_{encoders_config['edge_encoder']}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
     if performance_study:
-        group_name = f"perf_batchsize-{batch_size}_rollouts-{rollout_workers}_cpus-{cpus_per_worker}_cpus_local-{cpus_for_local_worker}"
+        group_name = f"perf_rollouts-{rollout_workers}_cpus-{cpus_per_worker}_cpus_local-{cpus_for_local_worker}"
     run_name = group_name
     storage_path = os.path.join(logging_config["storage_path"])
 
-    tune.register_env("CommunicationV1_env", lambda env_config: CommunicationV2_env(env_config))
+    tune.register_env("CommunicationV2_env", lambda env_config: CommunicationV2_env(env_config))
     model = {"custom_model": GNN_PyG,
             "custom_model_config": build_model_config(actor_config, critic_config, encoders_config, performance_study)}
     curriculum = curriculum_fn if env_config["curriculum_learning"] and not performance_study else NotProvided
@@ -124,7 +124,7 @@ def run(logging_config: str,
         local_dir=storage_path,
         callbacks=callbacks,
         checkpoint_config=CheckpointConfig(
-            checkpoint_score_attribute="custom_metrics/obtainable_learning_score_mean",
+            checkpoint_score_attribute="episode_reward_mean",
             num_to_keep=4,
             checkpoint_frequency=20,
             checkpoint_at_end=True),
@@ -135,7 +135,7 @@ def run(logging_config: str,
             num_samples=tune_samples,
             scheduler= ASHAScheduler(
                 time_attr='timesteps_total',
-                metric='custom_metrics/obtainable_learning_score_mean',
+                metric='episode_reward_mean',
                 mode='max',
                 grace_period=min_timesteps,
                 max_t=max_timesteps,
@@ -158,7 +158,7 @@ if __name__ == '__main__':
     parser.add_argument('--actor_config',           default="model_GINE.json", help="path to the actor model config")
     parser.add_argument('--critic_config',          default="model_GAT.json", help="path to the critic model config")
     parser.add_argument('--encoders_config',        default="encoders_sincos.json", help="path to the encoders config")
-    parser.add_argument('--env_config',             default="env_comv1_2.json", help="path to env config")
+    parser.add_argument('--env_config',             default="env_comv2_0.json", help="path to env config")
     parser.add_argument('--min_timesteps',          default=15000, type=int, help="min number of min_timesteps to run")
     parser.add_argument('--max_timesteps',          default=500000, type=int, help="max number of max_timesteps to run")
     parser.add_argument('--batch_size',             default=256, type=int, help="batch size for training")
