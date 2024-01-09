@@ -19,6 +19,6 @@ class ReportModelStateCallback(DefaultCallbacks):
         env_index: int,
         **kwargs
     ):
-        env = base_env.get_sub_environments()[env_index]
-        episode.custom_metrics["n_steps"] = env.model.curr_step
-        
+        # env = base_env.get_sub_environments()[env_index]
+        # episode.custom_metrics["n_steps"] = env.model.curr_step
+        pass

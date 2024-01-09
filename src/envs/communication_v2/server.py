@@ -3,9 +3,11 @@ import shutil
 from mesa.visualization.ModularVisualization import ModularServer, TextElement
 from mesa.visualization.modules import CanvasGrid, ChartModule
 from ray.rllib.algorithms.ppo import PPO
+from ray import tune
 
 from envs.communication_v2.agents import Worker, Oracle, Platform
 from envs.communication_v2.model import CommunicationV2_model
+from envs.communication_v2.environment import CommunicationV2_env
 
 class GamestateTextElement(TextElement):
     def __init__(self):
@@ -53,6 +55,7 @@ def agent_visualisation(agent):
     
 def create_server(env_config: dict, curr_level: int,
                     model_checkpoint: str):
+    tune.register_env("CommunicationV2_env", lambda env_config: CommunicationV2_env(env_config))
     model_params = {}
     model_params["policy_net"] = PPO.from_checkpoint(model_checkpoint) if model_checkpoint else None
     model_params["inference_mode"] = True

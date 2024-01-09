@@ -4,6 +4,7 @@ import os
 import ray
 from ray import air, tune
 from ray.train import CheckpointConfig
+from ray.tune.stopper import CombinedStopper, MaximumIterationStopper
 from ray.tune.schedulers import ASHAScheduler
 from ray.rllib.algorithms.ppo import PPOConfig
 from ray.air.integrations.wandb import WandbLoggerCallback
@@ -15,6 +16,7 @@ from callbacks_v2 import ReportModelStateCallback
 from curriculum_v2 import curriculum_fn
 from envs.communication_v2.environment import CommunicationV2_env
 from envs.communication_v2.models.pyg import GNN_PyG
+from stopper_v2 import MaxRewardStopper, MaxTimestepsStopper, MinEpisodeLengthStopper
 from utils import create_tunable_config, filter_tunables
 
 # set logging
@@ -119,13 +121,17 @@ def run(logging_config: str,
     # run and checkpoint config
     run_config = air.RunConfig(
         name=run_name,
-        stop={"timesteps_total": max_timesteps}, # https://docs.ray.io/en/latest/tune/tutorials/tune-metrics.html#tune-autofilled-metrics
+        stop=CombinedStopper(
+            MaxRewardStopper(max_reward=9),
+            MinEpisodeLengthStopper(min_episode_len_mean=1.5),
+            MaxTimestepsStopper(max_timesteps=max_timesteps),
+        ),        
         storage_path=storage_path,
         local_dir=storage_path,
         callbacks=callbacks,
         checkpoint_config=CheckpointConfig(
-            checkpoint_score_attribute="episode_reward_mean",
-            num_to_keep=4,
+            checkpoint_score_attribute="episode_len_mean",
+            num_to_keep=1,
             checkpoint_frequency=20,
             checkpoint_at_end=True),
     )
@@ -135,7 +141,7 @@ def run(logging_config: str,
             num_samples=tune_samples,
             scheduler= ASHAScheduler(
                 time_attr='timesteps_total',
-                metric='episode_reward_mean',
+                metric='episode_len_mean',
                 mode='max',
                 grace_period=min_timesteps,
                 max_t=max_timesteps,
@@ -161,7 +167,7 @@ if __name__ == '__main__':
     parser.add_argument('--env_config',             default="env_comv2_0.json", help="path to env config")
     parser.add_argument('--min_timesteps',          default=15000, type=int, help="min number of min_timesteps to run")
     parser.add_argument('--max_timesteps',          default=500000, type=int, help="max number of max_timesteps to run")
-    parser.add_argument('--batch_size',             default=256, type=int, help="batch size for training")
+    parser.add_argument('--batch_size',             default=1024, type=int, help="batch size for training")
     parser.add_argument('--rollout_workers',        default=0, type=int, help="number of rollout workers")
     parser.add_argument('--cpus_per_worker',        default=1, type=int, help="number of cpus per rollout worker")
     parser.add_argument('--cpus_for_local_worker',  default=2, type=int, help="number of cpus for local worker")

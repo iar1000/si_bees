@@ -3,11 +3,12 @@ import os
 import ray
 from ray import air, tune
 from ray.rllib.algorithms.ppo import PPOConfig
-
+from ray.tune.stopper import CombinedStopper, MaximumIterationStopper
 from configs.utils import load_config_dict
 from callbacks_v2 import ReportModelStateCallback
 from envs.communication_v2.environment import CommunicationV2_env
 from envs.communication_v2.models.pyg import GNN_PyG
+from stopper_v2 import MaxTimestepsStopper, MinEpisodeLengthStopper
 from utils import create_tunable_config, filter_tunables
 
 
@@ -19,7 +20,7 @@ actor_config = load_config_dict(os.path.join(config_dir, "model_GINE.json"))
 critic_config = load_config_dict(os.path.join(config_dir, "model_GATv2.json"))
 encoders = load_config_dict(os.path.join(config_dir, "encoders_sincos.json"))
 
-batch_size = 256
+batch_size = 1024
 
 ray.init(num_cpus=1, local_mode=True)
 
@@ -57,7 +58,10 @@ ppo_config = (
 )
 
 run_config = air.RunConfig(
-    stop={"timesteps_total": 100000},
+    stop=CombinedStopper(
+        MinEpisodeLengthStopper(min_episode_len_mean=5),
+        MaxTimestepsStopper(max_timesteps=100000),
+    ),
 )
 
 tune_config = tune.TuneConfig(

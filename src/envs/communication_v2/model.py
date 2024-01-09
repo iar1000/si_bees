@@ -50,7 +50,7 @@ class CommunicationV2_model(mesa.Model):
         # worker specs
         self.n_workers = n_workers
         self.n_agents = n_workers + 1
-        self.n_oracle_state = n_oracle_states
+        self.n_oracle_states = n_oracle_states
         self.size_hidden_vec = size_hidden_vec
         self.com_range = com_range
 
@@ -146,7 +146,7 @@ class CommunicationV2_model(mesa.Model):
         """
         agent_actions = [
             Box(0, 1, shape=(self.size_hidden_vec,), dtype=np.float32), # hidden vector
-            Discrete(self.n_oracle_state), # output
+            Discrete(self.n_oracle_states), # output
         ]
         return Tuple([Tuple(agent_actions) for _ in range(self.n_workers)])
     
@@ -154,7 +154,8 @@ class CommunicationV2_model(mesa.Model):
         """ obs space consisting of all agent states + adjacents matrix with edge attributes """
         agent_state = [
             Discrete(3), # agent type
-            Box(0, 1, shape=(self.size_hidden_vec,), dtype=np.float32) # hidden vector
+            Box(0, 1, shape=(self.size_hidden_vec,), dtype=np.float32), # hidden vector
+            Discrete(self.n_oracle_states) # current output
         ]
         agent_states = Tuple([Tuple(agent_state) for _ in range(self.n_agents)])
 
@@ -172,11 +173,12 @@ class CommunicationV2_model(mesa.Model):
         for i, worker in enumerate(self.schedule.agents):
             if type(worker) is Oracle:
                 agent_states[i] = tuple([TYPE_ORACLE, 
-                                         np.full(self.size_hidden_vec, worker.state / 10, dtype=np.float32)])
+                                         np.zeros(self.size_hidden_vec),
+                                         worker.state])
             if type(worker) is Worker:
                 agent_states[i] = tuple([TYPE_WORKER, 
-                                         worker.hidden_vec])
-
+                                         worker.hidden_vec, 
+                                         worker.output])
         # edge attributes
         edge_states = [None for _ in range(self.n_agents ** 2)]
         for i, worker in enumerate(self.schedule.agents):
@@ -198,7 +200,9 @@ class CommunicationV2_model(mesa.Model):
     def step(self, actions=None) -> None:
         """advance the model one step in inference mode"""        
         # determine actions for inference mode
+        print_status = False
         if not actions:
+            print_status = True
             if self.policy_net is None:
                 actions = self.get_action_space().sample()
             else:
@@ -209,20 +213,20 @@ class CommunicationV2_model(mesa.Model):
             assert type(worker) == Worker
             worker.hidden_vec = actions[i][0]
             worker.output = actions[i][1]
-        new_obs = self.get_obs()
-
-        if not actions:
-            self.print_status()
         
         # compute reward and state
-        reward = -sum([1 for a in self.schedule.agents if type(a) is Worker and a.output != self.oracle.state])
-        terminated = reward == 0
+        wrongs = sum([1 for a in self.schedule.agents if type(a) is Worker and a.output != self.oracle.state])
+        reward = 10 if wrongs == 0 else -wrongs
+        terminated = wrongs == 0
         truncated = self.curr_step > self.max_steps
         self.curr_step += 1
         # collect data
         #self.datacollector.collect(self)
 
-        return new_obs, reward, terminated, truncated
+        if print_status or False:
+            self.print_status()
+
+        return self.get_obs(), reward, terminated, truncated
 
 
 
