@@ -4,6 +4,8 @@ log/
 README.md
 .DS_Store
 
+checkpoints/
+
 # Output files
 *.out
 *.mov
