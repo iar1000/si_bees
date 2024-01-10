@@ -16,7 +16,7 @@ from callbacks_v2 import ReportModelStateCallback
 from curriculum_v2 import curriculum_fn
 from envs.communication_v2.environment import CommunicationV2_env
 from envs.communication_v2.models.pyg import GNN_PyG
-from stopper_v2 import MaxRewardStopper, MaxTimestepsStopper, MinEpisodeLengthStopper
+from stopper_v2 import MaxRewardStopper, MaxTimestepsStopper, MinEpisodeLengthStopper, RewardMinStopper
 from utils import create_tunable_config, filter_tunables
 
 # set logging
@@ -122,8 +122,7 @@ def run(logging_config: str,
     run_config = air.RunConfig(
         name=run_name,
         stop=CombinedStopper(
-            MaxRewardStopper(max_reward=9),
-            MinEpisodeLengthStopper(min_episode_len_mean=1.5),
+            RewardMinStopper(min_reward_threshold=9.1),
             MaxTimestepsStopper(max_timesteps=max_timesteps),
         ),        
         storage_path=storage_path,

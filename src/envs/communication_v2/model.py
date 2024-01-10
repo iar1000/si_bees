@@ -73,18 +73,19 @@ class CommunicationV2_model(mesa.Model):
             self.schedule.add(worker)
         assert len(self.schedule.agents) == self.n_agents, "didn't add all workers to the schedule"
 
-        # inference mode @todo
-        if inference_mode:
-            self.policy_net = policy_net
-            self.datacollector = mesa.DataCollector(model_reporters={
-                "max_total_reward": lambda x: self.max_total_reward,
-                "accumulated_reward": lambda x: self.accumulated_reward,
-                "max_obtainable_reward": lambda x: self.max_obtainable_reward,
-                "accumulated_obtainable_reward": lambda x: self.accumulated_obtainable_reward,
-                "last_reward": lambda x: self.last_reward,
-                "score": lambda x: max(0, self.accumulated_obtainable_reward) / self.max_obtainable_reward * 100 if self.max_obtainable_reward > 0 else 0,
-                }
-            )
+        # inference mode
+        self.inference_mode = inference_mode
+        self.policy_net = policy_net
+        # if inference_mode:
+        #     self.datacollector = mesa.DataCollector(model_reporters={
+        #         "max_total_reward": lambda x: self.max_total_reward,
+        #         "accumulated_reward": lambda x: self.accumulated_reward,
+        #         "max_obtainable_reward": lambda x: self.max_obtainable_reward,
+        #         "accumulated_obtainable_reward": lambda x: self.accumulated_obtainable_reward,
+        #         "last_reward": lambda x: self.last_reward,
+        #         "score": lambda x: max(0, self.accumulated_obtainable_reward) / self.max_obtainable_reward * 100 if self.max_obtainable_reward > 0 else 0,
+        #         }
+        #     )
 
     def _next_id(self) -> int:
         """Return the next unique ID for agents, increment current_id"""
@@ -200,13 +201,11 @@ class CommunicationV2_model(mesa.Model):
     def step(self, actions=None) -> None:
         """advance the model one step in inference mode"""        
         # determine actions for inference mode
-        print_status = False
-        if not actions:
-            print_status = True
-            if self.policy_net is None:
-                actions = self.get_action_space().sample()
-            else:
+        if self.inference_mode:
+            if self.policy_net:
                 actions = self.policy_net.compute_single_action(self.get_obs())
+            else:
+                actions = self.get_action_space().sample()
         
         # proceed simulation
         for i, worker in enumerate(self.schedule.agents[1:]):
@@ -223,7 +222,7 @@ class CommunicationV2_model(mesa.Model):
         # collect data
         #self.datacollector.collect(self)
 
-        if print_status or False:
+        if self.inference_mode:
             self.print_status()
 
         return self.get_obs(), reward, terminated, truncated

@@ -3,12 +3,12 @@ import os
 import ray
 from ray import air, tune
 from ray.rllib.algorithms.ppo import PPOConfig
-from ray.tune.stopper import CombinedStopper, MaximumIterationStopper
+from ray.tune.stopper import CombinedStopper
 from configs.utils import load_config_dict
 from callbacks_v2 import ReportModelStateCallback
 from envs.communication_v2.environment import CommunicationV2_env
 from envs.communication_v2.models.pyg import GNN_PyG
-from stopper_v2 import MaxTimestepsStopper, MinEpisodeLengthStopper
+from stopper_v2 import MaxTimestepsStopper, RewardMinStopper
 from utils import create_tunable_config, filter_tunables
 
 
@@ -59,7 +59,7 @@ ppo_config = (
 
 run_config = air.RunConfig(
     stop=CombinedStopper(
-        MinEpisodeLengthStopper(min_episode_len_mean=5),
+        RewardMinStopper(min_reward_threshold=9),
         MaxTimestepsStopper(max_timesteps=100000),
     ),
 )
