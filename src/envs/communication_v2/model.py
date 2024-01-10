@@ -1,6 +1,5 @@
-import os
-import random
 import mesa
+import random
 from math import floor
 import numpy as np
 from ray.rllib.algorithms import Algorithm
@@ -13,7 +12,7 @@ from matplotlib import pyplot as plt
 import gymnasium
 from gymnasium.spaces import Box, Tuple, Discrete
 
-from utils import get_random_pos_on_border, get_relative_pos
+from utils import get_relative_pos
 from envs.communication_v2.agents import Oracle, Worker 
 
 MAX_DISTANCE = 100
@@ -31,7 +30,8 @@ class CommunicationV2_model(mesa.Model):
     def __init__(self,
                  max_steps: int,
                  n_workers: int | str,
-                 n_oracle_states: int, p_oracle_change: float,
+                 worker_output_init: str,
+                 n_oracle_states: int, p_oracle_change: str,
                  n_tiles_x: int, n_tiles_y: int,
                  size_hidden_vec: int, com_range: int,
                  policy_net: Algorithm = None, inference_mode: bool = False) -> None:
@@ -59,16 +59,32 @@ class CommunicationV2_model(mesa.Model):
         self.schedule = mesa.time.BaseScheduler(self)
         self.current_id = 0
 
+        # initialisation outputs of agents
+        oracle_state = random.randint(0, n_oracle_states-1)
+        worker_outputs = list()
+        for _ in range(n_workers):
+            r = random.randint(0, n_oracle_states-1)
+            while r == oracle_state:
+                r = random.randint(0, n_oracle_states-1)
+            if worker_output_init == "random":
+                worker_outputs.append(r)
+            elif worker_output_init == "uniform":
+                worker_outputs = [r] * n_workers
+                break
+            else:
+                print(f"worker output initialisation mode unkown: {worker_output_init}")
+                quit()
+
         # place agents
-        self.oracle = Oracle(self._next_id(), self, state=0)
+        self.oracle = Oracle(self._next_id(), self, state=oracle_state)
         self.grid.place_agent(agent=self.oracle, pos=(floor(n_tiles_x / 2), floor(n_tiles_y / 2)))
         self.schedule.add(self.oracle)
-        for _ in range(n_workers):
+        for i in range(n_workers):
             x_old, y_old = self.schedule.agents[-1].pos
             x_new, y_new = x_old + com_range - 1, y_old
             worker = Worker(self._next_id(), self,
                             hidden_vec=np.zeros(shape=(size_hidden_vec,)),
-                            output=n_oracle_states - 1)
+                            output=worker_outputs[i])
             self.grid.place_agent(agent=worker, pos=(x_new, y_new))
             self.schedule.add(worker)
         assert len(self.schedule.agents) == self.n_agents, "didn't add all workers to the schedule"
@@ -132,13 +148,6 @@ class CommunicationV2_model(mesa.Model):
                                      label_pos=0.75,
                                      font_size=7)
         plt.savefig(fname=path)
-    
-    def print_status(self) -> None:
-        """print status of the model"""
-        print(f"step {self.curr_step}")
-        print(f"  oracle_state    = {self.oracle.state}")
-        print(f"  worker_outputs  = {[a.output for a in self.schedule.agents if type(a) is Worker]}")
-        print(f"  reward          = {-sum([1 for a in self.schedule.agents if type(a) is Worker and a.output != self.oracle.state])}")
     
     def get_action_space(self) -> gymnasium.spaces.Space:
         """
@@ -223,7 +232,12 @@ class CommunicationV2_model(mesa.Model):
         #self.datacollector.collect(self)
 
         if self.inference_mode:
-            self.print_status()
+            print(f"step {self.curr_step}")
+            print(f"  oracle_state    = {self.oracle.state}")
+            print(f"  worker_outputs  = {[a.output for a in self.schedule.agents if type(a) is Worker]}")
+            print(f"  reward          = {reward}")
+            print(f"  terminated      = {terminated}")
+            
 
         return self.get_obs(), reward, terminated, truncated
 

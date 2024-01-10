@@ -4,7 +4,7 @@
     "render_mode": "silent",
 
     "agent_config": {
-        "n_workers": 1,
+        "n_workers": 4,
         "size_hidden_vec": 4,
         "com_range": 2
     },
