@@ -4,7 +4,7 @@ import os
 import ray
 from ray import air, tune
 from ray.train import CheckpointConfig
-from ray.tune.stopper import CombinedStopper, MaximumIterationStopper
+from ray.tune.stopper import CombinedStopper
 from ray.tune.schedulers import ASHAScheduler
 from ray.rllib.algorithms.ppo import PPOConfig
 from ray.air.integrations.wandb import WandbLoggerCallback
@@ -16,7 +16,7 @@ from callbacks_v2 import ReportModelStateCallback
 from curriculum_v2 import curriculum_fn
 from envs.communication_v2.environment import CommunicationV2_env
 from envs.communication_v2.models.pyg import GNN_PyG
-from stopper_v2 import MaxRewardStopper, MaxTimestepsStopper, MinEpisodeLengthStopper, RewardMinStopper
+from stopper_v2 import MaxTimestepsStopper, RewardMinStopper
 from utils import create_tunable_config, filter_tunables
 
 # set logging
