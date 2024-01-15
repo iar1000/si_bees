@@ -233,13 +233,13 @@ class CommunicationV2_model(mesa.Model):
             assert type(worker) == Worker
             worker.hidden_vec = actions[i][0]
             worker.output = actions[i][1]
+        self.curr_step += 1
         
         # compute reward and state
         wrongs = sum([1 for a in self.schedule.agents if type(a) is Worker and a.output != self.oracle.state])
         reward = 10 if wrongs == 0 else -wrongs
-        terminated = wrongs == 0
+        terminated = wrongs == 0 and self.curr_step > 7
         truncated = self.curr_step > self.max_steps
-        self.curr_step += 1
         # collect data
         #self.datacollector.collect(self)
 

@@ -45,7 +45,7 @@ class GraphElement(TextElement):
         return f"<img src='custom/{path_new}'>" 
  
 def agent_visualisation(agent):
-    colors = ["green", "black", "red", "blue", "orange"]
+    colors = ["green", "black", "red", "blue", "orange", "yellow"]
     if agent is None:
         return
     if type(agent) is Worker:
