@@ -16,7 +16,7 @@ class GamestateTextElement(TextElement):
     def render(self, model):
         out = [
             f"terminated   : {0 == -sum([1 for a in model.schedule.agents if type(a) is Worker and a.output != model.oracle.state])}",
-            f"total_reward : {-sum([1 for a in model.schedule.agents if type(a) is Worker and a.output != model.oracle.state])}",
+            f"states       : {model.oracle.state} {[a.output for a in model.schedule.agents if type(a) is Worker]}",
         ]
         return "<h3>Status</h3>" + "<br />".join(out)
 

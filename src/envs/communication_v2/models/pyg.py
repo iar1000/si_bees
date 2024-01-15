@@ -34,7 +34,7 @@ class GNN_PyG(TorchModelV2, Module):
                     name: str,):
         TorchModelV2.__init__(self, obs_space, action_space, num_outputs, model_config, name)
         Module.__init__(self)
-
+        
         # custom parameters are passed via the model_config dict from ray
         self.custom_config = self.model_config["custom_model_config"]
         self.actor_config = self.custom_config["actor_config"]
@@ -109,6 +109,7 @@ class GNN_PyG(TorchModelV2, Module):
         for i, a in enumerate(self._actors):
             print(f" actor {i}: {a}")
         print("critic: ", self._critic)
+        print("action_space: ", action_space)
         print()
 
     def __build_fc(self, ins: int, outs: int, hiddens: list):
@@ -230,7 +231,7 @@ class GNN_PyG(TorchModelV2, Module):
             fc_edge_attr = torch.stack([self._edge_encoder(e) for e in fc_edge_attr]) if fc_edge_attr else torch.zeros((0, self.encoding_size), dtype=torch.float32)
 
             # compute results of all individual actors and concatenate the results
-            all_actions = self._actors[0](x=x, edge_index=actor_edge_index, edge_attr=actor_edge_attr, batch=torch.zeros(x.shape[0],dtype=int))
+            # all_actions = self._actors[0](x=x, edge_index=actor_edge_index, edge_attr=actor_edge_attr, batch=torch.zeros(x.shape[0],dtype=int))
             all_actions = [actor(x=x, edge_index=actor_edge_index, edge_attr=actor_edge_attr, batch=torch.zeros(x.shape[0],dtype=int)) for actor in self._actors]
             all_actions = torch.cat(all_actions, dim=1)
             outs.append(torch.flatten(all_actions[self.n_non_worker_agents:]))
@@ -246,6 +247,8 @@ class GNN_PyG(TorchModelV2, Module):
         # re-batch outputs
         outs = torch.stack(outs)
         self.last_values = torch.stack(values)
+
+        # @todo: debug mode to print all graphs
 
         return outs, state
     

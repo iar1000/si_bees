@@ -92,6 +92,16 @@ class CommunicationV2_model(mesa.Model):
         # inference mode
         self.inference_mode = inference_mode
         self.policy_net = policy_net
+        if inference_mode:
+            print("\n==== model specs ====")
+            print("n_workers          = ", n_workers)
+            print("max_steps          = ", max_steps)
+            print("worker_output_init = ", worker_output_init)
+            print("n_oracle_states    = ", n_oracle_states)
+            print("size_hidden_vec    = ", size_hidden_vec)
+            print("com_range          = ", com_range)
+            print("======================\n")
+
         # if inference_mode:
         #     self.datacollector = mesa.DataCollector(model_reporters={
         #         "max_total_reward": lambda x: self.max_total_reward,
@@ -171,7 +181,7 @@ class CommunicationV2_model(mesa.Model):
 
         edge_state = [
             Discrete(2), # exists flag
-            Box(-MAX_DISTANCE, MAX_DISTANCE, shape=(2,), dtype=np.int32), # relative position to the given node
+            Box(-MAX_DISTANCE, MAX_DISTANCE, shape=(2,), dtype=np.float32), # relative position to the given node
         ]
         edge_states = Tuple([Tuple(edge_state) for _ in range(self.n_agents * self.n_agents)])
 
@@ -212,7 +222,9 @@ class CommunicationV2_model(mesa.Model):
         # determine actions for inference mode
         if self.inference_mode:
             if self.policy_net:
-                actions = self.policy_net.compute_single_action(self.get_obs())
+                actions = self.policy_net.compute_single_action(
+                    self.get_obs(),
+                    clip_action=True)
             else:
                 actions = self.get_action_space().sample()
         
