@@ -1,0 +1,9 @@
+task_0:
+    model:
+      n_workers: 1
+      n_oracle_states: 5
+      communication_range: 2
+      min_steps: 8
+      max_steps: 20
+      grid_width: 21
+      grid_height: 21
