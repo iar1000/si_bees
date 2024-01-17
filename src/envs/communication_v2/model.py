@@ -34,8 +34,10 @@ class CommunicationV2_model(mesa.Model):
                  n_oracle_states: int, p_oracle_change: str,
                  n_tiles_x: int, n_tiles_y: int,
                  size_hidden_vec: int, com_range: int,
-                 policy_net: Algorithm = None, inference_mode: bool = False) -> None:
+                 policy_net: Algorithm = None, inference_mode: bool = False,
+                 seed: int = 42) -> None:
         super().__init__()
+        self.seed = seed
         
         # simulation t
         self.max_steps = max_steps
@@ -61,30 +63,20 @@ class CommunicationV2_model(mesa.Model):
 
         # initialisation outputs of agents
         oracle_state = random.randint(0, n_oracle_states-1)
-        worker_outputs = list()
-        for _ in range(n_workers):
-            r = random.randint(0, n_oracle_states-1)
-            while r == oracle_state:
-                r = random.randint(0, n_oracle_states-1)
-            if worker_output_init == "random":
-                worker_outputs.append(r)
-            elif worker_output_init == "uniform":
-                worker_outputs = [r] * n_workers
-                break
-            else:
-                print(f"worker output initialisation mode unkown: {worker_output_init}")
-                quit()
+        worker_output = random.randint(0, n_oracle_states-1)
+        while worker_output == oracle_state:
+            worker_output = random.randint(0, n_oracle_states-1)
 
         # place agents
         self.oracle = Oracle(self._next_id(), self, state=oracle_state)
         self.grid.place_agent(agent=self.oracle, pos=(floor(n_tiles_x / 2), floor(n_tiles_y / 2)))
         self.schedule.add(self.oracle)
-        for i in range(n_workers):
+        for _ in range(n_workers):
             x_old, y_old = self.schedule.agents[-1].pos
             x_new, y_new = x_old + com_range - 1, y_old
             worker = Worker(self._next_id(), self,
                             hidden_vec=np.zeros(shape=(size_hidden_vec,)),
-                            output=worker_outputs[i])
+                            output=worker_output)
             self.grid.place_agent(agent=worker, pos=(x_new, y_new))
             self.schedule.add(worker)
         assert len(self.schedule.agents) == self.n_agents, "didn't add all workers to the schedule"
@@ -165,23 +157,23 @@ class CommunicationV2_model(mesa.Model):
         output must be same as oracle state
         """
         agent_actions = [
-            Box(0, 1, shape=(self.size_hidden_vec,), dtype=np.float32), # hidden vector
-            Discrete(self.n_oracle_states), # output
+            #Box(0, 1, shape=(self.size_hidden_vec,), dtype=np.float32), # hidden vector
+            Discrete(self.n_oracle_states, seed=self.seed) # current output
         ]
         return Tuple([Tuple(agent_actions) for _ in range(self.n_workers)])
     
     def get_obs_space(self) -> gymnasium.spaces.Space:
         """ obs space consisting of all agent states + adjacents matrix with edge attributes """
         agent_state = [
-            Discrete(3), # agent type
-            Box(0, 1, shape=(self.size_hidden_vec,), dtype=np.float32), # hidden vector
-            Discrete(self.n_oracle_states) # current output
+            Discrete(3, seed=self.seed), # agent type
+            #Box(0, 1, shape=(self.size_hidden_vec,), dtype=np.float32), # hidden vector
+            Discrete(self.n_oracle_states, seed=self.seed) # current output
         ]
         agent_states = Tuple([Tuple(agent_state) for _ in range(self.n_agents)])
 
         edge_state = [
-            Discrete(2), # exists flag
-            Box(-MAX_DISTANCE, MAX_DISTANCE, shape=(2,), dtype=np.float32), # relative position to the given node
+            Discrete(2, seed=self.seed), # exists flag
+            Box(-MAX_DISTANCE, MAX_DISTANCE, shape=(2,), dtype=np.float32, seed=self.seed), # relative position to the given node
         ]
         edge_states = Tuple([Tuple(edge_state) for _ in range(self.n_agents * self.n_agents)])
 
@@ -193,11 +185,11 @@ class CommunicationV2_model(mesa.Model):
         for i, worker in enumerate(self.schedule.agents):
             if type(worker) is Oracle:
                 agent_states[i] = tuple([TYPE_ORACLE, 
-                                         np.zeros(self.size_hidden_vec),
+                                         #np.zeros(self.size_hidden_vec),
                                          worker.state])
             if type(worker) is Worker:
                 agent_states[i] = tuple([TYPE_WORKER, 
-                                         worker.hidden_vec, 
+                                         #worker.hidden_vec, 
                                          worker.output])
         # edge attributes
         edge_states = [None for _ in range(self.n_agents ** 2)]
@@ -222,19 +214,22 @@ class CommunicationV2_model(mesa.Model):
         # determine actions for inference mode
         if self.inference_mode:
             if self.policy_net:
-                actions = self.policy_net.compute_single_action(
-                    self.get_obs(),
-                    clip_action=True)
+                actions = self.policy_net.compute_single_action(self.get_obs())
+                #print(actions)
+                #policy = self.policy_net.get_policy()
+                #action, _, info = self.policy_net.get_policy().compute_single_action(self.get_obs())
+                #print(action, info)
+                print("compute action from policy")
             else:
                 actions = self.get_action_space().sample()
         
         # proceed simulation
         for i, worker in enumerate(self.schedule.agents[1:]):
             assert type(worker) == Worker
-            worker.hidden_vec = actions[i][0]
-            worker.output = actions[i][1]
+            #worker.hidden_vec = actions[i][0]
+            worker.output = actions[i][0]
         self.curr_step += 1
-        
+
         # compute reward and state
         wrongs = sum([1 for a in self.schedule.agents if type(a) is Worker and a.output != self.oracle.state])
         reward = 10 if wrongs == 0 else -wrongs

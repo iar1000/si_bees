@@ -19,7 +19,7 @@ class RewardMinStopper(Stopper):
             self.exit = False
 
         def __call__(self, trial_id, result):
-            self.exit = result["episode_reward_min"] > self.min_reward_threshold
+            self.exit = result["episode_reward_min"] >= self.min_reward_threshold
             if self.exit:
                  print(f"\n\n=============  max_min_reward stopper  ====================")
                  print(f"trial {trial_id} reached threshold!\nkill all open trials!")

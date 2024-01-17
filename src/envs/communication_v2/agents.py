@@ -20,7 +20,7 @@ class Oracle(mesa.Agent):
     oracle that displays which platform to step on
     """
     def __init__(self, unique_id: int, model: mesa.Model, 
-                 state: int = 0):
+                 state: int):
         super().__init__(unique_id, model)
         self.name = f"oracle_{unique_id}"
         self.state = state

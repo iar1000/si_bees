@@ -1,3 +1,5 @@
+import random
+import numpy as np
 from ray.rllib.env.apis.task_settable_env import TaskSettableEnv
 from gymnasium.spaces.utils import flatdim
 
@@ -13,6 +15,8 @@ class CommunicationV2_env(TaskSettableEnv):
 
     def __init__(self, config):
         super().__init__()
+
+        self.seed = 11
 
         # configs
         self.agent_config = config["agent_config"]
@@ -40,8 +44,10 @@ class CommunicationV2_env(TaskSettableEnv):
                 print(f"{k} = {v}")
 
     def reset(self, *, seed=None, options=None):
-        super().reset(seed=seed)
-
+        super().reset(seed=self.seed)
+        random.seed(self.seed)
+        np.random.seed(self.seed)
+        
         self.model = self._create_model()    
         return self.model.get_obs(), {}
 
@@ -66,7 +72,7 @@ class CommunicationV2_env(TaskSettableEnv):
         """creates a mesa model based on the curriculum level and agent configs"""
         # merge the fixed agent config with the task dependend model config
         # add the max_steps, as it is a parameter of the model
-        parameter_dict = {}
+        parameter_dict = {"seed":self.seed}
         model_config = self._curr_model_config()
         for d in [self.agent_config, model_config]:
             for k, v in d.items():

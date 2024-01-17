@@ -70,7 +70,6 @@ def create_server(env_config: dict, curr_level: int,
         grid_height=model_params["n_tiles_y"], 
         canvas_width=300,
         canvas_height=300)
-    
     game_state = GamestateTextElement()
     graph = GraphElement()
     #score = ChartModule([{"label": "score", "Label": "score", "Color": "Black"},],

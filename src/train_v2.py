@@ -81,32 +81,40 @@ def run(logging_config: str,
     max_timesteps = min_timesteps + 1 if performance_study else max_timesteps
 
     # ppo config
-    ppo_config = (
-        PPOConfig()
-        .environment(
+    # https://medium.com/aureliantactics/ppo-hyperparameters-and-ranges-6fc2d29bccbe
+    ppo_config = PPOConfig()
+    ppo_config.environment(
             "CommunicationV2_env",
             env_config=env_config,
             disable_env_checking=True,
             env_task_fn=curriculum
         )
-        .training(
-            gamma=tune.uniform(0.1, 0.9),
-            lr=tune.uniform(1e-4, 1e-1),
-            grad_clip=1,
-            grad_clip_by="value",
+    ppo_config.training(
             model=model,
             train_batch_size=batch_size,
+            shuffle_sequences=True,
+            use_critic=True,
+            use_gae=True,
+            lambda_=tune.uniform(0.9, 1),
+            gamma=0.99,
+            lr=tune.uniform(5e-6, 0.003),
+            clip_param=tune.choice([0.1, 0.2, 0.3]),
+            kl_coeff=tune.uniform(0.3, 1),
+            kl_target=tune.uniform(0.003, 0.03),
+            vf_loss_coeff=tune.uniform(0.5, 1),
+            entropy_coeff=tune.uniform(0, 0.01),
+            grad_clip=1,
+            grad_clip_by="value",
             _enable_learner_api=False,
         )
-        .rollouts(num_rollout_workers=rollout_workers)
-        .resources(
+    ppo_config.resources(
             num_cpus_per_worker=cpus_per_worker,
             num_cpus_for_local_worker=cpus_for_local_worker,
             placement_strategy="PACK",
         )
-        .rl_module(_enable_rl_module_api=False)
-        .callbacks(ReportModelStateCallback)
-    )
+    ppo_config.rollouts(num_rollout_workers=rollout_workers)
+    ppo_config.rl_module(_enable_rl_module_api=False)
+    ppo_config.callbacks(ReportModelStateCallback)
 
     # logging callback
     callbacks = list()
@@ -122,7 +130,7 @@ def run(logging_config: str,
     run_config = air.RunConfig(
         name=run_name,
         stop=CombinedStopper(
-            RewardMinStopper(min_reward_threshold=9.1),
+            RewardMinStopper(min_reward_threshold=80),
             MaxTimestepsStopper(max_timesteps=max_timesteps),
         ),        
         storage_path=storage_path,
