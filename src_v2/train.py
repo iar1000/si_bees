@@ -57,7 +57,7 @@ if __name__ == '__main__':
             train_batch_size=512,
             lr=tune.uniform(5e-6, 0.003),
             gamma=0.99,
-            # shuffle_sequences=True,
+            shuffle_sequences=True,
             # use_critic=True,
             # use_gae=True,
             # lambda_=tune.uniform(0.9, 1),
@@ -65,7 +65,7 @@ if __name__ == '__main__':
             # kl_coeff=tune.uniform(0.3, 1),
             # kl_target=tune.uniform(0.003, 0.03),
             # vf_loss_coeff=tune.uniform(0.5, 1),
-            # entropy_coeff=tune.uniform(0, 0.01),
+            entropy_coeff=tune.uniform(0, 0.01),
             grad_clip=1,
             grad_clip_by="value",
             _enable_learner_api=False)
@@ -106,7 +106,7 @@ if __name__ == '__main__':
                 metric='episode_reward_min',
                 mode='max',
                 grace_period=5000,
-                max_t=500000,
+                max_t=25000,
                 reduction_factor=2)
         )
 
