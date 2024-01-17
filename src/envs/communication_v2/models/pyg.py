@@ -9,7 +9,7 @@ from torch_geometric.nn.conv.gat_conv import GATConv
 from torch_geometric.nn.conv.gatv2_conv import GATv2Conv
 from ray.rllib.models.torch.torch_modelv2 import TorchModelV2
 from ray.rllib.models.torch.misc import SlimFC
-from gymnasium.spaces import Space, Box, Tuple, Discrete
+from gymnasium.spaces import Space, Box, Discrete
 from gymnasium.spaces.utils import flatdim
 
 from envs.communication_v2.model import MAX_DISTANCE

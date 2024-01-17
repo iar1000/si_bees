@@ -1,0 +1,6 @@
+model: fc
+n_hidden_mlp:
+  min: 1
+  max: 4
+hidden_mlp_size: [8, 16, 32]
+  

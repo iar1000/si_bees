@@ -55,7 +55,8 @@ def get_random_pos_on_border(center, dist: int):
 # create internal model from config
 def create_tunable_config(config):
     tunable_config = {}
-    for k, v in config.items(): 
+    for k, v in config.items():
+        print(config) 
         if isinstance(v, dict):
             if isinstance(v["min"], int) and isinstance(v["max"], int):
                 tunable_config[k] = tune.choice(list(range(v["min"], v["max"] + 1)))
@@ -71,6 +72,13 @@ def create_tunable_config(config):
 def filter_tunables(config):
     config["rounds"] = 1
     return config
+
+def read_yaml_config(path: str):
+    try:
+        with open(path, 'r') as file:
+            return yaml.safe_load(file)
+    except FileNotFoundError:
+        print(f"File not found: {path}")
 
 # builds graph from observation
 def build_graph_v2(num_agents: int, agent_obss: Tuple, edge_obss: Tuple, batch_index: int):
@@ -97,10 +105,3 @@ def build_graph_v2(num_agents: int, agent_obss: Tuple, edge_obss: Tuple, batch_i
         fc_edge_attr.append(curr_edge_obs[batch_index])
 
     return x, [actor_froms, actor_tos], actor_edge_attr, [fc_froms, fc_tos], fc_edge_attr
-
-def read_yaml_config(path: str):
-    try:
-        with open(path, 'r') as file:
-            return yaml.safe_load(file)
-    except FileNotFoundError:
-        print(f"File not found: {path}")

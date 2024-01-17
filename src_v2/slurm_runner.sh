@@ -46,6 +46,8 @@ cd ${DIRECTORY}
 
 # read in user values
 ENV_CONFIG=""
+ACTOR_CONFIG=""
+CRITIC_CONFIG=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --env_config)
@@ -57,6 +59,24 @@ while [[ $# -gt 0 ]]; do
         exit 1
       fi
       ;;
+    --actor_config)
+      if [[ -n $2 ]]; then
+        ACTOR_CONFIG=$2
+        shift 2
+      else
+        echo "Error: Missing value for -actor_config flag."
+        exit 1
+      fi
+      ;;
+    --critic_config)
+      if [[ -n $2 ]]; then
+        CRITIC_CONFIG=$2
+        shift 2
+      else
+        echo "Error: Missing value for -critic_config flag."
+        exit 1
+      fi
+      ;;
     *)
       shift
       ;;
@@ -64,11 +84,13 @@ while [[ $# -gt 0 ]]; do
 done
 
 echo "-> user parameters:"
-echo "    $ENV_CONFIG"
+echo "    ENV_CONFIG    = $ENV_CONFIG"
+echo "    ACTOR_CONFIG  = $ACTOR_CONFIG"
+echo "    CRITIC_CONFIG = $CRITIC_CONFIG"
 
 # Binary or script to execute
 echo "-> run train.py from directory $(pwd)"
-python /itet-stor/kpius/net_scratch/si_bees/src_v2/train.py --env_config $ENV_CONFIG
+python /itet-stor/kpius/net_scratch/si_bees/src_v2/train.py --env_config $ENV_CONFIG --actor_config $ACTOR_CONFIG --critic_config $CRITIC_CONFIG
 
 # Send more noteworthy information to the output log
 echo "Finished at:     $(date)"

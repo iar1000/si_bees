@@ -13,7 +13,7 @@ from datetime import datetime
 from callback import SimpleCallback
 from environment import Simple_env
 from pyg import GNN_PyG
-from utils import read_yaml_config
+from utils import create_tunable_config, filter_tunables, read_yaml_config
 from stopper import MaxTimestepsStopper, RewardMinStopper
 
 # surpress excessive logging
@@ -25,6 +25,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='script to setup hyperparameter tuning')
     parser.add_argument('--local',              action='store_true', help='execution location (default: False)')
     parser.add_argument('--env_config',         default=None, help="path to env config")
+    parser.add_argument('--actor_config',       default=None, help="path to actor config")
+    parser.add_argument('--critic_config',      default=None, help="path to critic config")
     args = parser.parse_args()
 
     if args.local:
@@ -34,30 +36,36 @@ if __name__ == '__main__':
     tune.register_env("Simple_env", lambda env_config: Simple_env(env_config))
     
     run_name = f"simple-env-{datetime.now().strftime('%Y%m%d%H%M%S')}"
-    config = read_yaml_config(os.path.join("src_v2", "configs", args.env_config))
+    env_config = read_yaml_config(os.path.join("src_v2", "configs", args.env_config))
+    actor_config = read_yaml_config(os.path.join("src_v2", "configs", args.actor_config))
+    critic_config = read_yaml_config(os.path.join("src_v2", "configs",args.critic_config))
+
+    pyg_config = dict()
+    pyg_config["actor_config"] = filter_tunables(create_tunable_config(actor_config))
+    pyg_config["critic_config"] = create_tunable_config(critic_config)
     model = {"custom_model": GNN_PyG,
-             "custom_model_config": config}
+             "custom_model_config": pyg_config}
     
     # ppo config
     ppo_config = PPOConfig()
     ppo_config.environment(
             env="Simple_env",
-            env_config=config,
+            env_config=env_config,
             disable_env_checking=True)
     ppo_config.training(
             model=model,
             train_batch_size=512,
-            #shuffle_sequences=True,
-            #use_critic=True,
-            #use_gae=True,
-            #lambda_=tune.uniform(0.9, 1),
+            shuffle_sequences=True,
+            use_critic=True,
+            use_gae=True,
+            lambda_=tune.uniform(0.9, 1),
             gamma=0.99,
             lr=tune.uniform(5e-6, 0.003),
-            #clip_param=tune.choice([0.1, 0.2, 0.3]),
-            #kl_coeff=tune.uniform(0.3, 1),
-            #kl_target=tune.uniform(0.003, 0.03),
-            #vf_loss_coeff=tune.uniform(0.5, 1),
-            #entropy_coeff=tune.uniform(0, 0.01),
+            clip_param=tune.choice([0.1, 0.2, 0.3]),
+            kl_coeff=tune.uniform(0.3, 1),
+            kl_target=tune.uniform(0.003, 0.03),
+            vf_loss_coeff=tune.uniform(0.5, 1),
+            entropy_coeff=tune.uniform(0, 0.01),
             grad_clip=1,
             grad_clip_by="value",
             _enable_learner_api=False)

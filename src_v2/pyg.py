@@ -3,9 +3,12 @@ import torch
 from torch import TensorType
 from torch.nn import Module, Sequential
 from torch_geometric.nn.conv.gin_conv import GINEConv
+from torch_geometric.nn.conv.gat_conv import GATConv
+from torch_geometric.nn.conv.gatv2_conv import GATv2Conv
+from torch_geometric.nn import Sequential as PyG_Sequential, global_mean_pool
 from ray.rllib.models.torch.torch_modelv2 import TorchModelV2
 from ray.rllib.models.torch.misc import SlimFC
-from gymnasium.spaces import Space, Tuple
+from gymnasium.spaces import Space
 from gymnasium.spaces.utils import flatdim
 from utils import build_graph_v2
 
@@ -22,6 +25,11 @@ class GNN_PyG(TorchModelV2, Module):
                     name: str,):
         TorchModelV2.__init__(self, obs_space, action_space, num_outputs, model_config, name)
         Module.__init__(self)
+
+        # configs
+        config = model_config["custom_model_config"]
+        actor_config = config["actor_config"]
+        critic_config = config["critic_config"]
     
         # model dimensions
         og_obs_space = obs_space.original_space
@@ -32,12 +40,11 @@ class GNN_PyG(TorchModelV2, Module):
         self.edge_state_size = flatdim(og_obs_space[1][0])
         self.out_state_size = num_outputs // (self.num_agents - 1)
 
-        self.actor = GINEConv(self.__build_fc(self.node_state_size, self.out_state_size, [16]))
-        self.critic = self.__build_fc(self.num_inputs, 1, [16])
-
         self.encoding_size = 8
-        self.node_encoder = self.__build_fc(self.node_state_size, self.encoding_size, [16])
-        self.edge_encoder = self.__build_fc(self.edge_state_size, self.encoding_size, [])
+        self.node_encoder = self.__build_fc(ins=self.node_state_size, outs=self.encoding_size, hiddens=[])
+        self.edge_encoder = self.__build_fc(ins=self.edge_state_size, outs=self.encoding_size, hiddens=[])
+        self.actor = self._build_model(config=actor_config, ins=self.node_state_size, outs=self.out_state_size, edge_dim=self.encoding_size, add_pooling=False)
+        self.critic = self._build_model(config=critic_config, ins=self.num_inputs, outs=1, edge_dim=self.encoding_size, add_pooling=True)
 
         print("actor: ", self.actor)
         print("critic: ", self.critic)
@@ -52,7 +59,40 @@ class GNN_PyG(TorchModelV2, Module):
             layers.append(SlimFC(in_size=prev_layer_size, out_size=curr_layer_size, activation_fn="relu"))           
             prev_layer_size = curr_layer_size
         layers.append(SlimFC(in_size=prev_layer_size, out_size=outs))
-        return Sequential(*layers)        
+        return Sequential(*layers)      
+
+    def __build_gnn(self, config: dict, ins: int, outs: int, edge_dim: int):
+        """creates one instance of the in the config specified gnn"""
+        if config["model"] == "GATConv":
+            return GATConv(ins, outs, dropout=config["dropout"])
+        elif config["model"] == "GATv2Conv":
+            return GATv2Conv(ins, outs, edge_dim=edge_dim, dropout=config["dropout"])
+        elif config["model"] == "GINEConv":
+            return GINEConv(self.__build_fc(ins, outs, [config["hidden_mlp_size"] for _ in range(config["n_hidden_mlp"])]))
+        else:
+            raise NotImplementedError(f"unknown model {config['model']}")  
+        
+    def _build_model(self, config: dict, ins: int, outs: int, edge_dim: int, add_pooling: bool) -> Module:
+        """creates an NN model based on the config dict"""
+        if config["model"] != "fc":
+            gnn_rounds = list()
+            for _ in range(config["rounds"] - 1):
+                gnn_rounds.append((self.__build_gnn(config, ins=ins, outs=ins, edge_dim=edge_dim), 'x, edge_index, edge_attr -> x'))                   
+                gnn_rounds.append(torch.nn.ReLU(inplace=True))
+            
+            # add last layer, pooling if necessecary
+            if add_pooling:
+                gnn_rounds.append((self.__build_gnn(config, ins=ins, outs=ins, edge_dim=edge_dim), 'x, edge_index, edge_attr -> x'))                   
+                gnn_rounds.append((global_mean_pool, 'x, batch -> x'))
+                gnn_rounds.append(SlimFC(in_size=ins, out_size=outs))
+            else:
+                gnn_rounds.append((self.__build_gnn(config, ins=ins, outs=outs, edge_dim=edge_dim), 'x, edge_index, edge_attr -> x'))                   
+
+            return PyG_Sequential('x, edge_index, edge_attr, batch', gnn_rounds)
+        elif config["model"] == "fc":
+            return self.__build_fc(ins=ins, outs=outs, hiddens=[config["hidden_mlp_size"] for _ in range(config["n_hidden_mlp"])])
+        else:
+            raise NotImplementedError(f"unknown model {config['model']}")   
     
     def value_function(self):
         return torch.reshape(self.last_values, [-1])
@@ -86,7 +126,7 @@ class GNN_PyG(TorchModelV2, Module):
             fc_edge_attr = torch.stack([self.edge_encoder(e) for e in fc_edge_attr]) if fc_edge_attr else torch.zeros((0, self.encoding_size), dtype=torch.float32)
 
             # compute results of all individual actors and concatenate the results
-            all_actions = self.actor(x=x, edge_index=actor_edge_index, edge_attr=actor_edge_attr)
+            all_actions = self.actor(x=x, edge_index=actor_edge_index, edge_attr=actor_edge_attr, batch=torch.zeros(x.shape[0],dtype=int))
             outs.append(torch.flatten(all_actions)[self.out_state_size:])
             # compute values
             values.append(torch.flatten(self.critic(obss_flat[i])))

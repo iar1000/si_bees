@@ -51,7 +51,7 @@ def create_server(model_checkpoint: str, env_config: str, task_level: int):
     server = ModularServer(
         Simple_model, 
         [canvas, game_state], 
-        {}, 
+        "swarm intelligence with graph networks", 
         model_params={
             "config": task_config,
             "inference_mode": True,
