@@ -130,8 +130,8 @@ class GNN_PyG(TorchModelV2, Module):
             # format graph to torch
             x = torch.stack([self.node_encoder(v) for v in x])
             actor_edge_index = torch.tensor(actor_edge_index, dtype=torch.int64)
-            fc_edge_index = torch.tensor(fc_edge_index, dtype=torch.int64)
             actor_edge_attr = torch.stack([self.edge_encoder(e) for e in actor_edge_attr]) if actor_edge_attr else torch.zeros((0, self.encoding_size), dtype=torch.float32)
+            fc_edge_index = torch.tensor(fc_edge_index, dtype=torch.int64)
             fc_edge_attr = torch.stack([self.edge_encoder(e) for e in fc_edge_attr]) if fc_edge_attr else torch.zeros((0, self.encoding_size), dtype=torch.float32)
 
             # compute results of all individual actors and concatenate the results
@@ -141,7 +141,7 @@ class GNN_PyG(TorchModelV2, Module):
             if self.critic_is_fc:
                 values.append(torch.flatten(self.critic(obss_flat[i])))
             else:
-                values.append(torch.flatten(self.critic(x=x, edge_index=actor_edge_index, edge_attr=actor_edge_attr, batch=torch.zeros(x.shape[0],dtype=int))))
+                values.append(torch.flatten(self.critic(x=x, edge_index=fc_edge_index, edge_attr=fc_edge_attr, batch=torch.zeros(x.shape[0],dtype=int))))
 
             
         # re-batch outputs
