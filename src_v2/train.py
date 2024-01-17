@@ -27,8 +27,10 @@ if __name__ == '__main__':
     parser.add_argument('--env_config',         default=None, help="path to env config")
     args = parser.parse_args()
 
-    #ray.init()
-    ray.init(num_cpus=1, local_mode=True)
+    if args.local:
+        ray.init(num_cpus=1, local_mode=True)
+    else:
+        ray.init()
     tune.register_env("Simple_env", lambda env_config: Simple_env(env_config))
     
     run_name = f"simple-env-{datetime.now().strftime('%Y%m%d%H%M%S')}"
