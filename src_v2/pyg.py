@@ -30,7 +30,8 @@ class GNN_PyG(TorchModelV2, Module):
         config = model_config["custom_model_config"]
         actor_config = config["actor_config"]
         critic_config = config["critic_config"]
-    
+        self.critic_is_fc = config["critic_config"]["model"] == "fc"
+
         # model dimensions
         og_obs_space = obs_space.original_space
         self.num_inputs = flatdim(og_obs_space)
@@ -43,8 +44,16 @@ class GNN_PyG(TorchModelV2, Module):
         self.encoding_size = 8
         self.node_encoder = self.__build_fc(ins=self.node_state_size, outs=self.encoding_size, hiddens=[])
         self.edge_encoder = self.__build_fc(ins=self.edge_state_size, outs=self.encoding_size, hiddens=[])
-        self.actor = self._build_model(config=actor_config, ins=self.node_state_size, outs=self.out_state_size, edge_dim=self.encoding_size, add_pooling=False)
-        self.critic = self._build_model(config=critic_config, ins=self.num_inputs, outs=1, edge_dim=self.encoding_size, add_pooling=True)
+        self.actor = self._build_model(config=actor_config, 
+                                       ins=self.encoding_size, 
+                                       outs=self.out_state_size, 
+                                       edge_dim=self.encoding_size, 
+                                       add_pooling=False)
+        self.critic = self._build_model(config=critic_config, 
+                                        ins=self.num_inputs if self.critic_is_fc else self.encoding_size, 
+                                        outs=1, 
+                                        edge_dim=self.encoding_size, 
+                                        add_pooling=True)
 
         print("actor: ", self.actor)
         print("critic: ", self.critic)
@@ -129,7 +138,11 @@ class GNN_PyG(TorchModelV2, Module):
             all_actions = self.actor(x=x, edge_index=actor_edge_index, edge_attr=actor_edge_attr, batch=torch.zeros(x.shape[0],dtype=int))
             outs.append(torch.flatten(all_actions)[self.out_state_size:])
             # compute values
-            values.append(torch.flatten(self.critic(obss_flat[i])))
+            if self.critic_is_fc:
+                values.append(torch.flatten(self.critic(obss_flat[i])))
+            else:
+                values.append(torch.flatten(self.critic(x=x, edge_index=actor_edge_index, edge_attr=actor_edge_attr, batch=torch.zeros(x.shape[0],dtype=int))))
+
             
         # re-batch outputs
         outs = torch.stack(outs)
