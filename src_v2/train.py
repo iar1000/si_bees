@@ -88,7 +88,7 @@ if __name__ == '__main__':
         local_dir="/Users/sega/Code/si_bees/log" if args.local else "/itet-stor/kpius/net_scratch/si_bees/log",
         stop=CombinedStopper(
             RewardMinStopper(min_reward_threshold=80),
-            MaxTimestepsStopper(max_timesteps=100000),
+            MaxTimestepsStopper(max_timesteps=35000),
         ),        
         checkpoint_config=CheckpointConfig(
             checkpoint_score_attribute="episode_reward_min",
@@ -110,7 +110,7 @@ if __name__ == '__main__':
                 metric='episode_reward_min',
                 mode='max',
                 grace_period=5000,
-                max_t=25000,
+                max_t=35000,
                 reduction_factor=2)
         )
 
