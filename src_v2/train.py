@@ -19,11 +19,14 @@ from stopper import MaxTimestepsStopper, RewardMinStopper
 # surpress excessive logging
 wandb_logger = logging.getLogger("wandb")
 wandb_logger.setLevel(logging.WARNING)
+wandbactor_logger = logging.getLogger("_WandbLoggingActor")
+wandbactor_logger.setLevel(logging.WARNING)
 
 # script
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='script to setup hyperparameter tuning')
     parser.add_argument('--local',              action='store_true', help='execution location (default: False)')
+    parser.add_argument('--num_cpus',           default=36, help='default processes for ray to use')
     parser.add_argument('--env_config',         default=None, help="path to env config")
     parser.add_argument('--actor_config',       default=None, help="path to actor config")
     parser.add_argument('--critic_config',      default=None, help="path to critic config")
@@ -32,7 +35,7 @@ if __name__ == '__main__':
     if args.local:
         ray.init(num_cpus=1, local_mode=True)
     else:
-        ray.init()
+        ray.init(num_cpus=args.num_cpus)
     tune.register_env("Simple_env", lambda env_config: Simple_env(env_config))
     
     run_name = f"simple-env-{datetime.now().strftime('%Y%m%d%H%M%S')}"
@@ -82,6 +85,7 @@ if __name__ == '__main__':
     run_config = air.RunConfig(
         name=run_name,
         storage_path="/Users/sega/Code/si_bees/log" if args.local else "/itet-stor/kpius/net_scratch/si_bees/log",
+        local_dir="/Users/sega/Code/si_bees/log" if args.local else "/itet-stor/kpius/net_scratch/si_bees/log",
         stop=CombinedStopper(
             RewardMinStopper(min_reward_threshold=80),
             MaxTimestepsStopper(max_timesteps=100000),

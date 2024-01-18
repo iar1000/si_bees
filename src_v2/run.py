@@ -36,7 +36,6 @@ def create_server(model_checkpoint: str, env_config: str, task_level: int):
     config = read_yaml_config(env_config)
     curriculum_configs = [config[task] for task in config]
     task_config = curriculum_configs[task_level]
-
     tune.register_env("Simple_env", lambda _: Simple_env(config, initial_task_level=task_level))
 
     canvas = CanvasGrid(

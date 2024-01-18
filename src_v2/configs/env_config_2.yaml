@@ -1,6 +1,6 @@
 task_0:
     model:
-      n_workers: 2
+      n_workers: 4
       n_oracle_states: 5
       communication_range: 2
       min_steps: 8
