@@ -31,6 +31,7 @@ class Simple_model(mesa.Model):
         self.n_workers = config["model"]["n_workers"]
         self.n_agents = self.n_workers + 1
         self.n_oracle_states = config["model"]["n_oracle_states"]
+        self.n_hidden_states = config["model"]["n_hidden_state"]
         self.communication_range = config["model"]["communication_range"]
 
         # mesa setup
@@ -69,16 +70,17 @@ class Simple_model(mesa.Model):
     
     def get_action_space(self) -> gymnasium.spaces.Space:
         agent_actions = [
-            Discrete(self.n_oracle_states), # output
+            Discrete(self.n_oracle_states),                             # output
+            Box(0, 1, shape=(self.n_hidden_states,), dtype=np.float32), # hidden state
         ]
         return Tuple([Tuple(agent_actions) for _ in range(self.n_workers)])
     
     def get_obs_space(self) -> gymnasium.spaces.Space:
         """ obs space consisting of all agent states + adjacents matrix with edge attributes """
         agent_state = [
-            Discrete(3),                    # agent type
-            Discrete(self.n_oracle_states)  # current output
-            #Box(0, 1, shape=(self.size_hidden_vec,), dtype=np.float32), # hidden vector
+            Discrete(3),                                                # agent type
+            Discrete(self.n_oracle_states),                             # current output
+            Box(0, 1, shape=(self.n_hidden_states,), dtype=np.float32), # hidden state
         ]
         agent_states = Tuple([Tuple(agent_state) for _ in range(self.n_agents)])
 
@@ -96,11 +98,11 @@ class Simple_model(mesa.Model):
         for i, worker in enumerate(self.schedule.agents):
             if type(worker) is Oracle:
                 agent_states[i] = tuple([TYPE_ORACLE, 
-                                         #np.zeros(self.size_hidden_vec),
+                                         np.zeros(self.n_hidden_states),
                                          worker.state])
             if type(worker) is Worker:
                 agent_states[i] = tuple([TYPE_WORKER, 
-                                         #worker.hidden_vec, 
+                                         worker.hidden_state, 
                                          worker.output])
         # edge attributes
         edge_states = [None for _ in range(self.n_agents ** 2)]
@@ -132,6 +134,7 @@ class Simple_model(mesa.Model):
         for i, worker in enumerate(self.schedule.agents[1:]):
             assert type(worker) == Worker
             worker.output = actions[i][0]
+            worker.hidden_state = actions[i][1]
         self.curr_step += 1
         
         # compute reward and state

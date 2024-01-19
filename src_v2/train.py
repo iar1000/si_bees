@@ -89,7 +89,7 @@ if __name__ == '__main__':
         storage_path="/Users/sega/Code/si_bees/log" if args.local else "/itet-stor/kpius/net_scratch/si_bees/log",
         local_dir="/Users/sega/Code/si_bees/log" if args.local else "/itet-stor/kpius/net_scratch/si_bees/log",
         stop=CombinedStopper(
-            RewardMinStopper(min_reward_threshold=80),
+            RewardMinStopper(min_reward_threshold=68),
             MaxTimestepsStopper(max_timesteps=35000),
         ),        
         checkpoint_config=CheckpointConfig(

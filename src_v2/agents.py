@@ -8,10 +8,12 @@ class Worker(mesa.Agent):
     workers that can walk around, communicate with each other
     """
     def __init__(self, unique_id: int, model: mesa.Model, 
-                 output: int):
+                 output: int,
+                 n_hidden_states: int):
         super().__init__(unique_id, model)
         self.name = f"worker_{unique_id}"
         self.output = output
+        self.hidden_state = np.random.rand(n_hidden_states)
 
 class Oracle(mesa.Agent):
     """
