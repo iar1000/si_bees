@@ -54,7 +54,7 @@ class Simple_model(mesa.Model):
         for _ in range(self.n_workers):
             x_old, y_old = self.schedule.agents[-1].pos
             x_new, y_new = x_old + self.communication_range - 1, y_old
-            worker = Worker(self._next_id(), self, output=worker_output)
+            worker = Worker(self._next_id(), self, output=worker_output, n_hidden_states=self.n_hidden_states)
             self.grid.place_agent(agent=worker, pos=(x_new, y_new))
             self.schedule.add(worker)
 
@@ -98,12 +98,12 @@ class Simple_model(mesa.Model):
         for i, worker in enumerate(self.schedule.agents):
             if type(worker) is Oracle:
                 agent_states[i] = tuple([TYPE_ORACLE, 
-                                         np.zeros(self.n_hidden_states),
-                                         worker.state])
+                                         worker.state,
+                                         np.zeros(self.n_hidden_states)])
             if type(worker) is Worker:
                 agent_states[i] = tuple([TYPE_WORKER, 
-                                         worker.hidden_state, 
-                                         worker.output])
+                                         worker.output, 
+                                         worker.hidden_state])
         # edge attributes
         edge_states = [None for _ in range(self.n_agents ** 2)]
         for i, worker in enumerate(self.schedule.agents):

@@ -33,6 +33,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.local:
+        #ray.init()
         ray.init(num_cpus=1, local_mode=True)
     else:
         ray.init(num_cpus=args.num_cpus)
