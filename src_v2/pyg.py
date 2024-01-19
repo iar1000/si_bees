@@ -2,6 +2,8 @@ from typing import Dict, List
 import torch
 from torch import TensorType
 from torch.nn import Module, Sequential
+from torch_geometric.data import Data
+from torch_geometric.loader import DataLoader
 from torch_geometric.nn.conv.gin_conv import GINEConv
 from torch_geometric.nn.conv.gat_conv import GATConv
 from torch_geometric.nn.conv.gatv2_conv import GATv2Conv
@@ -114,9 +116,6 @@ class GNN_PyG(TorchModelV2, Module):
 
         note: the construction of the graph is tightly coupled to the format of the obs_space defined in the model class
         """    
-        outs = []
-        values = []
-
         obss = input_dict["obs"]
         obss_flat = input_dict["obs_flat"]
         agent_obss = obss[0]
@@ -124,6 +123,8 @@ class GNN_PyG(TorchModelV2, Module):
         batch_size = len(obss_flat)
 
         # iterate through the batch
+        actor_graphs = list()
+        fc_graphs = list()
         for i in range(batch_size):
             x, actor_edge_index, actor_edge_attr, fc_edge_index, fc_edge_attr = build_graph_v2(self.num_agents, agent_obss, edge_obss, i) 
 
@@ -134,17 +135,35 @@ class GNN_PyG(TorchModelV2, Module):
             fc_edge_index = torch.tensor(fc_edge_index, dtype=torch.int64)
             fc_edge_attr = torch.stack([self.edge_encoder(e) for e in fc_edge_attr]) if fc_edge_attr else torch.zeros((0, self.encoding_size), dtype=torch.float32)
 
-            # compute results of all individual actors and concatenate the results
-            all_actions = self.actor(x=x, edge_index=actor_edge_index, edge_attr=actor_edge_attr, batch=torch.zeros(x.shape[0],dtype=int))
-            outs.append(torch.flatten(all_actions)[self.out_state_size:])
-            # compute values
-            if self.critic_is_fc:
-                values.append(torch.flatten(self.critic(obss_flat[i])))
-            else:
-                values.append(torch.flatten(self.critic(x=x, edge_index=fc_edge_index, edge_attr=fc_edge_attr, batch=torch.zeros(x.shape[0],dtype=int))))
+            actor_graphs.append(Data(x=x, edge_index=actor_edge_index, edge_attr=actor_edge_attr))
+            fc_graphs.append(Data(x=x, edge_index=fc_edge_index, edge_attr=fc_edge_attr))
 
-            
-        # re-batch outputs
-        outs = torch.stack(outs)
-        self.last_values = torch.stack(values)
-        return outs, state
+        actor_dataloader = DataLoader(dataset=actor_graphs, batch_size=batch_size)
+        critic_dataloader = DataLoader(dataset=fc_graphs, batch_size=batch_size)
+        actor_batch = next(iter(actor_dataloader))
+        critic_batch = next(iter(critic_dataloader))
+        assert torch.all(actor_batch.batch.eq(critic_batch.batch))
+
+        actions = self.actor(x=actor_batch.x, edge_index=actor_batch.edge_index, edge_attr=actor_batch.edge_attr, batch=actor_batch.batch)
+        if self.critic_is_fc:
+            values = self.critic(obss_flat)
+        else:
+            values = self.critic(x=critic_batch.x, edge_index=critic_batch.edge_index, edge_attr=critic_batch.edge_attr, batch=critic_batch.batch)
+        
+        # node to original graph mapping
+        curr_batch = 0
+        node_to_sample_mapping = [0]
+        for i, b in enumerate(actor_batch.batch):
+            if curr_batch != b:
+                curr_batch += 1
+                node_to_sample_mapping.append(i)
+        node_to_sample_mapping.append(len(actions))
+
+        # create actions output for batch
+        actions_batch = list()
+        for s_i in range(len(node_to_sample_mapping) - 1):
+            curr_actions = actions[node_to_sample_mapping[s_i]:node_to_sample_mapping[s_i+1]]
+            actions_batch.append(torch.flatten(curr_actions[1:]))
+
+        self.last_values = values
+        return torch.stack(actions_batch), state
