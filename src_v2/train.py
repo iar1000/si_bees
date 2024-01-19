@@ -14,7 +14,7 @@ from callback import SimpleCallback
 from environment import Simple_env
 from pyg import GNN_PyG
 from utils import create_tunable_config, filter_tunables, read_yaml_config
-from stopper import MaxTimestepsStopper, RewardMinStopper
+from stopper import MaxTimestepsStopper, RewardComboStopper, RewardMinStopper
 
 # surpress excessive logging
 wandb_logger = logging.getLogger("wandb")
@@ -45,7 +45,7 @@ if __name__ == '__main__':
     critic_config = read_yaml_config(os.path.join("src_v2", "configs",args.critic_config))
 
     pyg_config = dict()
-    pyg_config["actor_config"] = filter_tunables(create_tunable_config(actor_config))
+    pyg_config["actor_config"] = create_tunable_config(actor_config)
     pyg_config["critic_config"] = create_tunable_config(critic_config)
     pyg_config["info"] = ""
     model = {"custom_model": GNN_PyG,
@@ -60,7 +60,7 @@ if __name__ == '__main__':
     # default values: https://github.com/ray-project/ray/blob/e6ae08f41674d2ac1423f3c2a4f8d8bd3500379a/rllib/agents/ppo/ppo.py
     ppo_config.training(
             model=model,
-            train_batch_size=512,
+            train_batch_size=tune.choice([256, 512, 2048]),
             shuffle_sequences=True,
             lr=tune.uniform(5e-6, 0.003),
             gamma=0.99,
@@ -90,7 +90,9 @@ if __name__ == '__main__':
         storage_path="/Users/sega/Code/si_bees/log" if args.local else "/itet-stor/kpius/net_scratch/si_bees/log",
         local_dir="/Users/sega/Code/si_bees/log" if args.local else "/itet-stor/kpius/net_scratch/si_bees/log",
         stop=CombinedStopper(
-            RewardMinStopper(min_reward_threshold=68),
+            RewardComboStopper(max_reward_threshold=80,
+                               mean_reward_threshold=60,
+                               min_reward_threshold=45),
             MaxTimestepsStopper(max_timesteps=250000),
         ),        
         checkpoint_config=CheckpointConfig(

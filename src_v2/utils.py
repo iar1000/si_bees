@@ -95,7 +95,7 @@ def build_graph_v2(num_agents: int, agent_obss: Tuple, edge_obss: Tuple, batch_i
         curr_edge_obs = torch.cat(edge_obss[j], dim=1)
         
         # add edge to actor graph
-        if edge_obss[j][0][batch_index][1] == 1: # gym.Discrete(2) maps to one-hot encoding, 0 = [1,0], 1 = [0,1]
+        if curr_edge_obs[0][1] == 1: # gym.Discrete(2) maps to one-hot encoding, 0 = [1,0], 1 = [0,1]
             actor_froms.append(j // num_agents)
             actor_tos.append(j % num_agents)
             actor_edge_attr.append(curr_edge_obs[batch_index])
