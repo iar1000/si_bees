@@ -128,6 +128,7 @@ class Simple_model(mesa.Model):
             if self.policy_net:
                 actions = self.policy_net.compute_single_action(self.get_obs())
             else:
+                actions = self.get_action_space().sample()
                 print("prick")
         
         # proceed simulation
