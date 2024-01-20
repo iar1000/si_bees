@@ -19,6 +19,5 @@ class SimpleCallback(DefaultCallbacks):
         env_index: int,
         **kwargs
     ):
-        # env = base_env.get_sub_environments()[env_index]
-        # episode.custom_metrics["n_steps"] = env.model.curr_step
-        pass
+        env = base_env.get_sub_environments()[env_index]
+        episode.custom_metrics["ts_to_convergence"] = env.model.ts_to_convergence

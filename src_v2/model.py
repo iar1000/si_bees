@@ -58,6 +58,9 @@ class Simple_model(mesa.Model):
             self.grid.place_agent(agent=worker, pos=(x_new, y_new))
             self.schedule.add(worker)
 
+        # tracking attributes
+        self.ts_to_convergence = 1000000
+
         # inference mode
         self.inference_mode = inference_mode
         self.policy_net = policy_net
@@ -143,6 +146,10 @@ class Simple_model(mesa.Model):
         reward = 10 if wrongs == 0 else -wrongs
         terminated = wrongs == 0 and self.curr_step >= self.min_steps
         truncated = self.curr_step >= self.max_steps
+
+        # track attributes
+        if wrongs == 0 and self.ts_to_convergence >= self.max_steps:
+            self.ts_to_convergence = self.curr_step
 
         # print overview
         if self.inference_mode:

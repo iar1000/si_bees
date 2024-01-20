@@ -93,7 +93,7 @@ if __name__ == '__main__':
             RewardComboStopper(max_reward_threshold=80,
                                mean_reward_threshold=60,
                                min_reward_threshold=45),
-            MaxTimestepsStopper(max_timesteps=250000),
+            MaxTimestepsStopper(max_timesteps=5000000),
         ),        
         checkpoint_config=CheckpointConfig(
             checkpoint_score_attribute="episode_reward_min",
@@ -115,7 +115,7 @@ if __name__ == '__main__':
                 metric='episode_reward_min',
                 mode='max',
                 grace_period=35000,
-                max_t=250000,
+                max_t=5000000,
                 reduction_factor=2)
         )
 
