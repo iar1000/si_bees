@@ -48,6 +48,7 @@ cd ${DIRECTORY}
 ENV_CONFIG=""
 ACTOR_CONFIG=""
 CRITIC_CONFIG=""
+NUM_RAY_THREADS=36
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --env_config)
@@ -77,6 +78,15 @@ while [[ $# -gt 0 ]]; do
         exit 1
       fi
       ;;
+    --num_ray_threads)
+      if [[ -n $2 ]]; then
+        NUM_RAY_THREADS=$2
+        shift 2
+      else
+        echo "Error: Missing value for -critic_config flag."
+        exit 1
+      fi
+      ;;
     *)
       shift
       ;;
@@ -84,13 +94,14 @@ while [[ $# -gt 0 ]]; do
 done
 
 echo "-> user parameters:"
-echo "    ENV_CONFIG    = $ENV_CONFIG"
-echo "    ACTOR_CONFIG  = $ACTOR_CONFIG"
-echo "    CRITIC_CONFIG = $CRITIC_CONFIG"
+echo "    ENV_CONFIG      = $ENV_CONFIG"
+echo "    ACTOR_CONFIG    = $ACTOR_CONFIG"
+echo "    CRITIC_CONFIG   = $CRITIC_CONFIG"
+echo "    NUM_RAY_THREADS = $NUM_RAY_THREADS"
 
 # Binary or script to execute
 echo "-> run train.py from directory $(pwd)"
-python /itet-stor/kpius/net_scratch/si_bees/src_v2/train.py --env_config $ENV_CONFIG --actor_config $ACTOR_CONFIG --critic_config $CRITIC_CONFIG
+python /itet-stor/kpius/net_scratch/si_bees/src_v2/train.py --env_config $ENV_CONFIG --actor_config $ACTOR_CONFIG --critic_config $CRITIC_CONFIG --num_ray_threads $NUM_RAY_THREADS
 
 # Send more noteworthy information to the output log
 echo "Finished at:     $(date)"

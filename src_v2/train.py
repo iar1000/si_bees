@@ -26,7 +26,7 @@ wandbactor_logger.setLevel(logging.WARNING)
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='script to setup hyperparameter tuning')
     parser.add_argument('--local',              action='store_true', help='execution location (default: False)')
-    parser.add_argument('--num_cpus',           default=36, help='default processes for ray to use')
+    parser.add_argument('--num_ray_threads',    default=36, help='default processes for ray to use')
     parser.add_argument('--env_config',         default=None, help="path to env config")
     parser.add_argument('--actor_config',       default=None, help="path to actor config")
     parser.add_argument('--critic_config',      default=None, help="path to critic config")
@@ -36,7 +36,7 @@ if __name__ == '__main__':
         ray.init()
         #ray.init(num_cpus=1, local_mode=True)
     else:
-        ray.init(num_cpus=args.num_cpus)
+        ray.init(num_cpus=int(args.num_ray_threads))
     tune.register_env("Simple_env", lambda env_config: Simple_env(env_config))
     
     run_name = f"simple-env-{datetime.now().strftime('%Y%m%d%H%M%S')}"
