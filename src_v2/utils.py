@@ -104,3 +104,28 @@ def build_graph_v2(num_agents: int, agent_obss: Tuple, edge_obss: Tuple, batch_i
         fc_edge_attr.append(curr_edge_obs[batch_index])
 
     return x, [actor_froms, actor_tos], actor_edge_attr, [fc_froms, fc_tos], fc_edge_attr
+
+def compute_agent_placement(num_workers: int, communication_range: int,
+                            grid_w: int, grid_h: int, 
+                            oracle_pos: tuple, placement_strategy: str):
+    agent_positions = list()
+    direction_vector = random.choice([[1,0], [-1,0], [0,1], [0,-1]])
+    curr_pos = oracle_pos
+    for _ in range(num_workers):
+            x_old, y_old = curr_pos
+
+            if placement_strategy == "line_unidirectional":
+                curr_pos = x_old + 1, y_old
+            elif placement_strategy == "line_multidirectional":
+                curr_pos = x_old + direction_vector[0], y_old + direction_vector[1]
+            elif placement_strategy == "random_multidirectional":
+                if direction_vector[0]:
+                    curr_pos = x_old + direction_vector[0] * random.randint(1, max(1, communication_range - 1)), y_old + random.randint(-communication_range+1, communication_range-1)
+                else:
+                    curr_pos = x_old + random.randint(-communication_range+1, communication_range-1), y_old + direction_vector[1] * random.randint(1, max(1, communication_range - 1))
+
+            agent_positions.append(curr_pos)
+
+    return agent_positions
+            
+

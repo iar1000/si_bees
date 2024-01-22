@@ -8,7 +8,7 @@ import gymnasium
 from gymnasium.spaces import Box, Tuple, Discrete
 from agents import Oracle, Worker
 
-from utils import get_relative_pos
+from utils import compute_agent_placement, get_relative_pos
 
 MAX_DISTANCE = 100
 
@@ -50,13 +50,15 @@ class Simple_model(mesa.Model):
 
         # place agents
         self.oracle = Oracle(self._next_id(), self, state=oracle_state)
-        self.grid.place_agent(agent=self.oracle, pos=(floor(config["model"]["grid_width"] / 2), floor(config["model"]["grid_height"] / 2)))
+        oracle_pos = (floor(config["model"]["grid_width"] / 2), floor(config["model"]["grid_height"] / 2))
+        self.grid.place_agent(agent=self.oracle, pos=oracle_pos)
         self.schedule.add(self.oracle)
-        for _ in range(self.n_workers):
-            x_old, y_old = self.schedule.agents[-1].pos
-            x_new, y_new = x_old + self.communication_range - 1, y_old
+        agent_positions = compute_agent_placement(self.n_workers, self.communication_range, 
+                                                  config["model"]["grid_width"], config["model"]["grid_height"], 
+                                                  oracle_pos, config["model"]["worker_placement"])
+        for curr_pos in agent_positions:
             worker = Worker(self._next_id(), self, output=worker_output, n_hidden_states=self.n_hidden_states)
-            self.grid.place_agent(agent=worker, pos=(x_new, y_new))
+            self.grid.place_agent(agent=worker, pos=curr_pos)
             self.schedule.add(worker)
 
         # tracking attributes
@@ -149,7 +151,13 @@ class Simple_model(mesa.Model):
         if wrongs == 0:
             reward = 10
         else:
-            reward = -10 if self.reward_calculation == "binary" else -wrongs
+            if self.reward_calculation == "binary":
+                reward = -10 
+            elif self.reward_calculation == "individual":
+                reward = -wrongs
+            else:
+                print(f"ERROR: unkown reward calculation {self.reward_calculation}")
+                quit()
 
         # track attributes
         if wrongs == 0 and self.ts_to_convergence < 0:

@@ -79,6 +79,7 @@ if __name__ == '__main__':
             _enable_learner_api=False)
     ppo_config.rollouts(num_rollout_workers=1)
     ppo_config.resources(
+            num_gpus=int(args.num_gpus),
             num_cpus_per_worker=1,
             num_cpus_for_local_worker=2,
             placement_strategy="PACK")

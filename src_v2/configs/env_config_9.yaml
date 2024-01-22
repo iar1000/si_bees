@@ -1,0 +1,12 @@
+task_0:
+    model:
+      n_workers: 4
+      worker_placement: "line_multidirectional"
+      n_oracle_states: 5
+      n_hidden_state: 4
+      communication_range: 2
+      reward_calculation: "individual"
+      min_steps: 8
+      max_steps: 20
+      grid_width: 21
+      grid_height: 21
