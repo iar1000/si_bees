@@ -56,7 +56,6 @@ def get_random_pos_on_border(center, dist: int):
 def create_tunable_config(config):
     tunable_config = {}
     for k, v in config.items():
-        print(config) 
         if isinstance(v, dict):
             if isinstance(v["min"], int) and isinstance(v["max"], int):
                 tunable_config[k] = tune.choice(list(range(v["min"], v["max"] + 1)))
