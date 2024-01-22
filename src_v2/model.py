@@ -59,7 +59,7 @@ class Simple_model(mesa.Model):
             self.schedule.add(worker)
 
         # tracking attributes
-        self.ts_to_convergence = 1000000
+        self.ts_to_convergence = -1
 
         # inference mode
         self.inference_mode = inference_mode
@@ -148,7 +148,7 @@ class Simple_model(mesa.Model):
         truncated = self.curr_step >= self.max_steps
 
         # track attributes
-        if wrongs == 0 and self.ts_to_convergence >= self.max_steps:
+        if wrongs == 0 and self.ts_to_convergence < 0:
             self.ts_to_convergence = self.curr_step
 
         # print overview

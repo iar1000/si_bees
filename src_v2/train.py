@@ -33,8 +33,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.local:
-        #ray.init()
-        ray.init(num_cpus=1, local_mode=True)
+        ray.init()
+        #ray.init(num_cpus=1, local_mode=True)
     else:
         ray.init(num_cpus=args.num_cpus)
     tune.register_env("Simple_env", lambda env_config: Simple_env(env_config))
@@ -45,7 +45,7 @@ if __name__ == '__main__':
     critic_config = read_yaml_config(os.path.join("src_v2", "configs",args.critic_config))
 
     pyg_config = dict()
-    pyg_config["actor_config"] = create_tunable_config(actor_config)
+    pyg_config["actor_config"] = filter_tunables(create_tunable_config(actor_config))
     pyg_config["critic_config"] = create_tunable_config(critic_config)
     pyg_config["info"] = ""
     model = {"custom_model": GNN_PyG,
@@ -82,6 +82,7 @@ if __name__ == '__main__':
             placement_strategy="PACK")
     ppo_config.rl_module(_enable_rl_module_api=False)
     ppo_config.callbacks(SimpleCallback)
+    ppo_config.reporting(keep_per_episode_custom_metrics=True)
 
 
     # run and checkpoint config
@@ -90,13 +91,10 @@ if __name__ == '__main__':
         storage_path="/Users/sega/Code/si_bees/log" if args.local else "/itet-stor/kpius/net_scratch/si_bees/log",
         local_dir="/Users/sega/Code/si_bees/log" if args.local else "/itet-stor/kpius/net_scratch/si_bees/log",
         stop=CombinedStopper(
-            RewardComboStopper(max_reward_threshold=80,
-                               mean_reward_threshold=60,
-                               min_reward_threshold=45),
             MaxTimestepsStopper(max_timesteps=5000000),
         ),        
         checkpoint_config=CheckpointConfig(
-            checkpoint_score_attribute="episode_reward_min",
+            checkpoint_score_attribute="episode_reward_mean",
             num_to_keep=1,
             checkpoint_frequency=10,
             checkpoint_at_end=True),
@@ -112,9 +110,9 @@ if __name__ == '__main__':
             num_samples=100000,
             scheduler= ASHAScheduler(
                 time_attr='timesteps_total',
-                metric='episode_reward_min',
+                metric='episode_reward_mean',
                 mode='max',
-                grace_period=35000,
+                grace_period=100000,
                 max_t=5000000,
                 reduction_factor=2)
         )
