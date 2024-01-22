@@ -26,7 +26,7 @@ class SimpleCallback(DefaultCallbacks):
     def on_train_result(
         self,
         *,
-        algorithm: "Algorithm",
+        algorithm,
         result: dict,
         **kwargs,
     ) -> None:

@@ -35,8 +35,6 @@ if __name__ == '__main__':
     parser.add_argument('--critic_config',      default=None, help="path to critic config")
     args = parser.parse_args()
 
-    print(torch.cuda.is_available())
-
     if args.local:
         ray.init()
         #ray.init(num_cpus=1, local_mode=True)
@@ -49,7 +47,7 @@ if __name__ == '__main__':
             num_gpus = 0
             ray.init(num_cpus=int(args.num_ray_threads))
             print(f"PyTorch running with {num_gpus} GPU")
-    quit()
+
     tune.register_env("Simple_env", lambda env_config: Simple_env(env_config))
     
     run_name = f"simple-env-{datetime.now().strftime('%Y%m%d%H%M%S')}"
