@@ -38,6 +38,7 @@ if __name__ == '__main__':
         #ray.init(num_cpus=1, local_mode=True)
     else:
         ray.init(num_cpus=int(args.num_ray_threads), num_gpus=int(args.num_gpus))
+        
     tune.register_env("Simple_env", lambda env_config: Simple_env(env_config))
     
     run_name = f"simple-env-{datetime.now().strftime('%Y%m%d%H%M%S')}"
