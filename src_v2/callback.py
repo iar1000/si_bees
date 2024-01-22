@@ -35,9 +35,9 @@ class SimpleCallback(DefaultCallbacks):
         converged_true = [a for a in ts_to_convergence if a >= 0]
         converged_false = [a for a in ts_to_convergence if a < 0]
 
-        result["custom_metrics"]["ts_to_convergence_min"] = min(converged_true)
-        result["custom_metrics"]["ts_to_convergence_max"] = max(converged_true)
-        result["custom_metrics"]["ts_to_convergence_mean"] = mean(converged_true)
+        result["custom_metrics"]["ts_to_convergence_min"] = min(converged_true) if converged_true else 100
+        result["custom_metrics"]["ts_to_convergence_max"] = max(converged_true) if converged_true else 100
+        result["custom_metrics"]["ts_to_convergence_mean"] = mean(converged_true) if converged_true else 100
         result["custom_metrics"]["convergence_ratio"] = len(converged_true) / total_results if len(converged_true) and total_results else 0
         result["custom_metrics"]["n_converged_true"] = len(converged_true)
         result["custom_metrics"]["n_converged_false"] = len(converged_false)
