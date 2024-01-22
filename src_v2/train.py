@@ -39,7 +39,7 @@ if __name__ == '__main__':
         ray.init()
         #ray.init(num_cpus=1, local_mode=True)
     else:
-        if torch.cude.is_available():
+        if torch.cuda.is_available():
             num_gpus = int(args.num_gpus)
             ray.init(num_cpus=int(args.num_ray_threads), num_gpus=num_gpus)
             print(f"PyTorch running with {num_gpus} GPU")
