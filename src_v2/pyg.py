@@ -58,11 +58,10 @@ class GNN_PyG(TorchModelV2, Module):
                                         edge_dim=self.encoding_size, 
                                         add_pooling=True)
         
-        if self.use_cuda:
-            self.node_encoder.to(self.device)
-            self.edge_encoder.to(self.device)
-            self.actor.to(self.device)
-            self.actor.to(self.device)
+        self.node_encoder.to(self.device)
+        self.edge_encoder.to(self.device)
+        self.actor.to(self.device)
+        self.actor.to(self.device)
 
         print("actor: ", self.actor)
         print("critic: ", self.critic)
