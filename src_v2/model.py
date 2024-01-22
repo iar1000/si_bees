@@ -33,6 +33,7 @@ class Simple_model(mesa.Model):
         self.n_oracle_states = config["model"]["n_oracle_states"]
         self.n_hidden_states = config["model"]["n_hidden_state"]
         self.communication_range = config["model"]["communication_range"]
+        self.reward_calculation = config["model"]["reward_calculation"]
 
         # mesa setup
         self.grid = mesa.space.MultiGrid(config["model"]["grid_width"], config["model"]["grid_height"], False)
@@ -143,9 +144,12 @@ class Simple_model(mesa.Model):
         
         # compute reward and state
         wrongs = sum([1 for a in self.schedule.agents if type(a) is Worker and a.output != self.oracle.state])
-        reward = 10 if wrongs == 0 else -wrongs
         terminated = wrongs == 0 and self.curr_step >= self.min_steps
         truncated = self.curr_step >= self.max_steps
+        if wrongs == 0:
+            reward = 10
+        else:
+            reward = -10 if self.reward_calculation == "binary" else -wrongs
 
         # track attributes
         if wrongs == 0 and self.ts_to_convergence < 0:
