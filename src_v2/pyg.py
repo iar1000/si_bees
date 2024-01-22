@@ -33,7 +33,7 @@ class GNN_PyG(TorchModelV2, Module):
         actor_config = config["actor_config"]
         critic_config = config["critic_config"]
         self.critic_is_fc = config["critic_config"]["model"] == "fc"
-        self.use_cuda = config["use_cuda"]
+        self.device = "cuda:0" if config["use_cuda"] else "cpu"
 
         # model dimensions
         og_obs_space = obs_space.original_space
@@ -59,16 +59,16 @@ class GNN_PyG(TorchModelV2, Module):
                                         add_pooling=True)
         
         if self.use_cuda:
-            self.node_encoder.to("cuda")
-            self.edge_encoder.to("cuda")
-            self.actor.to("cuda")
-            self.actor.to("cuda")
+            self.node_encoder.to(self.device)
+            self.edge_encoder.to(self.device)
+            self.actor.to(self.device)
+            self.actor.to(self.device)
 
         print("actor: ", self.actor)
         print("critic: ", self.critic)
         print("node encoder: ", self.node_encoder)
         print("edge encoder: ", self.edge_encoder)
-        print("use_cuda: ", self.use_cuda)
+        print("device: ", self.device)
         
     def __build_fc(self, ins: int, outs: int, hiddens: list):
         """builds a fully connected network with relu activation"""
@@ -124,10 +124,8 @@ class GNN_PyG(TorchModelV2, Module):
 
         note: the construction of the graph is tightly coupled to the format of the obs_space defined in the model class
         """ 
-        if self.use_cuda:
-            input_dict.to("cuda")
-
         obss = input_dict["obs"]
+        obss.to(self.device)
         obss_flat = input_dict["obs_flat"]
         agent_obss = obss[0]
         edge_obss = obss[1]
