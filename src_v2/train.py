@@ -58,6 +58,7 @@ if __name__ == '__main__':
     pyg_config = dict()
     pyg_config["actor_config"] = filter_tunables(create_tunable_config(actor_config))
     pyg_config["critic_config"] = create_tunable_config(critic_config)
+    pyg_config["use_cuda"] = torch.cuda.is_available() and num_gpus > 0
     pyg_config["info"] = ""
     model = {"custom_model": GNN_PyG,
              "custom_model_config": pyg_config}

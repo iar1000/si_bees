@@ -33,6 +33,7 @@ class GNN_PyG(TorchModelV2, Module):
         actor_config = config["actor_config"]
         critic_config = config["critic_config"]
         self.critic_is_fc = config["critic_config"]["model"] == "fc"
+        self.use_cuda = config["use_cuda"]
 
         # model dimensions
         og_obs_space = obs_space.original_space
@@ -56,11 +57,18 @@ class GNN_PyG(TorchModelV2, Module):
                                         outs=1, 
                                         edge_dim=self.encoding_size, 
                                         add_pooling=True)
+        
+        if self.use_cuda:
+            self.node_encoder.to("cuda")
+            self.edge_encoder.to("cuda")
+            self.actor.to("cuda")
+            self.actor.to("cuda")
 
         print("actor: ", self.actor)
         print("critic: ", self.critic)
         print("node encoder: ", self.node_encoder)
         print("edge encoder: ", self.edge_encoder)
+        print("use_cuda: ", self.use_cuda)
         
     def __build_fc(self, ins: int, outs: int, hiddens: list):
         """builds a fully connected network with relu activation"""
@@ -115,7 +123,10 @@ class GNN_PyG(TorchModelV2, Module):
         feed it to the _actor and _critic methods to get the outputs, those methods are implemented by a subclass
 
         note: the construction of the graph is tightly coupled to the format of the obs_space defined in the model class
-        """    
+        """ 
+        if self.use_cuda:
+            input_dict.to("cuda")
+
         obss = input_dict["obs"]
         obss_flat = input_dict["obs_flat"]
         agent_obss = obss[0]
