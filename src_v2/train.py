@@ -10,6 +10,8 @@ from ray.tune.schedulers import ASHAScheduler
 from ray.rllib.algorithms.ppo import PPOConfig
 from datetime import datetime
 
+import torch
+
 from callback import SimpleCallback
 from environment import Simple_env
 from pyg import GNN_PyG
@@ -37,7 +39,13 @@ if __name__ == '__main__':
         ray.init()
         #ray.init(num_cpus=1, local_mode=True)
     else:
-        ray.init(num_cpus=int(args.num_ray_threads), num_gpus=int(args.num_gpus))
+        if torch.cude.is_available():
+            num_gpus = int(args.num_gpus)
+            ray.init(num_cpus=int(args.num_ray_threads), num_gpus=num_gpus)
+            print(f"PyTorch running with {num_gpus} GPU")
+        else:
+            num_gpus = 0
+            ray.init(num_cpus=int(args.num_ray_threads))
         
     tune.register_env("Simple_env", lambda env_config: Simple_env(env_config))
     
@@ -79,7 +87,7 @@ if __name__ == '__main__':
             _enable_learner_api=False)
     ppo_config.rollouts(num_rollout_workers=1)
     ppo_config.resources(
-            num_gpus=int(args.num_gpus),
+            num_gpus=num_gpus,
             num_cpus_per_worker=1,
             num_cpus_for_local_worker=2,
             placement_strategy="PACK")
