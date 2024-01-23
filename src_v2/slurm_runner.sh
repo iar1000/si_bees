@@ -8,7 +8,7 @@
 ETH_USERNAME=kpius
 PROJECT_NAME=si_bees
 DIRECTORY=/itet-stor/${ETH_USERNAME}/net_scratch/${PROJECT_NAME}
-CONDA_ENVIRONMENT=swarm
+CONDA_ENVIRONMENT=si_bees
 mkdir -p ${DIRECTORY}/jobs
 
 # Exit on errors
