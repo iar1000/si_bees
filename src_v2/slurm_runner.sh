@@ -49,7 +49,7 @@ ENV_CONFIG=""
 ACTOR_CONFIG=""
 CRITIC_CONFIG=""
 NUM_RAY_THREADS=36
-NUM_GPUS=0
+ENABLE_GPU=false
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --env_config)
@@ -88,12 +88,12 @@ while [[ $# -gt 0 ]]; do
         exit 1
       fi
       ;;
-    --num_gpus)
+    --enable_gpu)
       if [[ -n $2 ]]; then
-        NUM_GPUS=$2
+        ENABLE_GPU=true
         shift 2
       else
-        echo "Error: Missing value for -num_gpus flag."
+        echo "Error: Missing value for -enable_gpu flag."
         exit 1
       fi
       ;;
@@ -108,11 +108,11 @@ echo "    ENV_CONFIG      = $ENV_CONFIG"
 echo "    ACTOR_CONFIG    = $ACTOR_CONFIG"
 echo "    CRITIC_CONFIG   = $CRITIC_CONFIG"
 echo "    NUM_RAY_THREADS = $NUM_RAY_THREADS"
-echo "    NUM_GPUS        = $NUM_GPUS"
+echo "    ENABLE_GPU      = $ENABLE_GPU"
 
 # Binary or script to execute
 echo "-> run train.py from directory $(pwd)"
-python /itet-stor/kpius/net_scratch/si_bees/src_v2/train.py --env_config $ENV_CONFIG --actor_config $ACTOR_CONFIG --critic_config $CRITIC_CONFIG --num_ray_threads $NUM_RAY_THREADS --num_gpus $NUM_GPUS
+python /itet-stor/kpius/net_scratch/si_bees/src_v2/train.py --env_config $ENV_CONFIG --actor_config $ACTOR_CONFIG --critic_config $CRITIC_CONFIG --num_ray_threads $NUM_RAY_THREADS --enable_gpu $ENABLE_GPU
 
 # Send more noteworthy information to the output log
 echo "Finished at:     $(date)"

@@ -19,17 +19,17 @@ from utils import create_tunable_config, filter_tunables, read_yaml_config
 from stopper import MaxTimestepsStopper, RewardComboStopper, RewardMinStopper
 
 # surpress excessive logging
-wandb_logger = logging.getLogger("wandb")
-wandb_logger.setLevel(logging.WARNING)
-wandbactor_logger = logging.getLogger("_WandbLoggingActor")
-wandbactor_logger.setLevel(logging.WARNING)
+#wandb_logger = logging.getLogger("wandb")
+#wandb_logger.setLevel(logging.WARNING)
+#wandbactor_logger = logging.getLogger("_WandbLoggingActor")
+#wandbactor_logger.setLevel(logging.WARNING)
 
 # script
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='script to setup hyperparameter tuning')
     parser.add_argument('--local',              action='store_true', help='execution location (default: False)')
     parser.add_argument('--num_ray_threads',    default=36, help='default processes for ray to use')
-    parser.add_argument('--num_gpus',           default=0, help='default number of gpus to use')
+    parser.add_argument('--enable_gpu',         action='store_true', help='enable use of gpu')
     parser.add_argument('--env_config',         default=None, help="path to env config")
     parser.add_argument('--actor_config',       default=None, help="path to actor config")
     parser.add_argument('--critic_config',      default=None, help="path to critic config")
