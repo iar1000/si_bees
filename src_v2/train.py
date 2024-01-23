@@ -39,11 +39,14 @@ if __name__ == '__main__':
     print(args)
 
     if args.local:
+        print(f"-> using autoscale")
         ray.init()
         #ray.init(num_cpus=1, local_mode=True)
     elif args.enable_gpu and torch.cuda.is_available():
+        print(f"-> using {int(args.num_ray_threads)} cpus and a gpu")
         ray.init(num_cpus=int(args.num_ray_threads), num_gpus=1)
     else:
+        print(f"-> using {int(args.num_ray_threads)} cpus")
         ray.init(num_cpus=int(args.num_ray_threads))
 
     tune.register_env("Simple_env", lambda env_config: Simple_env(env_config))

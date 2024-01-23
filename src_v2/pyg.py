@@ -57,11 +57,18 @@ class GNN_PyG(TorchModelV2, Module):
                                         outs=1, 
                                         edge_dim=self.encoding_size, 
                                         add_pooling=True)
+        
+        # put to correct device
+        self.node_encoder.to(device=self.device)
+        self.edge_encoder.to(device=self.device)
+        self.actor.to(device=self.device)
+        self.critic.to(device=self.device)
 
         print("actor: ", self.actor)
         print("critic: ", self.critic)
         print("node encoder: ", self.node_encoder)
         print("edge encoder: ", self.edge_encoder)
+        print("device: ", self.device)
         
     def __build_fc(self, ins: int, outs: int, hiddens: list):
         """builds a fully connected network with relu activation"""
