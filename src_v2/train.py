@@ -35,20 +35,11 @@ if __name__ == '__main__':
     parser.add_argument('--critic_config',      default=None, help="path to critic config")
     args = parser.parse_args()
 
-    print(os.environ['CUDA_VISIBLE_DEVICES'])
-
-    num_gpus = 0
     if args.local:
         ray.init()
         #ray.init(num_cpus=1, local_mode=True)
     else:
-        if torch.cuda.is_available():
-            num_gpus = int(args.num_gpus)
-            ray.init(num_cpus=int(args.num_ray_threads), num_gpus=num_gpus)
-            print(f"PyTorch running with {num_gpus} GPU")
-        else:
-            ray.init(num_cpus=int(args.num_ray_threads))
-            print(f"PyTorch running with {num_gpus} GPU")
+        ray.init(num_cpus=int(args.num_ray_threads))
 
     tune.register_env("Simple_env", lambda env_config: Simple_env(env_config))
     
@@ -72,7 +63,6 @@ if __name__ == '__main__':
             env_config=env_config,
             disable_env_checking=True)
     ppo_config.resources(
-            num_gpus=num_gpus,
             num_cpus_per_worker=1,
             num_cpus_for_local_worker=2,
             placement_strategy="PACK")
@@ -127,7 +117,7 @@ if __name__ == '__main__':
                 time_attr='timesteps_total',
                 metric='episode_reward_mean',
                 mode='max',
-                grace_period=100000,
+                grace_period=35000,
                 max_t=5000000,
                 reduction_factor=2)
         )
