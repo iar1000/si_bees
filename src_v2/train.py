@@ -35,9 +35,14 @@ if __name__ == '__main__':
     parser.add_argument('--critic_config',      default=None, help="path to critic config")
     args = parser.parse_args()
 
+    print("-> start tune with following parameters")
+    print(args)
+
     if args.local:
         ray.init()
         #ray.init(num_cpus=1, local_mode=True)
+    elif args.enable_gpu and torch.cuda.is_available():
+        ray.init(num_cpus=int(args.num_ray_threads), num_gpus=1)
     else:
         ray.init(num_cpus=int(args.num_ray_threads))
 
@@ -51,6 +56,7 @@ if __name__ == '__main__':
     pyg_config = dict()
     pyg_config["actor_config"] = filter_tunables(create_tunable_config(actor_config))
     pyg_config["critic_config"] = create_tunable_config(critic_config)
+    pyg_config["use_cuda"] = args.enable_gpu and torch.cuda.is_available()
     pyg_config["info"] = ""
     model = {"custom_model": GNN_PyG,
              "custom_model_config": pyg_config}
@@ -62,6 +68,7 @@ if __name__ == '__main__':
             env_config=env_config,
             disable_env_checking=True)
     ppo_config.resources(
+            num_gpus=1 if args.enable_gpu and torch.cuda.is_available() else 0,
             num_cpus_per_worker=1,
             num_cpus_for_local_worker=2,
             placement_strategy="PACK")

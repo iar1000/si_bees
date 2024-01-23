@@ -6,6 +6,7 @@ from ray.rllib.algorithms import Algorithm
 
 import gymnasium
 from gymnasium.spaces import Box, Tuple, Discrete
+import torch
 from agents import Oracle, Worker
 
 from utils import compute_agent_placement, get_relative_pos
@@ -23,6 +24,7 @@ class Simple_model(mesa.Model):
     """
 
     def __init__(self, config: dict,
+                 use_cuda: bool = False,
                  policy_net: Algorithm = None, inference_mode: bool = False) -> None:
         super().__init__()
         
@@ -34,6 +36,7 @@ class Simple_model(mesa.Model):
         self.n_hidden_states = config["model"]["n_hidden_state"]
         self.communication_range = config["model"]["communication_range"]
         self.reward_calculation = config["model"]["reward_calculation"]
+        self.device = torch.device("cuda" if use_cuda else "cpu")
 
         # mesa setup
         self.grid = mesa.space.MultiGrid(config["model"]["grid_width"], config["model"]["grid_height"], False)
