@@ -63,7 +63,7 @@ class GNN_PyG(TorchModelV2, Module):
         self.edge_encoder.to(device=self.device)
         self.actor.to(device=self.device)
         self.critic.to(device=self.device)
-        
+
         print(f"actor ({next(self.actor.parameters()).device}): ", self.actor)
         print(f"critic ({next(self.critic.parameters()).device}): ", self.critic)
         print(f"node encoder ({next(self.node_encoder.parameters()).device}): ", self.node_encoder)
@@ -151,6 +151,12 @@ class GNN_PyG(TorchModelV2, Module):
 
             actor_graphs.append(Data(x=x, edge_index=actor_edge_index, edge_attr=actor_edge_attr))
             fc_graphs.append(Data(x=x, edge_index=fc_edge_index, edge_attr=fc_edge_attr))
+
+        print(x.device)
+        print(actor_edge_index.device)
+        print(actor_edge_attr.device)
+        print(fc_edge_index.device)
+        print(fc_edge_attr.device)
 
         actor_dataloader = DataLoader(dataset=actor_graphs, batch_size=batch_size)
         critic_dataloader = DataLoader(dataset=fc_graphs, batch_size=batch_size)
