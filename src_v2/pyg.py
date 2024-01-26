@@ -58,6 +58,12 @@ class GNN_PyG(TorchModelV2, Module):
                                         edge_dim=self.encoding_size, 
                                         add_pooling=True)
         
+        # put to correct device
+        self.node_encoder.to(device=self.device)
+        self.edge_encoder.to(device=self.device)
+        self.actor.to(device=self.device)
+        self.critic.to(device=self.device)
+        
         print(f"actor ({next(self.actor.parameters()).device}): ", self.actor)
         print(f"critic ({next(self.critic.parameters()).device}): ", self.critic)
         print(f"node encoder ({next(self.node_encoder.parameters()).device}): ", self.node_encoder)
@@ -66,11 +72,6 @@ class GNN_PyG(TorchModelV2, Module):
         print(f"  cuda_is_available={torch.cuda.is_available()}")
         print(f"  use_cuda={config['use_cuda']}")
 
-        # put to correct device
-        self.node_encoder.to(device=self.device)
-        self.edge_encoder.to(device=self.device)
-        self.actor.to(device=self.device)
-        self.critic.to(device=self.device)
         
         
     def __build_fc(self, ins: int, outs: int, hiddens: list):
