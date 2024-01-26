@@ -37,12 +37,13 @@ if __name__ == '__main__':
 
     print("-> start tune with following parameters")
     print(args)
+    use_cuda = args.enable_gpu and torch.cuda.is_available()
 
     if args.local:
         print(f"-> using autoscale")
         ray.init()
         #ray.init(num_cpus=1, local_mode=True)
-    elif args.enable_gpu and torch.cuda.is_available():
+    elif use_cuda:
         print(f"-> using {int(args.num_ray_threads)} cpus and a gpu ({os.environ['CUDA_VISIBLE_DEVICES']})")
         ray.init(num_cpus=int(args.num_ray_threads), num_gpus=1)
     else:
@@ -59,7 +60,7 @@ if __name__ == '__main__':
     pyg_config = dict()
     pyg_config["actor_config"] = filter_tunables(create_tunable_config(actor_config))
     pyg_config["critic_config"] = create_tunable_config(critic_config)
-    pyg_config["use_cuda"] = args.enable_gpu and torch.cuda.is_available()
+    pyg_config["use_cuda"] = use_cuda
     pyg_config["info"] = ""
     model = {"custom_model": GNN_PyG,
              "custom_model_config": pyg_config}
@@ -88,18 +89,26 @@ if __name__ == '__main__':
             grad_clip=1,
             grad_clip_by="value",
             _enable_learner_api=False)
-    ppo_config.rollouts(num_rollout_workers=0)
-    ppo_config.resources(
-            num_gpus=0.2,
-            #num_cpus_for_local_worker=2,
-            #num_learner_workers=0,
-            #num_gpus_per_learner_worker=1,
-            #num_cpus_per_worker=1,
-            placement_strategy="PACK")
     ppo_config.rl_module(_enable_rl_module_api=False)
     ppo_config.callbacks(SimpleCallback)
     ppo_config.reporting(keep_per_episode_custom_metrics=True)
 
+    # @todo
+    if use_cuda:
+        ppo_config.rollouts(num_rollout_workers=0)
+        ppo_config.resources(
+                num_gpus=0.2,
+                #num_cpus_for_local_worker=2,
+                #num_learner_workers=0,
+                #num_gpus_per_learner_worker=1,
+                #num_cpus_per_worker=1,
+                placement_strategy="PACK")
+    else:
+        ppo_config.rollouts(num_rollout_workers=1)
+        ppo_config.resources(
+            num_cpus_per_worker=1,
+            num_cpus_for_local_worker=2,
+            placement_strategy="PACK")
 
     # run and checkpoint config
     run_config = air.RunConfig(
