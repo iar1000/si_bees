@@ -62,7 +62,9 @@ class GNN_PyG(TorchModelV2, Module):
         print("critic: ", self.critic)
         print("node encoder: ", self.node_encoder)
         print("edge encoder: ", self.edge_encoder)
-        print("device: ", torch.cuda.is_available(), self.device)
+        print("device: ", self.device)
+        print(f"  cuda_is_available={torch.cuda.is_available()}")
+        print(f"  use_cuda={config['use_cuda']}")
 
         # put to correct device
         self.node_encoder.to(device=self.device)
@@ -130,6 +132,10 @@ class GNN_PyG(TorchModelV2, Module):
         agent_obss = obss[0]
         edge_obss = obss[1]
         batch_size = len(obss_flat)
+
+        print(type(agent_obss), type(edge_obss))
+        print(agent_obss.get_device())
+        print(edge_obss.get_device())
 
         # iterate through the batch
         actor_graphs = list()
