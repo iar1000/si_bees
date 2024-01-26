@@ -70,13 +70,6 @@ if __name__ == '__main__':
             env="Simple_env",
             env_config=env_config,
             disable_env_checking=True)
-    ppo_config.resources(
-            num_gpus=1.0,
-            num_learner_workers=1,
-            num_gpus_per_learner_worker=1,
-            #num_cpus_per_worker=1,
-            #num_cpus_for_local_worker=2,
-            placement_strategy="PACK")
     # default values: https://github.com/ray-project/ray/blob/e6ae08f41674d2ac1423f3c2a4f8d8bd3500379a/rllib/agents/ppo/ppo.py
     ppo_config.training(
             model=model,
@@ -96,6 +89,13 @@ if __name__ == '__main__':
             grad_clip_by="value",
             _enable_learner_api=False)
     ppo_config.rollouts(num_rollout_workers=1)
+    ppo_config.resources(
+            num_gpus=1,
+            num_learner_workers=0,
+            num_gpus_per_learner_worker=1,
+            #num_cpus_per_worker=1,
+            #num_cpus_for_local_worker=2,
+            placement_strategy="PACK")
     ppo_config.rl_module(_enable_rl_module_api=False)
     ppo_config.callbacks(SimpleCallback)
     ppo_config.reporting(keep_per_episode_custom_metrics=True)
