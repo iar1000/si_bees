@@ -74,6 +74,7 @@ if __name__ == '__main__':
             num_gpus=1.0 / int(args.num_ray_threads) if args.enable_gpu and torch.cuda.is_available() else 0,
             num_cpus_per_worker=1,
             num_cpus_for_local_worker=2,
+            num_gpus_per_learner_worker=1.0 / int(args.num_ray_threads),
             placement_strategy="PACK")
     # default values: https://github.com/ray-project/ray/blob/e6ae08f41674d2ac1423f3c2a4f8d8bd3500379a/rllib/agents/ppo/ppo.py
     ppo_config.training(
