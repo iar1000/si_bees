@@ -89,13 +89,8 @@ while [[ $# -gt 0 ]]; do
       fi
       ;;
     --enable_gpu)
-      if [[ -n $2 ]]; then
-        FLAGS="$FLAGS --enable_gpu"
-        shift 2
-      else
-        echo "Error: Missing value for -enable_gpu flag."
-        exit 1
-      fi
+      FLAGS="$FLAGS --enable_gpu"
+      shift 1  # No value needed, just shift by 1
       ;;
     *)
       shift
