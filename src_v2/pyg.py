@@ -134,8 +134,6 @@ class GNN_PyG(TorchModelV2, Module):
         edge_obss = obss[1]
         batch_size = len(obss_flat)
 
-        print(agent_obss, edge_obss)
-
         # iterate through the batch
         actor_graphs = list()
         fc_graphs = list()
@@ -145,9 +143,9 @@ class GNN_PyG(TorchModelV2, Module):
             # format graph to torch
             x = torch.stack([self.node_encoder(v) for v in x])
             actor_edge_index = torch.tensor(actor_edge_index, dtype=torch.int64, device=self.device)
-            actor_edge_attr = torch.stack([self.edge_encoder(e) for e in actor_edge_attr]) if actor_edge_attr else torch.zeros((0, self.encoding_size), dtype=torch.float32)
+            actor_edge_attr = torch.stack([self.edge_encoder(e) for e in actor_edge_attr]) if actor_edge_attr else torch.zeros((0, self.encoding_size), dtype=torch.float32, device=self.device)
             fc_edge_index = torch.tensor(fc_edge_index, dtype=torch.int64, device=self.device)
-            fc_edge_attr = torch.stack([self.edge_encoder(e) for e in fc_edge_attr]) if fc_edge_attr else torch.zeros((0, self.encoding_size), dtype=torch.float32)
+            fc_edge_attr = torch.stack([self.edge_encoder(e) for e in fc_edge_attr]) if fc_edge_attr else torch.zeros((0, self.encoding_size), dtype=torch.float32, device=self.device)
 
             actor_graphs.append(Data(x=x, edge_index=actor_edge_index, edge_attr=actor_edge_attr))
             fc_graphs.append(Data(x=x, edge_index=fc_edge_index, edge_attr=fc_edge_attr))
