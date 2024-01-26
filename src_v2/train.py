@@ -43,7 +43,7 @@ if __name__ == '__main__':
         ray.init()
         #ray.init(num_cpus=1, local_mode=True)
     elif args.enable_gpu and torch.cuda.is_available():
-        print(f"-> using {int(args.num_ray_threads)} cpus and a gpu")
+        print(f"-> using {int(args.num_ray_threads)} cpus and a gpu ({os.environ['CUDA_VISIBLE_DEVICES']})")
         ray.init(num_cpus=int(args.num_ray_threads), num_gpus=1)
     else:
         print(f"-> using {int(args.num_ray_threads)} cpus")
