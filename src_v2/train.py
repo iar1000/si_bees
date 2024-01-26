@@ -91,10 +91,10 @@ if __name__ == '__main__':
     ppo_config.rollouts(num_rollout_workers=0)
     ppo_config.resources(
             num_gpus=1,
-            num_learner_workers=0,
-            num_gpus_per_learner_worker=1,
+            num_cpus_for_local_worker=2,
+            #num_learner_workers=0,
+            #num_gpus_per_learner_worker=1,
             #num_cpus_per_worker=1,
-            #num_cpus_for_local_worker=2,
             placement_strategy="PACK")
     ppo_config.rl_module(_enable_rl_module_api=False)
     ppo_config.callbacks(SimpleCallback)
