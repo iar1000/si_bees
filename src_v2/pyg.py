@@ -62,7 +62,7 @@ class GNN_PyG(TorchModelV2, Module):
         print("critic: ", self.critic)
         print("node encoder: ", self.node_encoder)
         print("edge encoder: ", self.edge_encoder)
-        print("device: ", self.device)
+        print("device: ", torch.cuda.is_available(), self.device)
 
         # put to correct device
         self.node_encoder.to(device=self.device)
