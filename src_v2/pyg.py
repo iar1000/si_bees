@@ -33,7 +33,7 @@ class GNN_PyG(TorchModelV2, Module):
         actor_config = config["actor_config"]
         critic_config = config["critic_config"]
         self.critic_is_fc = config["critic_config"]["model"] == "fc"
-        self.device = torch.device("cuda" if config["use_cuda"] else "cpu")
+        self.device = torch.device("cuda:0" if config["use_cuda"] else "cpu")
 
         # model dimensions
         og_obs_space = obs_space.original_space
@@ -63,7 +63,7 @@ class GNN_PyG(TorchModelV2, Module):
         print("node encoder: ", self.node_encoder)
         print("edge encoder: ", self.edge_encoder)
         print("device: ", self.device)
-        
+
         # put to correct device
         self.node_encoder.to(device=self.device)
         self.edge_encoder.to(device=self.device)
