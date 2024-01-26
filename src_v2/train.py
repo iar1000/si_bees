@@ -88,7 +88,7 @@ if __name__ == '__main__':
             grad_clip=1,
             grad_clip_by="value",
             _enable_learner_api=False)
-    ppo_config.rollouts(num_rollout_workers=1)
+    ppo_config.rollouts(num_rollout_workers=0)
     ppo_config.resources(
             num_gpus=1,
             num_learner_workers=0,
