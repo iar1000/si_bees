@@ -71,7 +71,7 @@ if __name__ == '__main__':
             env_config=env_config,
             disable_env_checking=True)
     ppo_config.resources(
-            num_gpus=1 if args.enable_gpu and torch.cuda.is_available() else 0,
+            num_gpus=1.0 / args.num_ray_threads if args.enable_gpu and torch.cuda.is_available() else 0,
             num_cpus_per_worker=1,
             num_cpus_for_local_worker=2,
             placement_strategy="PACK")
