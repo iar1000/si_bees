@@ -133,7 +133,7 @@ class GNN_PyG(TorchModelV2, Module):
         edge_obss = obss[1]
         batch_size = len(obss_flat)
 
-        print(agent_obss, type(edge_obss))
+        print(agent_obss, edge_obss)
         print(agent_obss.get_device())
         print(edge_obss.get_device())
 
