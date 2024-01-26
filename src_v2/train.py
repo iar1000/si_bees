@@ -113,7 +113,7 @@ if __name__ == '__main__':
                 time_attr='timesteps_total',
                 metric='episode_reward_mean',
                 mode='max',
-                grace_period=100000,
+                grace_period=35000,
                 max_t=5000000,
                 reduction_factor=2)
         )
