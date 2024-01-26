@@ -72,9 +72,10 @@ if __name__ == '__main__':
             disable_env_checking=True)
     ppo_config.resources(
             num_gpus=1.0,
-            num_cpus_per_worker=1,
-            num_cpus_for_local_worker=2,
-            num_gpus_per_learner_worker=0.25,
+            num_learner_workers=1,
+            num_gpus_per_learner_worker=1,
+            #num_cpus_per_worker=1,
+            #num_cpus_for_local_worker=2,
             placement_strategy="PACK")
     # default values: https://github.com/ray-project/ray/blob/e6ae08f41674d2ac1423f3c2a4f8d8bd3500379a/rllib/agents/ppo/ppo.py
     ppo_config.training(
