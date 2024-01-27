@@ -38,6 +38,8 @@ if __name__ == '__main__':
     print("-> start tune with following parameters")
     print(args)
     use_cuda = args.enable_gpu and torch.cuda.is_available()
+    os.environ["WANDB_DIR"] = "/Users/sega/Code/si_bees/log" if args.local else "/itet-stor/kpius/net_scratch/si_bees/log"
+    print(os.environ["WANDB_DIR"])
 
     if args.local:
         print(f"-> using autoscale")
