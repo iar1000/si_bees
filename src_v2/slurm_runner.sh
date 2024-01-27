@@ -23,7 +23,7 @@ echo "Starting on:     $(date)"
 echo "SLURM_JOB_ID:    ${SLURM_JOB_ID}"
 
 # Set a directory for temporary files unique to the job with automatic removal at job termination
-TMPDIR=$(mktemp -d "/itet-stor/kpius/net_scratch/si_bees/log/XXXXXXXX")
+TMPDIR=$(mktemp -d "/itet-stor/kpius/net_scratch/XXXXXXXX")
 #TMPDIR=$(mktemp -d)
 if [[ ! -d ${TMPDIR} ]]; then
 echo 'Failed to create temp directory' >&2
