@@ -39,9 +39,9 @@ if __name__ == '__main__':
     print(args)
     use_cuda = args.enable_gpu and torch.cuda.is_available()
     storage_dir = "/Users/sega/Code/si_bees/log" if args.local else "/itet-stor/kpius/net_scratch/si_bees/log"
-    os.environ["WANDB_DIR"] = storage_dir
-    os.environ["WANDB_CACHE_DIR"] = storage_dir
-    os.environ["WANDB_CONFIG_DIR"] = storage_dir
+    #os.environ["WANDB_DIR"] = storage_dir
+    #os.environ["WANDB_CACHE_DIR"] = storage_dir
+    #os.environ["WANDB_CONFIG_DIR"] = storage_dir
 
     if args.local:
         print(f"-> using autoscale")
