@@ -1,6 +1,9 @@
+import os
+os.environ["WANDB__SERVICE_WAIT"] = "600"
+os.environ["_WANDB_STARTUP_DEBUG"] = True
+
 import argparse
 import logging
-import os
 import ray
 from ray import air, tune
 from ray.train import CheckpointConfig
