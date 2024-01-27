@@ -127,7 +127,8 @@ if __name__ == '__main__':
                             project="si_marl",
                             group=run_name,
                             api_key_file=".wandb_key",
-                            log_config=True)] if not args.local else []
+                            log_config=True,
+                            dir="/Users/sega/Code/si_bees/log" if args.local else "/itet-stor/kpius/net_scratch/si_bees/log")] if not args.local else []
     )
 
     # tune config
