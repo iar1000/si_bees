@@ -21,8 +21,8 @@ from stopper import MaxTimestepsStopper, RewardComboStopper, RewardMinStopper
 # surpress excessive logging
 #wandb_logger = logging.getLogger("wandb")
 #wandb_logger.setLevel(logging.WARNING)
-#wandbactor_logger = logging.getLogger("_WandbLoggingActor")
-#wandbactor_logger.setLevel(logging.WARNING)
+wandbactor_logger = logging.getLogger("_WandbLoggingActor")
+wandbactor_logger.setLevel(logging.DEBUG)
 
 # script
 if __name__ == '__main__':
@@ -38,8 +38,10 @@ if __name__ == '__main__':
     print("-> start tune with following parameters")
     print(args)
     use_cuda = args.enable_gpu and torch.cuda.is_available()
-    os.environ["WANDB_DIR"] = "/Users/sega/Code/si_bees/log" if args.local else "/itet-stor/kpius/net_scratch/si_bees/log"
-    print(os.environ["WANDB_DIR"])
+    storage_dir = "/Users/sega/Code/si_bees/log" if args.local else "/itet-stor/kpius/net_scratch/si_bees/log"
+    os.environ["WANDB_DIR"] = storage_dir
+    os.environ["WANDB_CACHE_DIR"] = storage_dir
+    os.environ["WANDB_CONFIG_DIR"] = storage_dir
 
     if args.local:
         print(f"-> using autoscale")
@@ -115,8 +117,8 @@ if __name__ == '__main__':
     # run and checkpoint config
     run_config = air.RunConfig(
         name=run_name,
-        storage_path="/Users/sega/Code/si_bees/log" if args.local else "/itet-stor/kpius/net_scratch/si_bees/log",
-        local_dir="/Users/sega/Code/si_bees/log" if args.local else "/itet-stor/kpius/net_scratch/si_bees/log",
+        storage_path=storage_dir,
+        local_dir=storage_dir,
         stop=CombinedStopper(
             MaxTimestepsStopper(max_timesteps=5000000),
         ),        
@@ -129,8 +131,7 @@ if __name__ == '__main__':
                             project="si_marl",
                             group=run_name,
                             api_key_file=".wandb_key",
-                            log_config=True,
-                            dir="/Users/sega/Code/si_bees/log" if args.local else "/itet-stor/kpius/net_scratch/si_bees/log")] if not args.local else []
+                            log_config=True)] if not args.local else []
     )
 
     # tune config
