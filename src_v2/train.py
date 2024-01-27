@@ -1,6 +1,6 @@
 import os
 os.environ["WANDB__SERVICE_WAIT"] = "600"
-os.environ["_WANDB_STARTUP_DEBUG"] = True
+os.environ["_WANDB_STARTUP_DEBUG"] = "true"
 
 import argparse
 import logging
