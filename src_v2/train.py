@@ -1,4 +1,5 @@
 import os
+import time
 os.environ["WANDB__SERVICE_WAIT"] = "600"
 
 import argparse
@@ -55,6 +56,8 @@ if __name__ == '__main__':
     else:
         print(f"-> using {int(args.num_ray_threads)} cpus")
         ray.init(num_cpus=int(args.num_ray_threads))
+        time.sleep(180)
+        ray.available_resources()
 
     tune.register_env("Simple_env", lambda env_config: Simple_env(env_config))
     
