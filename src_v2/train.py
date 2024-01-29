@@ -56,8 +56,9 @@ if __name__ == '__main__':
     else:
         print(f"-> using {int(args.num_ray_threads)} cpus")
         ray.init(num_cpus=int(args.num_ray_threads))
-        time.sleep(180)
-        ray.available_resources()
+        
+    time.sleep(30)
+    print(f"-> available ressources: {ray.available_resources()}")
 
     tune.register_env("Simple_env", lambda env_config: Simple_env(env_config))
     
