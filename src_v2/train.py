@@ -46,6 +46,15 @@ if __name__ == '__main__':
     #os.environ["WANDB_CACHE_DIR"] = storage_dir
     #os.environ["WANDB_CONFIG_DIR"] = storage_dir
 
+    def check_envs():
+        print("scan..")
+        for ev in os.environ:
+            if "KMP" in ev:
+                print(ev, os.environ[ev])
+            if "OMP" in ev:
+                print(ev, os.environ[ev])    
+        print(".. finished scan")
+
     if args.local:
         print(f"-> using autoscale")
         ray.init()
@@ -59,6 +68,7 @@ if __name__ == '__main__':
         
     time.sleep(30)
     print(f"-> available ressources: {ray.available_resources()}")
+    check_envs()
 
     tune.register_env("Simple_env", lambda env_config: Simple_env(env_config))
     
