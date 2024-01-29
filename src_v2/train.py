@@ -112,7 +112,7 @@ if __name__ == '__main__':
     else:
         ppo_config.rollouts(num_rollout_workers=0)
         ppo_config.resources(
-            num_cpus_for_local_worker=2,
+            num_cpus_for_local_worker=10,
             placement_strategy="PACK")
 
     # run and checkpoint config
