@@ -36,6 +36,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='script to setup hyperparameter tuning')
     parser.add_argument('--local',              action='store_true', help='execution location (default: False)')
     parser.add_argument('--num_ray_threads',    default=36, help='default processes for ray to use')
+    parser.add_argument('--num_cpu_for_local',  default=1, help='num cpus for local worker')
     parser.add_argument('--enable_gpu',         action='store_true', help='enable use of gpu')
     parser.add_argument('--env_config',         default=None, help="path to env config")
     parser.add_argument('--actor_config',       default=None, help="path to actor config")
@@ -46,18 +47,6 @@ if __name__ == '__main__':
     print(args)
     use_cuda = args.enable_gpu and torch.cuda.is_available()
     storage_dir = "/Users/sega/Code/si_bees/log" if args.local else "/itet-stor/kpius/net_scratch/si_bees/log"
-    #os.environ["WANDB_DIR"] = storage_dir
-    #os.environ["WANDB_CACHE_DIR"] = storage_dir
-    #os.environ["WANDB_CONFIG_DIR"] = storage_dir
-
-    def check_envs():
-        print("scan..")
-        for ev in os.environ:
-            if "KMP" in ev:
-                print(ev, os.environ[ev])
-            if "OMP" in ev:
-                print(ev, os.environ[ev])    
-        print(".. finished scan")
 
     if args.local:
         print(f"-> using autoscale")
@@ -69,10 +58,6 @@ if __name__ == '__main__':
     else:
         print(f"-> using {int(args.num_ray_threads)} cpus")
         ray.init(num_cpus=int(args.num_ray_threads))
-        
-    time.sleep(30)
-    print(f"-> available ressources: {ray.available_resources()}")
-    check_envs()
 
     tune.register_env("Simple_env", lambda env_config: Simple_env(env_config))
     
@@ -128,11 +113,10 @@ if __name__ == '__main__':
                 #num_cpus_per_worker=1,
                 placement_strategy="PACK")
     else:
-        pass
-        # ppo_config.rollouts(num_rollout_workers=0)
-        # ppo_config.resources(
-        #     num_cpus_for_local_worker=10,
-        #     placement_strategy="PACK")
+        ppo_config.rollouts(num_rollout_workers=0)
+        ppo_config.resources(
+                num_cpus_for_local_worker=int(args.num_cpu_for_local),
+                placement_strategy="PACK")
 
     # run and checkpoint config
     run_config = air.RunConfig(

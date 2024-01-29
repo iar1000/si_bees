@@ -50,6 +50,7 @@ ENV_CONFIG=""
 ACTOR_CONFIG=""
 CRITIC_CONFIG=""
 NUM_RAY_THREADS=36
+NUM_CPU_LOCAL_WORKER=1
 FLAGS=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -89,6 +90,15 @@ while [[ $# -gt 0 ]]; do
         exit 1
       fi
       ;;
+    --num_cpu_for_local)
+      if [[ -n $2 ]]; then
+        NUM_CPU_LOCAL_WORKER=$2
+        shift 2
+      else
+        echo "Error: Missing value for -num_cpu_for_local flag."
+        exit 1
+      fi
+      ;;
     --enable_gpu)
       FLAGS="$FLAGS --enable_gpu"
       shift 1  # No value needed, just shift by 1
@@ -104,11 +114,12 @@ echo "    ENV_CONFIG      = $ENV_CONFIG"
 echo "    ACTOR_CONFIG    = $ACTOR_CONFIG"
 echo "    CRITIC_CONFIG   = $CRITIC_CONFIG"
 echo "    NUM_RAY_THREADS = $NUM_RAY_THREADS"
+echo "    NUM_CPU_LOCAL_WORKER = $NUM_CPU_LOCAL_WORKER"
 echo "    FLAGS           = $FLAGS"
 
 # Binary or script to execute
 echo "-> run train.py from directory $(pwd)"
-python /itet-stor/kpius/net_scratch/si_bees/src_v2/train.py --env_config $ENV_CONFIG --actor_config $ACTOR_CONFIG --critic_config $CRITIC_CONFIG --num_ray_threads $NUM_RAY_THREADS $FLAGS
+python /itet-stor/kpius/net_scratch/si_bees/src_v2/train.py --env_config $ENV_CONFIG --actor_config $ACTOR_CONFIG --critic_config $CRITIC_CONFIG --num_ray_threads $NUM_RAY_THREADS $FLAGS --num_cpu_for_local $NUM_CPU_LOCAL_WORKER
 
 # Send more noteworthy information to the output log
 echo "Finished at:     $(date)"
