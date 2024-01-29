@@ -1,7 +1,10 @@
 import os
-import time
 os.environ["WANDB__SERVICE_WAIT"] = "600"
+os.sched_setaffinity(0, range(os.cpu_count())) 
+print(f"-> cpu count: ", os.cpu_count())
+print(f"-> cpu affinity: ", os.sched_getaffinity(0))
 
+import time
 import argparse
 import logging
 import ray
@@ -26,6 +29,7 @@ from stopper import MaxTimestepsStopper, RewardComboStopper, RewardMinStopper
 #wandb_logger.setLevel(logging.WARNING)
 wandbactor_logger = logging.getLogger("_WandbLoggingActor")
 wandbactor_logger.setLevel(logging.DEBUG)
+
 
 # script
 if __name__ == '__main__':
