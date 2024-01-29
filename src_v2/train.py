@@ -110,9 +110,8 @@ if __name__ == '__main__':
                 #num_cpus_per_worker=1,
                 placement_strategy="PACK")
     else:
-        ppo_config.rollouts(num_rollout_workers=8)
+        ppo_config.rollouts(num_rollout_workers=0)
         ppo_config.resources(
-            num_cpus_per_worker=1,
             num_cpus_for_local_worker=2,
             placement_strategy="PACK")
 
