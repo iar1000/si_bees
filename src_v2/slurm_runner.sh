@@ -1,7 +1,6 @@
 #!/bin/bash
 
 #SBATCH --cpus-per-task=36
-#SBATCH --gres=gpu:0
 #SBATCH --mail-type END
 #SBATCH --time=2-00:00:00
 
@@ -50,7 +49,7 @@ ENV_CONFIG=""
 ACTOR_CONFIG=""
 CRITIC_CONFIG=""
 NUM_RAY_THREADS=36
-NUM_CPU_LOCAL_WORKER=1
+NUM_CPU_LOCAL_WORKER=2 
 FLAGS=""
 while [[ $# -gt 0 ]]; do
   case "$1" in

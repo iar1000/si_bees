@@ -53,6 +53,7 @@ if __name__ == '__main__':
         ray.init()
         #ray.init(num_cpus=1, local_mode=True)
     elif use_cuda:
+        # @todo: investigate gpu utilisation
         print(f"-> using {int(args.num_ray_threads)} cpus and a gpu ({os.environ['CUDA_VISIBLE_DEVICES']})")
         ray.init(num_cpus=int(args.num_ray_threads), num_gpus=1)
     else:
@@ -102,7 +103,7 @@ if __name__ == '__main__':
     ppo_config.callbacks(SimpleCallback)
     ppo_config.reporting(keep_per_episode_custom_metrics=True)
 
-    # @todo
+    # @todo: investigate gpu utilisation
     if use_cuda:
         ppo_config.rollouts(num_rollout_workers=0)
         ppo_config.resources(
