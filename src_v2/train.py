@@ -4,7 +4,6 @@ os.sched_setaffinity(0, range(os.cpu_count()))
 print(f"-> cpu count: ", os.cpu_count())
 print(f"-> cpu affinity: ", os.sched_getaffinity(0))
 
-import time
 import argparse
 import logging
 import ray
@@ -22,13 +21,13 @@ from callback import SimpleCallback
 from environment import Simple_env
 from pyg import GNN_PyG
 from utils import create_tunable_config, filter_tunables, read_yaml_config
-from stopper import MaxTimestepsStopper, RewardComboStopper, RewardMinStopper
+from stopper import MaxTimestepsStopper
 
 # surpress excessive logging
 #wandb_logger = logging.getLogger("wandb")
 #wandb_logger.setLevel(logging.WARNING)
-wandbactor_logger = logging.getLogger("_WandbLoggingActor")
-wandbactor_logger.setLevel(logging.DEBUG)
+# wandbactor_logger = logging.getLogger("_WandbLoggingActor")
+# wandbactor_logger.setLevel(logging.DEBUG)
 
 
 # script
@@ -36,7 +35,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='script to setup hyperparameter tuning')
     parser.add_argument('--local',              action='store_true', help='execution location (default: False)')
     parser.add_argument('--num_ray_threads',    default=36, help='default processes for ray to use')
-    parser.add_argument('--num_cpu_for_local',  default=1, help='num cpus for local worker')
+    parser.add_argument('--num_cpu_for_local',  default=2, help='num cpus for local worker')
     parser.add_argument('--enable_gpu',         action='store_true', help='enable use of gpu')
     parser.add_argument('--env_config',         default=None, help="path to env config")
     parser.add_argument('--actor_config',       default=None, help="path to actor config")
@@ -71,7 +70,11 @@ if __name__ == '__main__':
     pyg_config["actor_config"] = filter_tunables(create_tunable_config(actor_config))
     pyg_config["critic_config"] = create_tunable_config(critic_config)
     pyg_config["use_cuda"] = use_cuda
-    pyg_config["info"] = ""
+    pyg_config["info"] = {
+        "env_config": args.env_config,
+        "actor_config": args.actor_config,
+        "critic_config": args.critic_config
+    }
     model = {"custom_model": GNN_PyG,
              "custom_model_config": pyg_config}
     
@@ -91,7 +94,7 @@ if __name__ == '__main__':
             use_critic=True,
             use_gae=True,
             lambda_=tune.uniform(0.9, 1),
-            kl_coeff=tune.choice([0.0, 0.2, 0.4]),
+            kl_coeff=tune.choice([0.0, 0.2]),
             kl_target=tune.uniform(0.003, 0.03),
             vf_loss_coeff=tune.uniform(0.5, 1),
             clip_param=tune.choice([0.1, 0.2, 0.3]),
@@ -101,7 +104,7 @@ if __name__ == '__main__':
             _enable_learner_api=False)
     ppo_config.rl_module(_enable_rl_module_api=False)
     ppo_config.callbacks(SimpleCallback)
-    ppo_config.reporting(keep_per_episode_custom_metrics=True)
+    #ppo_config.reporting(keep_per_episode_custom_metrics=True)
 
     # @todo: investigate gpu utilisation
     if use_cuda:
@@ -125,10 +128,10 @@ if __name__ == '__main__':
         storage_path=storage_dir,
         local_dir=storage_dir,
         stop=CombinedStopper(
-            MaxTimestepsStopper(max_timesteps=5000000),
+            MaxTimestepsStopper(max_timesteps=1500000),
         ),        
         checkpoint_config=CheckpointConfig(
-            checkpoint_score_attribute="episode_reward_mean",
+            checkpoint_score_attribute="episode_reward_min",
             num_to_keep=1,
             checkpoint_frequency=10,
             checkpoint_at_end=True),
@@ -147,7 +150,7 @@ if __name__ == '__main__':
                 metric='episode_reward_mean',
                 mode='max',
                 grace_period=35000,
-                max_t=5000000,
+                max_t=1500000,
                 reduction_factor=2)
         )
 

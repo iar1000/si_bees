@@ -150,12 +150,6 @@ class GNN_PyG(TorchModelV2, Module):
             actor_graphs.append(Data(x=x, edge_index=actor_edge_index, edge_attr=actor_edge_attr))
             fc_graphs.append(Data(x=x, edge_index=fc_edge_index, edge_attr=fc_edge_attr))
 
-        print(x.device)
-        print(actor_edge_index.device)
-        print(actor_edge_attr.device)
-        print(fc_edge_index.device)
-        print(fc_edge_attr.device)
-
         actor_dataloader = DataLoader(dataset=actor_graphs, batch_size=batch_size)
         critic_dataloader = DataLoader(dataset=fc_graphs, batch_size=batch_size)
         actor_batch = next(iter(actor_dataloader))
