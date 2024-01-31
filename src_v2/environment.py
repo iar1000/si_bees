@@ -12,8 +12,10 @@ class Simple_env(TaskSettableEnv):
         super().__init__()
         
         # handling configs for curriculum
-        self.task_level = initial_task_level
         self.curriculum_configs = [config[task] for task in config]
+        self.max_task_level = len(self.curriculum_configs) - 1
+        
+        self.task_level = initial_task_level
         self.curr_config = self.curriculum_configs[self.task_level]
 
         self.model = Simple_model(config=self.curr_config)
@@ -23,6 +25,9 @@ class Simple_env(TaskSettableEnv):
         print("\n=== env ===")
         print(f"size action_space   = {flatdim(self.action_space)}")
         print(f"size obs_space      = {flatdim(self.observation_space)}")
+        print(f"num_tasks           = {len(self.curriculum_configs)}")
+        print(f"initial_task        = {self.task_level}")
+        print()
 
     def reset(self, *, seed=None, options=None):
         super().reset(seed=seed)
@@ -40,4 +45,5 @@ class Simple_env(TaskSettableEnv):
 
     def set_task(self, task: int):
         """set next curriculum task"""
-        self.task_level = min(len(self.curriculum_configs) - 1, task)
+        self.task_level = min(self.max_task_level, task)
+        self.curr_config = self.curriculum_configs[self.task_level]

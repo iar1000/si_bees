@@ -1,5 +1,6 @@
 import os
 import platform
+
 if platform.system() == "Darwin":
     pass
 else:
@@ -26,6 +27,7 @@ from environment import Simple_env
 from pyg import GNN_PyG
 from utils import create_tunable_config, filter_tunables, read_yaml_config
 from stopper import MaxTimestepsStopper
+from curriculum import curriculum_oracle_switch
 
 # surpress excessive logging
 #wandb_logger = logging.getLogger("wandb")
@@ -52,9 +54,9 @@ if __name__ == '__main__':
     storage_dir = "/Users/sega/Code/si_bees/log" if args.local else "/itet-stor/kpius/net_scratch/si_bees/log"
 
     if args.local:
-        print(f"-> using autoscale")
-        ray.init()
-        #ray.init(num_cpus=1, local_mode=True)
+        print(f"-> using local")
+        #ray.init()
+        ray.init(num_cpus=1, local_mode=True)
     elif use_cuda:
         # @todo: investigate gpu utilisation
         print(f"-> using {int(args.num_ray_threads)} cpus and a gpu ({os.environ['CUDA_VISIBLE_DEVICES']})")
@@ -87,7 +89,8 @@ if __name__ == '__main__':
     ppo_config.environment(
             env="Simple_env",
             env_config=env_config,
-            disable_env_checking=True)
+            disable_env_checking=True,
+            env_task_fn=curriculum_oracle_switch)
     # default values: https://github.com/ray-project/ray/blob/e6ae08f41674d2ac1423f3c2a4f8d8bd3500379a/rllib/agents/ppo/ppo.py
     ppo_config.training(
             model=model,
