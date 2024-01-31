@@ -26,7 +26,7 @@ class SimpleCallback(DefaultCallbacks):
         episode.custom_metrics["reward_lower_bound"] = model.reward_lower_bound
         episode.custom_metrics["reward_upper_bound"] = model.reward_upper_bound
         episode.custom_metrics["n_state_switches"] = model.n_state_switches
-        episode.custom_metrics["reward_percentile"] = (model.reward_total - model.reward_lower_bound) / (model.reward_upper_bound - model.reward_lower_bound)
+        episode.custom_metrics["reward_percentile"] = (model.reward_total - model.reward_lower_bound) / (model.reward_upper_bound - model.reward_lower_bound) if model.reward_upper_bound - model.reward_lower_bound != 0 else 0
 
     def on_train_result(
         self,
