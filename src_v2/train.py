@@ -91,7 +91,7 @@ if __name__ == '__main__':
     # default values: https://github.com/ray-project/ray/blob/e6ae08f41674d2ac1423f3c2a4f8d8bd3500379a/rllib/agents/ppo/ppo.py
     ppo_config.training(
             model=model,
-            train_batch_size=tune.choice([256, 512, 2048]),
+            train_batch_size=tune.choice([512, 2048]),
             shuffle_sequences=True,
             lr=tune.uniform(5e-6, 0.003),
             gamma=0.99,
