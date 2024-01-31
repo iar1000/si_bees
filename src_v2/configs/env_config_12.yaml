@@ -1,0 +1,14 @@
+task_0:
+    model:
+      n_workers: 1
+      worker_placement: "line_unidirectional"
+      n_oracle_states: 2
+      p_oracle_change: 0.3
+      n_hidden_state: 4
+      communication_range: 2
+      reward_calculation: "individual"
+      min_steps_per_convergence: 8
+      max_steps_per_convergence: 20
+      max_steps: 50
+      grid_width: 21
+      grid_height: 21

@@ -28,11 +28,13 @@ class Simple_model(mesa.Model):
                  policy_net: Algorithm = None, inference_mode: bool = False) -> None:
         super().__init__()
         
-        self.min_steps = config["model"]["min_steps"]
+        self.min_steps_per_convergence = config["model"]["min_steps_per_convergence"]
+        self.max_steps_per_convergence = config["model"]["max_steps_per_convergence"]
         self.max_steps = config["model"]["max_steps"]
         self.n_workers = config["model"]["n_workers"]
         self.n_agents = self.n_workers + 1
         self.n_oracle_states = config["model"]["n_oracle_states"]
+        self.p_oracle_change = config["model"]["p_oracle_change"]
         self.n_hidden_states = config["model"]["n_hidden_state"]
         self.communication_range = config["model"]["communication_range"]
         self.reward_calculation = config["model"]["reward_calculation"]
@@ -42,7 +44,6 @@ class Simple_model(mesa.Model):
         self.grid = mesa.space.MultiGrid(config["model"]["grid_width"], config["model"]["grid_height"], False)
         self.schedule = mesa.time.BaseScheduler(self)
         self.current_id = 0
-        self.curr_step = 0
 
         # initialisation outputs of agents
         oracle_state = random.randint(0, self.n_oracle_states-1)
@@ -65,7 +66,10 @@ class Simple_model(mesa.Model):
             self.schedule.add(worker)
 
         # tracking attributes
-        self.ts_to_convergence = -1
+        self.curr_ts = 0
+        self.n_oracle_switches = 1
+        self.curr_ts_curr_state = 0
+        self.ts_to_convergence = list()
 
         # inference mode
         self.inference_mode = inference_mode
@@ -140,40 +144,57 @@ class Simple_model(mesa.Model):
                 actions = self.get_action_space().sample()
                 print("prick")
         
-        # proceed simulation
+        # advance simulation
         for i, worker in enumerate(self.schedule.agents[1:]):
             assert type(worker) == Worker
             worker.output = actions[i][0]
             worker.hidden_state = actions[i][1]
-        self.curr_step += 1
+        self.curr_ts += 1
+        self.curr_ts_curr_state += 1
         
         # compute reward and state
-        wrongs = sum([1 for a in self.schedule.agents if type(a) is Worker and a.output != self.oracle.state])
-        terminated = wrongs == 0 and self.curr_step >= self.min_steps
-        truncated = self.curr_step >= self.max_steps
-        if wrongs == 0:
-            reward = 10
-        else:
-            if self.reward_calculation == "binary":
-                reward = -10 
-            elif self.reward_calculation == "individual":
-                reward = -wrongs
-            else:
-                print(f"ERROR: unkown reward calculation {self.reward_calculation}")
-                quit()
+        n_wrongs = sum([1 for a in self.schedule.agents if type(a) is Worker and a.output != self.oracle.state])
+        reward = 10 if not n_wrongs else -n_wrongs if self.reward_calculation == "individual" else -10
+        truncated = self.curr_ts >= self.max_steps
+        terminated = True if self.curr_ts_curr_state >= self.max_steps_per_convergence or \
+                        not n_wrongs and self.curr_ts_curr_state >= self.min_steps_per_convergence and self.p_oracle_change <= 0 \
+                        else False
+        
+        # track data
+        if not n_wrongs and not terminated \
+            and len(self.ts_to_convergence) == self.n_oracle_switches - 1:
+            # track timesteps needed for convergence to current state (if not done before)
+            self.ts_to_convergence.append(self.curr_ts_curr_state)
 
-        # track attributes
-        if wrongs == 0 and self.ts_to_convergence < 0:
-            self.ts_to_convergence = self.curr_step
+        
+        # terminate or change to new oracle state
+        old_state = self.oracle.state
+        ts_in_old_state = self.curr_ts_curr_state
+        if not n_wrongs and not terminated \
+            and self.curr_ts_curr_state >= self.min_steps_per_convergence:
+            r = random.random()
+            if r <= self.p_oracle_change:
+                new_state = random.randint(0, self.n_oracle_states-1)
+                while new_state == self.oracle.state:
+                    new_state = random.randint(0, self.n_oracle_states-1)
+                self.oracle.state = new_state
+                self.n_oracle_switches += 1
+                self.curr_ts_curr_state = 0
 
         # print overview
         if self.inference_mode:
-            print(f"step {self.curr_step}")
-            print(f"  oracle_state    = {self.oracle.state}")
-            print(f"  worker_outputs  = {[a.output for a in self.schedule.agents if type(a) is Worker]}")
-            print(f"  reward          = {reward}")
-            print(f"  terminated      = {terminated}")
-            
+            print(f"---- step {self.curr_ts}/{self.max_steps} ----")
+            print(f"  ts_current_state  = {self.min_steps_per_convergence}/{ts_in_old_state}/{self.max_steps_per_convergence}")
+            print(f"  oracle_state      = {old_state}")
+            print(f"  worker_outputs    = {[a.output for a in self.schedule.agents if type(a) is Worker]}")
+            print(f"  converged         = {n_wrongs == 0}")
+            print(f"  reward            = {reward}")
+            print(f"  terminated        = {terminated}")
+            print()
+            print(f"  switch oracle     = {'too early' if ts_in_old_state < self.min_steps_per_convergence else 'no' if old_state == self.oracle.state else {self.oracle.state}}")
+            print(f"  n_oracle_switches = {self.n_oracle_switches}")
+            print(f"  ts_to_convergence = {self.ts_to_convergence}")
+        
 
         return self.get_obs(), reward, terminated, truncated
 
