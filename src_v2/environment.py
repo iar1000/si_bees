@@ -40,4 +40,4 @@ class Simple_env(TaskSettableEnv):
 
     def set_task(self, task: int):
         """set next curriculum task"""
-        self.task_level = min(len(self.configs) - 1, task)
+        self.task_level = min(len(self.curriculum_configs) - 1, task)

@@ -40,8 +40,8 @@ def create_server(model_checkpoint: str, env_config: str, task_level: int):
 
     canvas = CanvasGrid(
         agent_visualisation, 
-        grid_width=task_config["model"]["grid_width"], 
-        grid_height=task_config["model"]["grid_height"], 
+        grid_width=task_config["model"]["grid_size"], 
+        grid_height=task_config["model"]["grid_size"], 
         canvas_width=300,
         canvas_height=300)
     
