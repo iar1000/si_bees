@@ -178,7 +178,7 @@ if __name__ == '__main__':
         if os.path.exists(os.path.join(storage_dir, args.restore, "tuner.pkl")):
             print(f"-> restore {args.restore}")
             tuner = tune.Tuner.restore(
-                args.restore,
+                os.path.join(storage_dir, args.restore),
                 "PPO",
                 resume_unfinished=True,
                 param_space=ppo_config.to_dict()
