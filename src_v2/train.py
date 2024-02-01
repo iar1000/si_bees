@@ -46,6 +46,7 @@ if __name__ == '__main__':
     parser.add_argument('--env_config',         default=None, help="path to env config")
     parser.add_argument('--actor_config',       default=None, help="path to actor config")
     parser.add_argument('--critic_config',      default=None, help="path to critic config")
+    parser.add_argument('--restore',            default=None, help="restore experiment for tune")
     args = parser.parse_args()
 
     print("-> start tune with following parameters")
@@ -161,12 +162,21 @@ if __name__ == '__main__':
                 reduction_factor=2)
         )
 
-    tuner = tune.Tuner(
-        "PPO",
-        run_config=run_config,
-        tune_config=tune_config,
-        param_space=ppo_config.to_dict()
-    )
+    # restore experiments
+    if args.restore:
+        tuner = tune.Tuner.restore(
+            args.restore,
+            "PPO",
+            resume_unfinished=True,
+            param_space=ppo_config.to_dict()
+        )
+    else:
+        tuner = tune.Tuner(
+            "PPO",
+            run_config=run_config,
+            tune_config=tune_config,
+            param_space=ppo_config.to_dict()
+        )
 
     tuner.fit()
 

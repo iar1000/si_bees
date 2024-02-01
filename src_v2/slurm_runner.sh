@@ -46,10 +46,11 @@ cd ${DIRECTORY}
 
 # read in user values
 ENV_CONFIG=""
-ACTOR_CONFIG=""
-CRITIC_CONFIG=""
+ACTOR_CONFIG="model_GINE.yaml"
+CRITIC_CONFIG="model_GATv2.yaml"
 NUM_RAY_THREADS=36
 NUM_CPU_LOCAL_WORKER=2 
+RESTORE_EXPERIMENT_PATH="-"
 FLAGS=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -98,6 +99,16 @@ while [[ $# -gt 0 ]]; do
         exit 1
       fi
       ;;
+    --restore)
+      if [[ -n $2 ]]; then
+        RESTORE_EXPERIMENT_PATH=$2
+        FLAGS="$FLAGS --restore $RESTORE_EXPERIMENT_PATH"
+        shift 2
+      else
+        echo "Error: Missing value for -restore flag."
+        exit 1
+      fi
+      ;;
     --enable_gpu)
       FLAGS="$FLAGS --enable_gpu"
       shift 1  # No value needed, just shift by 1
@@ -109,12 +120,13 @@ while [[ $# -gt 0 ]]; do
 done
 
 echo "-> user parameters:"
-echo "    ENV_CONFIG      = $ENV_CONFIG"
-echo "    ACTOR_CONFIG    = $ACTOR_CONFIG"
-echo "    CRITIC_CONFIG   = $CRITIC_CONFIG"
-echo "    NUM_RAY_THREADS = $NUM_RAY_THREADS"
-echo "    NUM_CPU_LOCAL_WORKER = $NUM_CPU_LOCAL_WORKER"
-echo "    FLAGS           = $FLAGS"
+echo "    ENV_CONFIG              = $ENV_CONFIG"
+echo "    ACTOR_CONFIG            = $ACTOR_CONFIG"
+echo "    CRITIC_CONFIG           = $CRITIC_CONFIG"
+echo "    NUM_RAY_THREADS         = $NUM_RAY_THREADS"
+echo "    NUM_CPU_LOCAL_WORKER    = $NUM_CPU_LOCAL_WORKER"
+echo "    RESTORE_EXPERIMENT_PATH = $RESTORE_EXPERIMENT_PATH"
+echo "    FLAGS                   = $FLAGS"
 
 # Binary or script to execute
 echo "-> run train.py from directory $(pwd)"
