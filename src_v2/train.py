@@ -1,5 +1,6 @@
 import os
 import platform
+import shutil
 
 if platform.system() == "Darwin":
     pass
@@ -53,6 +54,7 @@ if __name__ == '__main__':
     print(args)
     use_cuda = args.enable_gpu and torch.cuda.is_available()
     storage_dir = "/Users/sega/Code/si_bees/log" if args.local else "/itet-stor/kpius/net_scratch/si_bees/log"
+    ray_dir = "~/ray_results"
 
     if args.local:
         print(f"-> using local")
@@ -164,12 +166,20 @@ if __name__ == '__main__':
 
     # restore experiments
     if args.restore:
-        tuner = tune.Tuner.restore(
-            args.restore,
-            "PPO",
-            resume_unfinished=True,
-            param_space=ppo_config.to_dict()
-        )
+        print(f"-> restoring experiment {args.restore}")
+        if os.path.exists(os.path.join(ray_dir, args.restore, "tuner.pkl")):
+            shutil.copy(os.path.join(ray_dir, args.restore, "tuner.pkl"), os.path.join(storage_dir, args.restore, "tuner.pkl"))
+            print("-> copied tuner.pkl from ~/ray")
+
+        if os.path.exists(os.path.join(storage_dir, args.restore, "tuner.pkl")):
+            tuner = tune.Tuner.restore(
+                args.restore,
+                "PPO",
+                resume_unfinished=True,
+                param_space=ppo_config.to_dict()
+            )
+        else:
+            print(f"-> could restore {args.restore}")
     else:
         tuner = tune.Tuner(
             "PPO",
