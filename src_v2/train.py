@@ -1,6 +1,7 @@
 import os
 import platform
 import shutil
+import time
 
 if platform.system() == "Darwin":
     pass
@@ -54,7 +55,7 @@ if __name__ == '__main__':
     print(args)
     use_cuda = args.enable_gpu and torch.cuda.is_available()
     storage_dir = "/Users/sega/Code/si_bees/log" if args.local else "/itet-stor/kpius/net_scratch/si_bees/log"
-    ray_dir = "~/ray_results"
+    ray_dir = os.path.join(os.path.expanduser('~'), "ray_results")
 
     if args.local:
         print(f"-> using local")
@@ -167,11 +168,15 @@ if __name__ == '__main__':
     # restore experiments
     if args.restore:
         print(f"-> restoring experiment {args.restore}")
+        print(f"  tuner.pkl in {ray_dir}: {os.path.exists(os.path.join(ray_dir, args.restore, 'tuner.pkl'))}")
+        print(f"  tuner.pkl in {storage_dir}: {os.path.exists(os.path.join(storage_dir, args.restore, 'tuner.pkl'))}")
         if os.path.exists(os.path.join(ray_dir, args.restore, "tuner.pkl")):
             shutil.copy(os.path.join(ray_dir, args.restore, "tuner.pkl"), os.path.join(storage_dir, args.restore, "tuner.pkl"))
             print("-> copied tuner.pkl from ~/ray")
+            time.sleep(30)
 
         if os.path.exists(os.path.join(storage_dir, args.restore, "tuner.pkl")):
+            print(f"-> restore {args.restore}")
             tuner = tune.Tuner.restore(
                 args.restore,
                 "PPO",
@@ -179,7 +184,7 @@ if __name__ == '__main__':
                 param_space=ppo_config.to_dict()
             )
         else:
-            print(f"-> could restore {args.restore}")
+            print(f"-> could not restore {args.restore}, no tuner.pkl file found")
     else:
         tuner = tune.Tuner(
             "PPO",
