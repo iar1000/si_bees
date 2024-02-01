@@ -1,4 +1,5 @@
 import argparse
+from math import floor
 import os
 import os
 from ray import tune
@@ -17,8 +18,15 @@ class GamestateTextElement(TextElement):
 
     def render(self, model):
         out = [
-            f"terminated   : {0 == -sum([1 for a in model.schedule.agents if type(a) is Worker and a.output != model.oracle.state])}",
-            f"states       : {model.oracle.state} {[a.output for a in model.schedule.agents if type(a) is Worker]}",
+            f"states                = {model.oracle.state} {[a.output for a in model.schedule.agents if type(a) is Worker]}",
+            f"",
+            f"reward_total          = {model.reward_total}",
+            f"reward_lower_bound    = {model.reward_lower_bound}",
+            f"reward_upper_bound    = {model.reward_upper_bound}",
+            f"reward_percentile     = {(model.reward_total - model.reward_lower_bound) / (model.reward_upper_bound - model.reward_lower_bound) if (model.reward_upper_bound - model.reward_lower_bound) != 0 else 0}",
+            f"",
+            f"state_switch_pause    = {model.ts_curr_state}/{model.state_switch_pause}",
+            f"n_state_switches      = {model.n_state_switches}",
         ]
         return "<h3>Status</h3>" + "<br />".join(out)
  
@@ -94,7 +102,7 @@ if __name__ == "__main__":
     print("\n\n")
 
     # launch
-    server = create_server(model_checkpoint=checkpoint_path, env_config=config_path, task_level=args.task_level)
+    server = create_server(model_checkpoint=checkpoint_path, env_config=config_path, task_level=int(args.task_level))
     server.launch(open_browser=True)
 
  

@@ -189,6 +189,7 @@ class Simple_model(mesa.Model):
         reward = self._compute_reward(n_wrongs=n_wrongs)
         truncated = self.ts_episode >= self.episode_length
         terminated = False
+        self.running = not truncated
 
         # terminate or change to new oracle state
         old_state = self.oracle.state
