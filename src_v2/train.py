@@ -142,7 +142,7 @@ if __name__ == '__main__':
             MaxTimestepsStopper(max_timesteps=1500000),
         ),        
         checkpoint_config=CheckpointConfig(
-            checkpoint_score_attribute="episode_reward_min",
+            checkpoint_score_attribute="custom_metrics/reward_score_mean",
             num_to_keep=1,
             checkpoint_frequency=10,
             checkpoint_at_end=True),
@@ -158,7 +158,7 @@ if __name__ == '__main__':
             num_samples=100000,
             scheduler= ASHAScheduler(
                 time_attr='timesteps_total',
-                metric='episode_reward_mean',
+                metric='custom_metrics/reward_score_mean',
                 mode='max',
                 grace_period=35000,
                 max_t=1500000,
