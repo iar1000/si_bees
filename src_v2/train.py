@@ -79,6 +79,7 @@ if __name__ == '__main__':
     pyg_config = dict()
     pyg_config["actor_config"] = filter_tunables(create_tunable_config(actor_config))
     pyg_config["critic_config"] = create_tunable_config(critic_config)
+    pyg_config["encoding_size"] = tune.choice([8, 16, 32])
     pyg_config["use_cuda"] = use_cuda
     pyg_config["info"] = {
         "env_config": args.env_config,
@@ -98,9 +99,9 @@ if __name__ == '__main__':
     # default values: https://github.com/ray-project/ray/blob/e6ae08f41674d2ac1423f3c2a4f8d8bd3500379a/rllib/agents/ppo/ppo.py
     ppo_config.training(
             model=model,
-            train_batch_size=tune.choice([512, 2048]),
+            train_batch_size=500,
             shuffle_sequences=True,
-            lr=tune.uniform(5e-6, 0.003),
+            lr=tune.uniform(0.00003, 0.003),
             gamma=0.99,
             use_critic=True,
             use_gae=True,
@@ -108,7 +109,7 @@ if __name__ == '__main__':
             kl_coeff=tune.choice([0.0, 0.2]),
             kl_target=tune.uniform(0.003, 0.03),
             vf_loss_coeff=tune.uniform(0.5, 1),
-            clip_param=tune.choice([0.1, 0.2, 0.3]),
+            clip_param=0.2,
             entropy_coeff=tune.choice([0.0, 0.01]),
             grad_clip=1,
             grad_clip_by="value",
@@ -139,12 +140,12 @@ if __name__ == '__main__':
         storage_path=storage_dir,
         local_dir=storage_dir,
         stop=CombinedStopper(
-            MaxTimestepsStopper(max_timesteps=1500000),
+            MaxTimestepsStopper(max_timesteps=2500000),
         ),        
         checkpoint_config=CheckpointConfig(
-            checkpoint_score_attribute="custom_metrics/reward_score_mean",
-            num_to_keep=1,
-            checkpoint_frequency=10,
+            #checkpoint_score_attribute="custom_metrics/reward_score_mean",
+            #num_to_keep=1,
+            checkpoint_frequency=100,   # 500 ts per iteration, e.g. every 50'000 ts
             checkpoint_at_end=True),
         callbacks=[WandbLoggerCallback(
                             project="si_marl",
@@ -161,7 +162,7 @@ if __name__ == '__main__':
                 metric='custom_metrics/reward_score_mean',
                 mode='max',
                 grace_period=35000,
-                max_t=1500000,
+                max_t=2500000,
                 reduction_factor=2)
         )
 
