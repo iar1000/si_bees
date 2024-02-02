@@ -32,6 +32,7 @@ class GNN_PyG(TorchModelV2, Module):
         config = model_config["custom_model_config"]
         actor_config = config["actor_config"]
         critic_config = config["critic_config"]
+        self.encoding_size = config["encoding_size"]
         self.critic_is_fc = config["critic_config"]["model"] == "fc"
         self.device = torch.device("cuda:0" if config["use_cuda"] else "cpu")
 
@@ -44,12 +45,12 @@ class GNN_PyG(TorchModelV2, Module):
         self.edge_state_size = flatdim(og_obs_space[1][0])
         self.out_state_size = num_outputs // (self.num_agents - 1)
 
-        self.encoding_size = 8
         self.node_encoder = self.__build_fc(ins=self.node_state_size, outs=self.encoding_size, hiddens=[])
         self.edge_encoder = self.__build_fc(ins=self.edge_state_size, outs=self.encoding_size, hiddens=[])
+        self.decoder = self.__build_fc(ins=self.encoding_size, outs=self.out_state_size, hiddens=[])
         self.actor = self._build_model(config=actor_config, 
                                        ins=self.encoding_size, 
-                                       outs=self.out_state_size, 
+                                       outs=self.encoding_size, 
                                        edge_dim=self.encoding_size, 
                                        add_pooling=False)
         self.critic = self._build_model(config=critic_config, 
@@ -68,6 +69,10 @@ class GNN_PyG(TorchModelV2, Module):
         print(f"critic ({next(self.critic.parameters()).device}): ", self.critic)
         print(f"node encoder ({next(self.node_encoder.parameters()).device}): ", self.node_encoder)
         print(f"edge encoder ({next(self.edge_encoder.parameters()).device}): ", self.edge_encoder)
+        print(f"node state size: ", self.node_state_size)
+        print(f"edge state size: ", self.edge_state_size)
+        print(f"encoding size: ", self.encoding_size)
+        print(f"action size: ", self.out_state_size)
         print(f"device: ", self.device)
         print(f"  cuda_is_available={torch.cuda.is_available()}")
         print(f"  use_cuda={config['use_cuda']}")
@@ -81,7 +86,7 @@ class GNN_PyG(TorchModelV2, Module):
         for curr_layer_size in hiddens:
             layers.append(SlimFC(in_size=prev_layer_size, out_size=curr_layer_size, activation_fn="relu"))           
             prev_layer_size = curr_layer_size
-        layers.append(SlimFC(in_size=prev_layer_size, out_size=outs))
+        layers.append(SlimFC(in_size=prev_layer_size, out_size=outs, activation_fn="relu"))
         return Sequential(*layers)      
 
     def __build_gnn(self, config: dict, ins: int, outs: int, edge_dim: int):
@@ -156,13 +161,15 @@ class GNN_PyG(TorchModelV2, Module):
         critic_batch = next(iter(critic_dataloader))
         assert torch.all(actor_batch.batch.eq(critic_batch.batch))
 
-        actions = self.actor(x=actor_batch.x, edge_index=actor_batch.edge_index, edge_attr=actor_batch.edge_attr, batch=actor_batch.batch)
+        hidden_state = self.actor(x=actor_batch.x, edge_index=actor_batch.edge_index, edge_attr=actor_batch.edge_attr, batch=actor_batch.batch)
+        actions = self.decoder(hidden_state)
+        
         if self.critic_is_fc:
             values = self.critic(obss_flat)
         else:
             values = self.critic(x=critic_batch.x, edge_index=critic_batch.edge_index, edge_attr=critic_batch.edge_attr, batch=critic_batch.batch)
         
-        # node to original graph mapping
+        # which nodes belong to which batch
         curr_batch = 0
         node_to_sample_mapping = [0]
         for i, b in enumerate(actor_batch.batch):
