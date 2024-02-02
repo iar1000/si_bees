@@ -17,17 +17,31 @@ TYPE_ORACLE = 0
 TYPE_PLATFORM = 1
 TYPE_WORKER = 2
 
+MODEL_TYPE_SIMPLE = 0
+MODEL_TYPE_MOVING = 1
+SIMPLE_MODELS = ["env_config_0.yaml",
+                    "env_config_1.yaml",
+                    "env_config_2.yaml",
+                    "env_config_3.yaml",
+                    "env_config_4.yaml",
+                    "env_config_5.yaml",
+                    "env_config_6.yaml"]
+MOVING_MODELS = ["env_config_7.yaml"]
+
 class Simple_model(mesa.Model):
     """
     the oracle outputs a number which the agents need to copy
     the visibility range is limited, so the agents need to communicate the oracle output
+    reward: how many agents have the correct output
     """
 
     def __init__(self, config: dict,
+                 model_type: int = MODEL_TYPE_SIMPLE,
                  use_cuda: bool = False,
                  policy_net: Algorithm = None, inference_mode: bool = False) -> None:
         super().__init__()
         
+        self.model_type = model_type
         # workers
         self.n_workers = config["model"]["n_workers"]
         self.n_hidden_states = config["model"]["n_hidden_state"]
@@ -91,28 +105,17 @@ class Simple_model(mesa.Model):
         self.current_id += 1
         return curr_id
     
-    def _compute_reward(self, n_wrongs: int) -> int:
-        """compute reward and adjust the reward bounds"""
+    def _compute_reward(self) -> [int, int, int, int]:
         assert self.reward_calculation in {"individual", "binary"}
-        REWARD = 10
 
         # compute reward
-        if n_wrongs == 0:
-            reward = REWARD
-        elif self.reward_calculation == "individual":
-            reward = -n_wrongs
-        elif self.reward_calculation == "binary":
-            reward = -REWARD
+        REWARD = 10
+        n_wrongs = sum([1 for a in self.schedule.agents if type(a) is Worker and a.output != self.oracle.state])
+        reward = REWARD if n_wrongs == 0 else -n_wrongs if self.reward_calculation == "individual" else -REWARD
+        upper = REWARD
+        lower = -self.n_workers if self.reward_calculation == "individual" else -REWARD
 
-        # adjust reward bound
-        self.reward_upper_bound += REWARD
-        if self.reward_calculation == "individual":
-            self.reward_lower_bound += -self.n_workers
-        elif self.reward_calculation == "binary":
-            self.reward_lower_bound += -REWARD
-
-        self.reward_total += reward
-        return reward
+        return reward, upper, lower, n_wrongs
     
     def get_action_space(self) -> gymnasium.spaces.Space:
         agent_actions = [
@@ -181,12 +184,22 @@ class Simple_model(mesa.Model):
             assert type(worker) == Worker
             worker.output = actions[i][0]
             worker.hidden_state = actions[i][1]
+            if self.model_type == MODEL_TYPE_MOVING:
+                dx, dy = actions[i][2]
+                dx = -1 if dx <= -0.3 else 1 if dx >= 0.3 else 0
+                dy = -1 if dy <= -0.3 else 1 if dy >= 0.3 else 0
+                x = max(0, min(self.grid_size-1, worker.pos[0] + dx))
+                y = max(0, min(self.grid_size-1, worker.pos[1] + dy))
+                self.grid.move_agent(agent=worker, pos=(x,y))
         self.ts_episode += 1
         self.ts_curr_state += 1
         
         # compute reward and state
-        n_wrongs = sum([1 for a in self.schedule.agents if type(a) is Worker and a.output != self.oracle.state])
-        reward = self._compute_reward(n_wrongs=n_wrongs)
+        reward, dupper, dlower, n_wrongs = self._compute_reward()
+        self.reward_total += reward
+        self.reward_upper_bound += dupper
+        self.reward_lower_bound += dlower
+
         truncated = self.ts_episode >= self.episode_length
         terminated = False
         self.running = not truncated
@@ -225,8 +238,51 @@ class Simple_model(mesa.Model):
             print()
 
         return self.get_obs(), reward, terminated, truncated
-
-
-
     
+
+class Moving_model(Simple_model):
+    """
+    the oracle outputs a number which the agents need to copy
+    the visibility range is limited, so the agents need to communicate the oracle output
+    agents are capable of moving arounud on the field
+    reward: how many agents have the correct output + distance
+    """
+
+    def __init__(self, config: dict,
+                 use_cuda: bool = False,
+                 policy_net: Algorithm = None, inference_mode: bool = False) -> None:
+        super().__init__(config=config,
+                         model_type=MODEL_TYPE_MOVING, 
+                         use_cuda=use_cuda, 
+                         policy_net=policy_net, inference_mode=inference_mode)
+
+    def _compute_reward(self) -> [int, int, int, int]:
+        assert self.reward_calculation in {"distance"}
+
+        # compute reward
+        n_wrongs = sum([1 for a in self.schedule.agents if type(a) is Worker and a.output != self.oracle.state])        
+        reward = 0
+        upper = 0
+        lower = -self.n_workers
+        if n_wrongs == 0:
+            workers = [a for a in self.schedule.agents if type(a) is Worker]
+            for w in workers:
+                dx, dy = get_relative_pos(w.pos, self.oracle.pos)
+                reward += max(abs(dx), abs(dy))
+        else:
+            reward = -n_wrongs
+
+        # upper bound
+        for i in range(self.n_workers):
+            upper += min((i+1) * self.communication_range, self.grid_middle)
+
+        return reward, upper, lower, n_wrongs
+    
+    def get_action_space(self) -> gymnasium.spaces.Space:
+        agent_actions = [
+            Discrete(self.n_oracle_states),                             # output
+            Box(0, 1, shape=(self.n_hidden_states,), dtype=np.float32), # hidden state
+            Box(-1, 1, shape=(2,), dtype=np.float32),                   # movement x,y
+        ]
+        return Tuple([Tuple(agent_actions) for _ in range(self.n_workers)])
 

@@ -7,7 +7,7 @@ from mesa.visualization.ModularVisualization import ModularServer, TextElement
 from mesa.visualization.modules import CanvasGrid
 from ray.rllib.algorithms.ppo import PPO
 
-from model import Simple_model
+from model import MODEL_TYPE_MOVING, MODEL_TYPE_SIMPLE, MOVING_MODELS, SIMPLE_MODELS, Moving_model, Simple_model
 from agents import Oracle, Worker
 from environment import Simple_env
 from utils import read_yaml_config
@@ -39,12 +39,16 @@ def agent_visualisation(agent):
     if type(agent) is Oracle:
         return {"Shape": "rect", "w": 1, "h": 1, "Color": colors[agent.state % 6], "Filled": "true", "Layer": 0}
     
-def create_server(model_checkpoint: str, env_config: str, task_level: int):
+def create_server(model_checkpoint: str, model_type: int, env_config: str, task_level: int):
 
     config = read_yaml_config(env_config)
     curriculum_configs = [config[task] for task in config]
     task_config = curriculum_configs[task_level]
-    tune.register_env("Simple_env", lambda _: Simple_env(config, initial_task_level=task_level))
+    model = Simple_model if model_type == MODEL_TYPE_SIMPLE \
+            else Moving_model if model_type == MODEL_TYPE_MOVING \
+            else None
+
+    tune.register_env("Simple_env", lambda _: Simple_env(config, model_type=model_type, initial_task_level=task_level))
 
     canvas = CanvasGrid(
         agent_visualisation, 
@@ -56,7 +60,7 @@ def create_server(model_checkpoint: str, env_config: str, task_level: int):
     game_state = GamestateTextElement()
 
     server = ModularServer(
-        Simple_model, 
+        model, 
         [canvas, game_state], 
         "swarm intelligence with graph networks", 
         model_params={
@@ -91,18 +95,29 @@ if __name__ == "__main__":
     if args.env_config:
         env_config = args.env_config
 
+    # select correct model
+    model_type = MODEL_TYPE_SIMPLE if env_config in SIMPLE_MODELS \
+            else MODEL_TYPE_MOVING if env_config in MOVING_MODELS \
+            else None
+
     # final paths
-    checkpoint_path = os.path.join(run_dir, checkpoint)
-    config_path = os.path.join(run_dir, env_config)
+    checkpoint_path = os.path.join(run_dir, checkpoint) if run_dir else None
+    config_path = os.path.join(run_dir, env_config) if run_dir \
+        else os.path.join("src_v2", "configs", env_config) if args.env_config \
+            else None
     
     print("\n\n=========== LAUNCH RUN =============")
     print("checkpoint_path  = ", checkpoint_path)
     print("config_path      = ", config_path)
     print("task level       = ", args.task_level)
+    print("model type       = ", model_type)
     print("\n\n")
 
     # launch
-    server = create_server(model_checkpoint=checkpoint_path, env_config=config_path, task_level=int(args.task_level))
+    server = create_server(model_checkpoint=checkpoint_path,
+                           model_type=model_type,
+                           env_config=config_path, 
+                           task_level=int(args.task_level))
     server.launch(open_browser=True)
 
  
