@@ -2,6 +2,7 @@ from math import floor
 import mesa
 import random
 import numpy as np
+import networkx as nx
 from ray.rllib.algorithms import Algorithm
 
 import gymnasium
@@ -141,6 +142,17 @@ class Simple_model(mesa.Model):
 
         return Tuple([agent_states, edge_states])
     
+    def get_graph(self):
+        """compute adjacency graph"""
+        graph = nx.Graph()
+        for i, worker in enumerate(self.schedule.agents):
+            graph.add_node(i)
+        for i, worker in enumerate(self.schedule.agents):
+            neighbors = self.grid.get_neighbors(worker.pos, moore=True, radius=self.communication_range, include_center=True)
+            for n in neighbors:
+                graph.add_edge(i, n.unique_id)
+        return graph
+    
     def get_obs(self) -> dict:
         """ collect and return current obs"""
         agent_states = [None for _ in range(self.n_agents)]
@@ -257,7 +269,7 @@ class Moving_model(Simple_model):
                          policy_net=policy_net, inference_mode=inference_mode)
 
     def _compute_reward(self) -> [int, int, int, int]:
-        assert self.reward_calculation in {"distance"}
+        assert self.reward_calculation in {"distance", "connectivity-spread"}
 
         # compute reward
         n_wrongs = sum([1 for a in self.schedule.agents if type(a) is Worker and a.output != self.oracle.state])        
@@ -265,12 +277,24 @@ class Moving_model(Simple_model):
         upper = 0
         lower = -self.n_workers
         if n_wrongs == 0:
-            workers = [a for a in self.schedule.agents if type(a) is Worker]
-            for w in workers:
-                dx, dy = get_relative_pos(w.pos, self.oracle.pos)
-                reward += max(abs(dx), abs(dy))
+            if self.reward_calculation == "distance":
+                workers = [a for a in self.schedule.agents if type(a) is Worker]
+                for w in workers:
+                    dx, dy = get_relative_pos(w.pos, self.oracle.pos)
+                    reward += max(abs(dx), abs(dy))
+            elif self.reward_calculation == "connectivity-spread":
+                g = self.get_graph()
+                for i, agent in enumerate(self.schedule.agents):
+                    if type(agent) is Worker:
+                        dx, dy = get_relative_pos(agent.pos, self.oracle.pos)
+                        if nx.has_path(g, 0, i):
+                            reward += max(abs(dx), abs(dy))
         else:
             reward = -n_wrongs
+
+        # punish completely disconected components
+        if reward == 0:
+            reward = -1
 
         # upper bound
         for i in range(self.n_workers):
