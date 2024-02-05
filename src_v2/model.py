@@ -27,7 +27,8 @@ SIMPLE_MODELS = ["env_config_0.yaml",
                     "env_config_4.yaml",
                     "env_config_5.yaml",
                     "env_config_6.yaml"]
-MOVING_MODELS = ["env_config_7.yaml"]
+MOVING_MODELS = ["env_config_7.yaml",
+                 "env_config_8.yaml"]
 
 class Simple_model(mesa.Model):
     """
