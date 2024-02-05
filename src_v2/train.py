@@ -190,6 +190,8 @@ if __name__ == '__main__':
                 os.path.join(storage_dir, args.restore),
                 "PPO",
                 resume_unfinished=True,
+                resume_errored=True,
+                restart_errored=True,
                 param_space=ppo_config.to_dict()
             )
         else:
