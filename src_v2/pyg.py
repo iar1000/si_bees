@@ -86,7 +86,7 @@ class GNN_PyG(TorchModelV2, Module):
         for curr_layer_size in hiddens:
             layers.append(SlimFC(in_size=prev_layer_size, out_size=curr_layer_size, activation_fn=activation))           
             prev_layer_size = curr_layer_size
-        layers.append(SlimFC(in_size=prev_layer_size, out_size=outs, activation_fn=activation))
+        layers.append(SlimFC(in_size=prev_layer_size, out_size=outs))
         return Sequential(*layers)      
 
     def __build_gnn(self, config: dict, ins: int, outs: int, edge_dim: int):
