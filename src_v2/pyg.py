@@ -45,9 +45,9 @@ class GNN_PyG(TorchModelV2, Module):
         self.edge_state_size = flatdim(og_obs_space[1][0])
         self.out_state_size = num_outputs // (self.num_agents - 1)
 
-        self.node_encoder = self.__build_fc(ins=self.node_state_size, outs=self.encoding_size, hiddens=[])
-        self.edge_encoder = self.__build_fc(ins=self.edge_state_size, outs=self.encoding_size, hiddens=[])
-        self.decoder = self.__build_fc(ins=self.encoding_size, outs=self.out_state_size, hiddens=[])
+        self.node_encoder = self.__build_fc(ins=self.node_state_size, outs=self.encoding_size, hiddens=[], activation=None)
+        self.edge_encoder = self.__build_fc(ins=self.edge_state_size, outs=self.encoding_size, hiddens=[], activation=None)
+        self.decoder = self.__build_fc(ins=self.encoding_size, outs=self.out_state_size, hiddens=[], activation=None)
         self.actor = self._build_model(config=actor_config, 
                                        ins=self.encoding_size, 
                                        outs=self.encoding_size, 
@@ -79,14 +79,14 @@ class GNN_PyG(TorchModelV2, Module):
 
         
         
-    def __build_fc(self, ins: int, outs: int, hiddens: list):
+    def __build_fc(self, ins: int, outs: int, hiddens: list, activation: str = "relu"):
         """builds a fully connected network with relu activation"""
         layers = list()
         prev_layer_size = ins
         for curr_layer_size in hiddens:
-            layers.append(SlimFC(in_size=prev_layer_size, out_size=curr_layer_size, activation_fn="relu"))           
+            layers.append(SlimFC(in_size=prev_layer_size, out_size=curr_layer_size, activation_fn=activation))           
             prev_layer_size = curr_layer_size
-        layers.append(SlimFC(in_size=prev_layer_size, out_size=outs, activation_fn="relu"))
+        layers.append(SlimFC(in_size=prev_layer_size, out_size=outs, activation_fn=activation))
         return Sequential(*layers)      
 
     def __build_gnn(self, config: dict, ins: int, outs: int, edge_dim: int):
