@@ -33,6 +33,7 @@ class GNN_PyG(TorchModelV2, Module):
         actor_config = config["actor_config"]
         critic_config = config["critic_config"]
         self.encoding_size = config["encoding_size"]
+        self.recurrent = config["recurrent"]
         self.critic_is_fc = config["critic_config"]["model"] == "fc"
         self.device = torch.device("cuda:0" if config["use_cuda"] else "cpu")
 
@@ -47,7 +48,10 @@ class GNN_PyG(TorchModelV2, Module):
 
         self.node_encoder = self.__build_fc(ins=self.node_state_size, outs=self.encoding_size, hiddens=[], activation=None)
         self.edge_encoder = self.__build_fc(ins=self.edge_state_size, outs=self.encoding_size, hiddens=[], activation=None)
-        self.decoder = self.__build_fc(ins=self.encoding_size, outs=self.out_state_size, hiddens=[], activation=None)
+        self.decoder = self.__build_fc(ins=self.encoding_size + self.node_state_size if self.recurrent else self.encoding_size, 
+                                       outs=self.out_state_size, 
+                                       hiddens=[], 
+                                       activation=None)
         self.actor = self._build_model(config=actor_config, 
                                        ins=self.encoding_size, 
                                        outs=self.encoding_size, 
@@ -73,11 +77,11 @@ class GNN_PyG(TorchModelV2, Module):
         print(f"edge state size: ", self.edge_state_size)
         print(f"encoding size: ", self.encoding_size)
         print(f"action size: ", self.out_state_size)
+        print(f"recurrent: ", self.recurrent)
         print(f"device: ", self.device)
         print(f"  cuda_is_available={torch.cuda.is_available()}")
         print(f"  use_cuda={config['use_cuda']}")
 
-        
         
     def __build_fc(self, ins: int, outs: int, hiddens: list, activation: str = "relu"):
         """builds a fully connected network with relu activation"""
@@ -140,29 +144,40 @@ class GNN_PyG(TorchModelV2, Module):
         batch_size = len(obss_flat)
 
         # iterate through the batch
+        actor_graphs_old = list()
         actor_graphs = list()
         fc_graphs = list()
         for i in range(batch_size):
             x, actor_edge_index, actor_edge_attr, fc_edge_index, fc_edge_attr = build_graph_v2(self.num_agents, agent_obss, edge_obss, i) 
 
             # format graph to torch
+            x_old = torch.stack([v for v in x])
             x = torch.stack([self.node_encoder(v) for v in x])
             actor_edge_index = torch.tensor(actor_edge_index, dtype=torch.int64, device=self.device)
             actor_edge_attr = torch.stack([self.edge_encoder(e) for e in actor_edge_attr]) if actor_edge_attr else torch.zeros((0, self.encoding_size), dtype=torch.float32, device=self.device)
             fc_edge_index = torch.tensor(fc_edge_index, dtype=torch.int64, device=self.device)
             fc_edge_attr = torch.stack([self.edge_encoder(e) for e in fc_edge_attr]) if fc_edge_attr else torch.zeros((0, self.encoding_size), dtype=torch.float32, device=self.device)
 
+            actor_graphs_old.append(Data(x=x_old, edge_index=actor_edge_index, edge_attr=actor_edge_attr))
             actor_graphs.append(Data(x=x, edge_index=actor_edge_index, edge_attr=actor_edge_attr))
             fc_graphs.append(Data(x=x, edge_index=fc_edge_index, edge_attr=fc_edge_attr))
+            
 
+        actor_old_dataloader = DataLoader(dataset=actor_graphs_old, batch_size=batch_size)
         actor_dataloader = DataLoader(dataset=actor_graphs, batch_size=batch_size)
         critic_dataloader = DataLoader(dataset=fc_graphs, batch_size=batch_size)
+        actor_old_batch = next(iter(actor_old_dataloader))
         actor_batch = next(iter(actor_dataloader))
         critic_batch = next(iter(critic_dataloader))
+        assert torch.all(actor_batch.batch.eq(actor_old_batch.batch))
         assert torch.all(actor_batch.batch.eq(critic_batch.batch))
 
         hidden_state = self.actor(x=actor_batch.x, edge_index=actor_batch.edge_index, edge_attr=actor_batch.edge_attr, batch=actor_batch.batch)
-        actions = self.decoder(hidden_state)
+
+        if self.recurrent:
+            actions = self.decoder(torch.cat([hidden_state, actor_old_batch.x], dim=1))
+        else:
+            actions = self.decoder(hidden_state)
         
         if self.critic_is_fc:
             values = self.critic(obss_flat)
