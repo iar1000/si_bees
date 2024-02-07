@@ -214,9 +214,6 @@ class Marl_model(mesa.Model):
         if self.inference_mode:
             actions = dict()
             obss = self.get_obss()
-            print("== observations ==")
-            for k, v in obss.items():
-                print(f"step {v[0]} agent {k}: {v[1]}")
 
             # @todo: sample for every agent
             if self.policy_net:
