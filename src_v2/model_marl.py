@@ -80,11 +80,13 @@ class Marl_model(mesa.Model):
 
         # initialisation outputs of agents
         oracle_state = random.randint(0, self.n_oracle_states-1)
-        # @todo agent init random/ uniform
-        r = random.randint(0, self.n_oracle_states-1)
-        while r == oracle_state:
+        if self.worker_init == "uniform":
             r = random.randint(0, self.n_oracle_states-1)
-        worker_output = r
+            while r == oracle_state:
+                r = random.randint(0, self.n_oracle_states-1)
+            worker_output = [r for _ in range(self.n_workers)]
+        else:
+            worker_output = [random.randint(0, self.n_oracle_states-1) for _ in range(self.n_workers)]
 
         # place agents
         self.oracle = Oracle(self._next_id(), self, state=oracle_state)
@@ -94,8 +96,8 @@ class Marl_model(mesa.Model):
         agent_positions = compute_agent_placement(self.n_workers, self.communication_range, 
                                                   self.grid_size, self.grid_size, 
                                                   oracle_pos, self.worker_placement)
-        for curr_pos in agent_positions:
-            worker = Worker(self._next_id(), self, output=worker_output, n_hidden_states=self.n_hidden_states)
+        for i, curr_pos in enumerate(agent_positions):
+            worker = Worker(self._next_id(), self, output=worker_output[i], n_hidden_states=self.n_hidden_states)
             self.grid.place_agent(agent=worker, pos=curr_pos)
             self.schedule_all.add(worker)
             self.schedule_workers.add(worker)
@@ -111,16 +113,18 @@ class Marl_model(mesa.Model):
         return curr_id
     
     def _compute_reward(self) -> [int, int, int, int]:
-        assert self.reward_calculation in {"individual", "binary"}
+        assert self.reward_calculation in {"individual", "per-agent"}
 
         # compute reward
-        REWARD = 10
-        n_wrongs = sum([1 for a in self.schedule_workers.agents if type(a) is Worker and a.output != self.oracle.state])
-        reward = REWARD if n_wrongs == 0 else -n_wrongs if self.reward_calculation == "individual" else -REWARD
-        upper = REWARD
-        lower = -self.n_workers if self.reward_calculation == "individual" else -REWARD
+        n_wrongs = sum([1 for a in self.schedule_workers.agents if a.output != self.oracle.state])
+        if self.reward_calculation == "individual":
+            rewards = [-n_wrongs for _ in self.schedule_workers]
+        elif self.reward_calculation == "per-agent":
+            rewards = [1 if a.output == self.oracle.state else -1 for a in self.schedule_workers]
+        upper = self.n_workers
+        lower = -self.n_workers
 
-        return reward, upper, lower, n_wrongs
+        return rewards, upper, lower, n_wrongs
     
     def get_action_space(self) -> gymnasium.spaces.Space:
         """action space per agent"""
@@ -231,8 +235,8 @@ class Marl_model(mesa.Model):
         self.running = self.ts_episode < self.episode_length
         
         # compute reward and state
-        reward, dupper, dlower, n_wrongs = self._compute_reward()
-        self.reward_total += reward
+        rewards, dupper, dlower, n_wrongs = self._compute_reward()
+        self.reward_total += sum(rewards)
         self.reward_upper_bound += dupper
         self.reward_lower_bound += dlower
 
@@ -240,7 +244,7 @@ class Marl_model(mesa.Model):
         truncateds = {"__all__": self.ts_episode >= self.episode_length}
         terminateds = {"__all__": False}
         for worker in self.schedule_workers.agents:
-            rewardss[worker.unique_id] = reward
+            rewardss[worker.unique_id] = rewards[worker.unique_id - 1]
 
         # terminate or change to new oracle state
         old_state = self.oracle.state
@@ -261,7 +265,7 @@ class Marl_model(mesa.Model):
             print()
             print(f"------------- step {self.ts_episode}/{self.episode_length} ------------")
             print(f"  states             = {old_state} - {[a.output for a in self.schedule_workers]}")
-            print(f"  reward             = {reward}")
+            print(f"  rewards            = {rewards}")
             print(f"  converged          = {n_wrongs == 0}")
             print(f"  truncated          = {self.ts_episode >= self.episode_length}")
             print()
