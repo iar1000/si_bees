@@ -86,7 +86,7 @@ if __name__ == '__main__':
     critic_config = read_yaml_config(os.path.join("src_v2", "configs",args.critic_config))
 
     pyg_config = dict()
-    pyg_config["actor_config"] = filter_tunables(create_tunable_config(actor_config))
+    pyg_config["actor_config"] = create_tunable_config(actor_config)
     pyg_config["critic_config"] = create_tunable_config(critic_config)
     pyg_config["encoding_size"] = tune.choice([8, 16, 32])
     pyg_config["recurrent"] = tune.choice([1, 0])
