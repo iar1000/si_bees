@@ -109,7 +109,7 @@ if __name__ == '__main__':
     ppo_config.training(
             model=model,
             train_batch_size=500,
-            shuffle_sequences=True,
+            shuffle_sequences=False,
             lr=tune.uniform(0.00003, 0.003),
             gamma=0.99,
             use_critic=True,
