@@ -120,7 +120,7 @@ if __name__ == '__main__':
             kl_target=tune.uniform(0.003, 0.03),
             vf_loss_coeff=tune.uniform(0.5, 1),
             clip_param=tune.choice([0.1, 0.2]),
-            entropy_coeff=tune.choice([0.0, 0.01]),
+            entropy_coeff=tune.choice([0.0, 0.01, 0.1]),
             grad_clip=1,
             grad_clip_by="value",
             _enable_learner_api=False)
