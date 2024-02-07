@@ -26,7 +26,8 @@ SIMPLE_MODELS = ["env_config_0.yaml",
                     "env_config_3.yaml",
                     "env_config_4.yaml",
                     "env_config_5.yaml",
-                    "env_config_6.yaml"]
+                    "env_config_6.yaml",
+                    "env_config_9.yaml"]
 MOVING_MODELS = ["env_config_7.yaml",
                  "env_config_8.yaml"]
 
