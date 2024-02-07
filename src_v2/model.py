@@ -78,11 +78,13 @@ class Simple_model(mesa.Model):
 
         # initialisation outputs of agents
         oracle_state = random.randint(0, self.n_oracle_states-1)
-        # @todo agent init random/ uniform
-        r = random.randint(0, self.n_oracle_states-1)
-        while r == oracle_state:
+        if self.worker_init == "uniform":
             r = random.randint(0, self.n_oracle_states-1)
-        worker_output = r
+            while r == oracle_state:
+                r = random.randint(0, self.n_oracle_states-1)
+            worker_output = [r for _ in range(self.n_workers)]
+        else:
+            worker_output = [random.randint(0, self.n_oracle_states-1) for _ in range(self.n_workers)]
 
         # place agents
         self.oracle = Oracle(self._next_id(), self, state=oracle_state)
@@ -92,8 +94,8 @@ class Simple_model(mesa.Model):
         agent_positions = compute_agent_placement(self.n_workers, self.communication_range, 
                                                   self.grid_size, self.grid_size, 
                                                   oracle_pos, self.worker_placement)
-        for curr_pos in agent_positions:
-            worker = Worker(self._next_id(), self, output=worker_output, n_hidden_states=self.n_hidden_states)
+        for i, curr_pos in enumerate(agent_positions):
+            worker = Worker(self._next_id(), self, output=worker_output[i], n_hidden_states=self.n_hidden_states)
             self.grid.place_agent(agent=worker, pos=curr_pos)
             self.schedule.add(worker)
 
