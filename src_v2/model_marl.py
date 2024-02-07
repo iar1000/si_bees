@@ -120,7 +120,7 @@ class Marl_model(mesa.Model):
         if self.reward_calculation == "individual":
             rewards = [-n_wrongs for _ in self.schedule_workers]
         elif self.reward_calculation == "per-agent":
-            rewards = [1 if a.output == self.oracle.state else -1 for a in self.schedule_workers]
+            rewards = [1 if a.output == self.oracle.state else -1 for a in self.schedule_workers.agents]
         upper = self.n_workers
         lower = -self.n_workers
 
@@ -264,7 +264,7 @@ class Marl_model(mesa.Model):
         if self.inference_mode:
             print()
             print(f"------------- step {self.ts_episode}/{self.episode_length} ------------")
-            print(f"  states             = {old_state} - {[a.output for a in self.schedule_workers]}")
+            print(f"  states             = {old_state} - {[a.output for a in self.schedule_workers.agents]}")
             print(f"  rewards            = {rewards}")
             print(f"  converged          = {n_wrongs == 0}")
             print(f"  truncated          = {self.ts_episode >= self.episode_length}")

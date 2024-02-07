@@ -20,7 +20,7 @@ class GamestateTextElement(TextElement):
 
     def render(self, model):
         out = [
-            f"states                = {model.oracle.state} {[a.output for a in model.schedule.agents if type(a) is Worker]}",
+            f"states                = {model.oracle.state} {[a.output for a in model.schedule_workers.agents]}",
             f"",
             f"reward_total          = {model.reward_total}",
             f"reward_lower_bound    = {model.reward_lower_bound}",
