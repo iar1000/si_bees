@@ -105,6 +105,16 @@ def build_graph_v2(num_agents: int, agent_obss: Tuple, edge_obss: Tuple, batch_i
 
     return x, [actor_froms, actor_tos], actor_edge_attr, [fc_froms, fc_tos], fc_edge_attr
 
+def get_active_agents(agent_obss: Tuple) -> int:
+    """determine which agent has active flag. depends on the obs space"""
+    mapping = {}
+    for j in range(len(agent_obss)):
+        curr_agent_obs = torch.cat(agent_obss[j], dim=1)
+        for i in range(len(curr_agent_obs)):
+            if curr_agent_obs[i][1] == 1:
+                mapping[i] = j
+    return mapping
+
 def compute_agent_placement(num_workers: int, communication_range: int,
                             grid_w: int, grid_h: int, 
                             oracle_pos: tuple, placement_strategy: str):
