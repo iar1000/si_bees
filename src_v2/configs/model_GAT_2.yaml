@@ -1,0 +1,6 @@
+
+model: GATConv
+rounds:
+  min: 6
+  max: 8
+dropout: 0
