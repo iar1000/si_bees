@@ -118,7 +118,7 @@ class Marl_model(mesa.Model):
         # compute reward
         n_wrongs = sum([1 for a in self.schedule_workers.agents if a.output != self.oracle.state])
         if self.reward_calculation == "individual":
-            rewards = [-n_wrongs for _ in self.schedule_workers]
+            rewards = [-n_wrongs for _ in self.schedule_workers.agents]
         elif self.reward_calculation == "per-agent":
             rewards = [1 if a.output == self.oracle.state else -1 for a in self.schedule_workers.agents]
         upper = self.n_workers
