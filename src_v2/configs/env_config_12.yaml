@@ -5,7 +5,7 @@ task_0:
       communication_range: 2
       worker_placement: "line_multidirectional"
       worker_init: "random"
-      reward_calculation: "per-agent"
+      reward_calculation: "individual"
       n_oracle_states: 5
       p_oracle_change: 0
       episode_length: 20
@@ -17,7 +17,7 @@ task_1:
       communication_range: 2
       worker_placement: "random_multidirectional"
       worker_init: "random"
-      reward_calculation: "per-agent"
+      reward_calculation: "individual"
       n_oracle_states: 5
       p_oracle_change: 0
       episode_length: 20
@@ -29,7 +29,7 @@ task_2:
       communication_range: 2
       worker_placement: "random_multidirectional"
       worker_init: "random"
-      reward_calculation: "per-agent"
+      reward_calculation: "individual"
       n_oracle_states: 5
       p_oracle_change: 0.3
       episode_length: 50
