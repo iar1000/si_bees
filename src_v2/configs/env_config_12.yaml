@@ -32,5 +32,5 @@ task_2:
       reward_calculation: "individual"
       n_oracle_states: 5
       p_oracle_change: 0.3
-      episode_length: 16
+      episode_length: 64
       grid_size: 21
