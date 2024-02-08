@@ -219,7 +219,8 @@ class Marl_model(mesa.Model):
 
             # @todo: sample for every agent
             if self.policy_net:
-                actions = self.policy_net.compute_single_action(obss)
+                for worker in self.schedule_workers.agents:
+                    actions[worker.unique_id] = self.policy_net.compute_single_action(obss[worker.unique_id])
             else:
                 for worker in self.schedule_workers.agents:
                     actions[worker.unique_id] = self.get_action_space().sample()

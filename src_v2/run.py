@@ -88,6 +88,7 @@ if __name__ == "__main__":
             options = [cp for cp in cps if args.checkpoint_nr in cp]
             options.sort()
             checkpoint = options[0]
+            print(f"found checkpoint {checkpoint}")
         else:
             cps.sort()
             checkpoint = cps[-1]
