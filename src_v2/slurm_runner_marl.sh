@@ -23,14 +23,15 @@ echo "Starting on:     $(date)"
 echo "SLURM_JOB_ID:    ${SLURM_JOB_ID}"
 
 # Set a directory for temporary files unique to the job with automatic removal at job termination
-TMP_DIR=$(mktemp -d "/itet-stor/kpius/net_scratch/tmp/XXXXXXXX")
+mkdir -p ${PROJECT_DIR}/tmp
+TMP_DIR=$(mktemp -d "$PROJECT_DIR/tmp/XXXXXXXX")
 if [[ ! -d ${TMP_DIR} ]]; then
 echo 'Failed to create temp directory' >&2
 exit 1
 fi
 trap "exit 1" HUP INT TERM
 trap 'rm -rf "${TMP_DIR}"' EXIT
-export TMP_DIR
+export $TMP_DIR
 
 # Change the current directory to the location where you want to store temporary files, exit if changing didn't succeed.
 # Adapt this to your personal preference
