@@ -21,15 +21,11 @@ TYPE_WORKER = 2
 
 MODEL_TYPE_SIMPLE = 0
 MODEL_TYPE_MOVING = 1
-SIMPLE_MODELS = ["env_config_0.yaml",
-                    "env_config_1.yaml",
-                    "env_config_2.yaml",
-                    "env_config_3.yaml",
-                    "env_config_4.yaml",
-                    "env_config_5.yaml",
-                    "env_config_6.yaml"]
-MOVING_MODELS = ["env_config_7.yaml",
-                 "env_config_8.yaml"]
+SIMPLE_MODELS = ["env_config_10.yaml",
+                    "env_config_11.yaml",
+                    "env_config_12.yaml",
+                ]
+MOVING_MODELS = []
 
 class Marl_model(mesa.Model):
     """
@@ -118,7 +114,7 @@ class Marl_model(mesa.Model):
         # compute reward
         n_wrongs = sum([1 for a in self.schedule_workers.agents if a.output != self.oracle.state])
         if self.reward_calculation == "individual":
-            rewards = [-n_wrongs if n_wrongs else self.n_workers for _ in self.n_workers]
+            rewards = [-n_wrongs if n_wrongs else self.n_workers for _ in range(self.n_workers)]
             upper = self.n_workers * self.n_workers
             lower = -self.n_workers * self.n_workers
         elif self.reward_calculation == "per-agent":
