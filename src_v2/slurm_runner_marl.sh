@@ -6,6 +6,7 @@
 
 ETH_USERNAME=kpius
 PROJECT_NAME=si_bees
+SRC_DIR="src_v2"
 PROJECT_DIR=/itet-stor/${ETH_USERNAME}/net_scratch/${PROJECT_NAME}
 TMP_DIR=/itet-stor/${ETH_USERNAME}/net_scratch
 CONDA_BIN=/itet-stor/${ETH_USERNAME}/net_scratch/conda/bin/conda
@@ -36,8 +37,8 @@ export TMP_DIR
 echo "-> create temporary run directory ${RUN_DIR}"
 
 # copy all code into the tmp directory
-cp -r $PROJECT_DIR $RUN_DIR
-echo "-> copy repo to ${RUN_DIR}"
+echo "-> copy src to ${RUN_DIR}"
+cp -r "$PROJECT_DIR/$SRC_DIR" "$RUN_DIR/$SRC_DIR"
 
 # activate conda
 [[ -f $CONDA_BIN ]] && eval "$($CONDA_BIN shell.bash hook)"
@@ -131,7 +132,7 @@ echo "    FLAGS                   = $FLAGS"
 
 # Binary or script to execute
 echo "-> run train.py from directory $(pwd)"
-python $RUN_DIR/src_v2/train_marl.py --env_config $ENV_CONFIG --actor_config $ACTOR_CONFIG --critic_config $CRITIC_CONFIG --num_ray_threads $NUM_RAY_THREADS $FLAGS --num_cpu_for_local $NUM_CPU_LOCAL_WORKER
+python $RUN_DIR/$SRC_DIR/train_marl.py --env_config $ENV_CONFIG --actor_config $ACTOR_CONFIG --critic_config $CRITIC_CONFIG --num_ray_threads $NUM_RAY_THREADS $FLAGS --num_cpu_for_local $NUM_CPU_LOCAL_WORKER
 
 # Send more noteworthy information to the output log
 echo "Finished at:     $(date)"
