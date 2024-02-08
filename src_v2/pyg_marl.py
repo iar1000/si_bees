@@ -175,7 +175,7 @@ class GNN_PyG(TorchModelV2, Module):
             x, actor_edge_index, actor_edge_attr, fc_edge_index, fc_edge_attr = build_graph_v2(self.num_agents, agent_obss, edge_obss, i) 
 
             # format graph to torch and apply encoding
-            x_old = torch.stack([v for v in x])
+            x_old = torch.clone(torch.stack([v for v in x]))
             x = torch.stack([self.node_encoder(v) for v in x])
             actor_edge_index = torch.tensor(actor_edge_index, dtype=torch.int64, device=self.device)
             actor_edge_attr = torch.stack([self.edge_encoder(e) for e in actor_edge_attr]) if actor_edge_attr else torch.zeros((0, self.encoding_size), dtype=torch.float32, device=self.device)
