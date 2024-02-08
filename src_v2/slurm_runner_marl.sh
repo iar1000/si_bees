@@ -32,15 +32,11 @@ fi
 trap "exit 1" HUP INT TERM
 trap 'rm -rf "${TMP_DIR}"' EXIT
 export TMP_DIR
-
-# Change the current directory to the location where you want to store temporary files, exit if changing didn't succeed.
-# Adapt this to your personal preference
-cd "${TMP_DIR}" || exit 1
-echo ""
-echo "-> create and set tmp directory ${TMP_DIR}"
+echo "-> create tmp directory ${TMP_DIR}"
 
 # copy all code into the tmp directory
-cp -r $PROJECT_DIR .
+cp -r $PROJECT_DIR $TMP_DIR
+echo "-> copy repo to ${TMP_DIR}"
 
 # activate conda
 [[ -f $CONDA_BIN ]] && eval "$($CONDA_BIN shell.bash hook)"
