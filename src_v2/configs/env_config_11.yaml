@@ -8,7 +8,7 @@ task_0:
       reward_calculation: "per-agent"
       n_oracle_states: 5
       p_oracle_change: 0
-      episode_length: 20
+      episode_length: 16
       grid_size: 21
 task_1:    
     model:
@@ -20,7 +20,7 @@ task_1:
       reward_calculation: "per-agent"
       n_oracle_states: 5
       p_oracle_change: 0
-      episode_length: 20
+      episode_length: 16
       grid_size: 21
 task_2:    
     model:
@@ -32,5 +32,5 @@ task_2:
       reward_calculation: "per-agent"
       n_oracle_states: 5
       p_oracle_change: 0.3
-      episode_length: 50
+      episode_length: 16
       grid_size: 21
