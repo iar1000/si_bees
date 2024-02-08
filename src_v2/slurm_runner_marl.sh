@@ -6,9 +6,10 @@
 
 ETH_USERNAME=kpius
 PROJECT_NAME=si_bees
-DIRECTORY=/itet-stor/${ETH_USERNAME}/net_scratch/${PROJECT_NAME}
+PROJECT_DIR=/itet-stor/${ETH_USERNAME}/net_scratch/${PROJECT_NAME}
+CONDA_BIN=/itet-stor/${ETH_USERNAME}/net_scratch/conda/bin/conda
 CONDA_ENVIRONMENT=swarm
-mkdir -p ${DIRECTORY}/jobs
+mkdir -p ${PROJECT_DIR}/jobs
 
 # Exit on errors
 set -o errexit
@@ -22,27 +23,29 @@ echo "Starting on:     $(date)"
 echo "SLURM_JOB_ID:    ${SLURM_JOB_ID}"
 
 # Set a directory for temporary files unique to the job with automatic removal at job termination
-#TMPDIR=$(mktemp -d "/itet-stor/kpius/net_scratch/XXXXXXXX")
-TMPDIR=$(mktemp -d)
-if [[ ! -d ${TMPDIR} ]]; then
+TMP_DIR=$(mktemp -d "/itet-stor/kpius/net_scratch/tmp/XXXXXXXX")
+if [[ ! -d ${TMP_DIR} ]]; then
 echo 'Failed to create temp directory' >&2
 exit 1
 fi
 trap "exit 1" HUP INT TERM
-trap 'rm -rf "${TMPDIR}"' EXIT
-export TMPDIR
+trap 'rm -rf "${TMP_DIR}"' EXIT
+export TMP_DIR
 
 # Change the current directory to the location where you want to store temporary files, exit if changing didn't succeed.
 # Adapt this to your personal preference
-cd "${TMPDIR}" || exit 1
+cd "${TMP_DIR}" || exit 1
 echo ""
-echo "-> create and set tmp directory ${TMPDIR}"
+echo "-> create and set tmp directory ${TMP_DIR}"
+
+# copy all code into the tmp directory
+cp $PROJECT_DIR .
 
 # activate conda
-[[ -f /itet-stor/${ETH_USERNAME}/net_scratch/conda/bin/conda ]] && eval "$(/itet-stor/${ETH_USERNAME}/net_scratch/conda/bin/conda shell.bash hook)"
+[[ -f $CONDA_BIN ]] && eval "$($CONDA_BIN shell.bash hook)"
 conda activate ${CONDA_ENVIRONMENT}
 echo "-> conda_env ${CONDA_ENVIRONMENT} activated"
-cd ${DIRECTORY}
+cd ${PROJECT_DIR}
 
 # read in user values
 ENV_CONFIG=""
