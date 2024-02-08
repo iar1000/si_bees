@@ -7,6 +7,7 @@
 ETH_USERNAME=kpius
 PROJECT_NAME=si_bees
 PROJECT_DIR=/itet-stor/${ETH_USERNAME}/net_scratch/${PROJECT_NAME}
+TMP_DIR=/itet-stor/${ETH_USERNAME}/net_scratch
 CONDA_BIN=/itet-stor/${ETH_USERNAME}/net_scratch/conda/bin/conda
 CONDA_ENVIRONMENT=swarm
 mkdir -p ${PROJECT_DIR}/jobs
@@ -23,8 +24,8 @@ echo "Starting on:     $(date)"
 echo "SLURM_JOB_ID:    ${SLURM_JOB_ID}"
 
 # Set a directory for temporary files unique to the job with automatic removal at job termination
-mkdir -p ${PROJECT_DIR}/tmp
-TMP_DIR=$(mktemp -d "$PROJECT_DIR/tmp/XXXXXXXX")
+mkdir -p ${TMP_DIR}/tmp
+RUN_DIR=$(mktemp -d "$TMP_DIR/tmp/XXXXXXXX")
 if [[ ! -d ${TMP_DIR} ]]; then
 echo 'Failed to create temp directory' >&2
 exit 1
@@ -32,11 +33,11 @@ fi
 trap "exit 1" HUP INT TERM
 trap 'rm -rf "${TMP_DIR}"' EXIT
 export TMP_DIR
-echo "-> create tmp directory ${TMP_DIR}"
+echo "-> create temporary run directory ${RUN_DIR}"
 
 # copy all code into the tmp directory
-cp -r $PROJECT_DIR $TMP_DIR
-echo "-> copy repo to ${TMP_DIR}"
+cp -r $PROJECT_DIR $RUN_DIR
+echo "-> copy repo to ${RUN_DIR}"
 
 # activate conda
 [[ -f $CONDA_BIN ]] && eval "$($CONDA_BIN shell.bash hook)"
@@ -130,7 +131,7 @@ echo "    FLAGS                   = $FLAGS"
 
 # Binary or script to execute
 echo "-> run train.py from directory $(pwd)"
-python /itet-stor/kpius/net_scratch/si_bees/src_v2/train_marl.py --env_config $ENV_CONFIG --actor_config $ACTOR_CONFIG --critic_config $CRITIC_CONFIG --num_ray_threads $NUM_RAY_THREADS $FLAGS --num_cpu_for_local $NUM_CPU_LOCAL_WORKER
+python $RUN_DIR/src_v2/train_marl.py --env_config $ENV_CONFIG --actor_config $ACTOR_CONFIG --critic_config $CRITIC_CONFIG --num_ray_threads $NUM_RAY_THREADS $FLAGS --num_cpu_for_local $NUM_CPU_LOCAL_WORKER
 
 # Send more noteworthy information to the output log
 echo "Finished at:     $(date)"
