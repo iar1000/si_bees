@@ -80,7 +80,7 @@ if __name__ == '__main__':
 
     tune.register_env("Marl_env", lambda env_config: Marl_env(env_config, model_type=model_type))
     
-    run_name = f"marl-env-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    run_name = f"marl-env-{datetime.now().strftime('%Y%m-%d-%H-%M%S')}"
     env_config = read_yaml_config(os.path.join("src_v2", "configs", args.env_config))
     actor_config = read_yaml_config(os.path.join("src_v2", "configs", args.actor_config))
     critic_config = read_yaml_config(os.path.join("src_v2", "configs",args.critic_config))
@@ -126,7 +126,7 @@ if __name__ == '__main__':
             _enable_learner_api=False)
     ppo_config.rl_module(_enable_rl_module_api=False)
     ppo_config.callbacks(SimpleCallback)
-    ppo_config.multi_agent(count_steps_by="env_steps")
+    ppo_config.multi_agent(count_steps_by="agent_steps")
     #ppo_config.reporting(keep_per_episode_custom_metrics=True)
 
     # @todo: investigate gpu utilisation
