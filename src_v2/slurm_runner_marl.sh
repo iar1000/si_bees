@@ -40,7 +40,7 @@ echo ""
 echo "-> create and set tmp directory ${TMP_DIR}"
 
 # copy all code into the tmp directory
-cp $PROJECT_DIR .
+cp -r $PROJECT_DIR .
 
 # activate conda
 [[ -f $CONDA_BIN ]] && eval "$($CONDA_BIN shell.bash hook)"
