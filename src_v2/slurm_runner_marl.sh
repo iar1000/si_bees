@@ -31,7 +31,7 @@ exit 1
 fi
 trap "exit 1" HUP INT TERM
 trap 'rm -rf "${TMP_DIR}"' EXIT
-export $TMP_DIR
+export TMP_DIR
 
 # Change the current directory to the location where you want to store temporary files, exit if changing didn't succeed.
 # Adapt this to your personal preference
