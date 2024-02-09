@@ -138,7 +138,7 @@ if __name__ == '__main__':
             batch_mode="complete_episodes")
         ppo_config.resources(
                 num_gpus=1.0 / int(args.num_gpu_shares),
-                custom_resources_per_worker=tune.PlacementGroupFactory([{"gpu": 1, "cpu": 2}, {"cpu": 1}]),
+                custom_resources_per_worker={"GPU": 0, "CPU": 1},
                 
                 # num_learner_workers=0,
                 # num_gpus_per_learner_worker=1,
