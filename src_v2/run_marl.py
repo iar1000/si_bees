@@ -1,5 +1,4 @@
 import argparse
-from math import floor
 import os
 import os
 from ray import tune
@@ -8,7 +7,7 @@ from mesa.visualization.modules import CanvasGrid
 from ray.rllib.algorithms.ppo import PPO
 
 from agents_marl import Oracle, Worker
-from model_marl import RELATIVE_STATE_MODELS, SIMPLE_MODELS, Marl_model, Relstate_Model
+from model_marl import get_model_by_config
 from environment_marl import Marl_env
 from utils import read_yaml_config
 
@@ -44,8 +43,7 @@ def create_server(model_checkpoint: str, env_config_path: str, env_config: str, 
     config = read_yaml_config(env_config_path)
     curriculum_configs = [config[task] for task in config]
     task_config = curriculum_configs[task_level]
-    model = Marl_model if env_config in SIMPLE_MODELS else \
-        Relstate_Model if env_config in RELATIVE_STATE_MODELS else None
+    model = get_model_by_config(env_config)
 
     tune.register_env("Marl_env", lambda _: Marl_env(config=config, env_config_file=env_config, initial_task_level=task_level))
 
