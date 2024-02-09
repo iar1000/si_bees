@@ -30,6 +30,7 @@ class Marl_env(TaskSettableEnv, MultiAgentEnv):
         print(f"size obs_space      = {flatdim(self.observation_space)}")
         print(f"num_tasks           = {len(self.curriculum_configs)}")
         print(f"initial_task        = {self.task_level}")
+        print(f"model typ           = {self.env_config_file in SIMPLE_MODELS} / {self.env_config_file in RELATIVE_STATE_MODELS}")
         print()
 
     def reset(self, *, seed=None, options=None):
