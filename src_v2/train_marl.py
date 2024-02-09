@@ -53,7 +53,6 @@ if __name__ == '__main__':
     parser.add_argument('--env_config',         default=None, help="path to env config")
     parser.add_argument('--actor_config',       default=None, help="path to actor config")
     parser.add_argument('--critic_config',      default=None, help="path to critic config")
-    parser.add_argument('--model_type',         default=0, help="choose which model to train, see model.py for mapping")
     parser.add_argument('--restore',            default=None, help="restore experiment for tune")
     args = parser.parse_args()
 
@@ -75,12 +74,7 @@ if __name__ == '__main__':
         print(f"-> using {int(args.num_ray_threads)} cpus")
         ray.init(num_cpus=int(args.num_ray_threads))
 
-    # select correct model
-    model_type = MODEL_TYPE_SIMPLE if args.env_config in SIMPLE_MODELS \
-            else MODEL_TYPE_MOVING if args.env_config in MOVING_MODELS \
-            else None
-
-    tune.register_env("Marl_env", lambda env_config: Marl_env(env_config, model_type=model_type))
+    tune.register_env("Marl_env", lambda env_config: Marl_env(config=env_config, env_config_file=args.env_config))
     
     run_name = f"marl-env-{datetime.now().strftime('%Y%m-%d-%H-%M%S')}"
     env_config = read_yaml_config(os.path.join("src_v2", "configs", args.env_config))

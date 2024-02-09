@@ -8,24 +8,25 @@ from ray.rllib.algorithms import Algorithm
 import gymnasium
 from gymnasium.spaces import Box, Tuple, Discrete
 import torch
-from agents import Oracle, Worker
+from agents_marl import BaseAgent, Oracle, Worker
 
 from utils import compute_agent_placement, get_relative_pos
 
-MAX_DISTANCE = 100
+MAX_DISTANCE = 5000
 GRAPH_HASH = 1000000
 
 TYPE_ORACLE = 0
 TYPE_PLATFORM = 1
 TYPE_WORKER = 2
 
-MODEL_TYPE_SIMPLE = 0
-MODEL_TYPE_MOVING = 1
-SIMPLE_MODELS = ["env_config_10.yaml",
-                    "env_config_11.yaml",
-                    "env_config_12.yaml",
-                ]
-MOVING_MODELS = []
+SIMPLE_MODELS = [
+    "env_config_10.yaml",
+    "env_config_11.yaml",
+    "env_config_12.yaml",
+]
+RELATIVE_STATE_MODELS = [
+    "env_config_13.yaml",
+]
 
 class Marl_model(mesa.Model):
     """
@@ -35,12 +36,10 @@ class Marl_model(mesa.Model):
     """
 
     def __init__(self, config: dict,
-                 model_type: int = MODEL_TYPE_SIMPLE,
                  use_cuda: bool = False,
                  policy_net: Algorithm = None, inference_mode: bool = False) -> None:
         super().__init__()
-        
-        self.model_type = model_type
+
         # workers
         self.n_workers = config["model"]["n_workers"]
         self.n_hidden_states = config["model"]["n_hidden_state"]
@@ -75,17 +74,20 @@ class Marl_model(mesa.Model):
         self.current_id = 0
 
         # initialisation outputs of agents
-        oracle_state = random.randint(0, self.n_oracle_states-1)
+        oracle_output = random.randint(0, self.n_oracle_states-1)
         if self.worker_init == "uniform":
             r = random.randint(0, self.n_oracle_states-1)
-            while r == oracle_state:
+            while r == oracle_output:
                 r = random.randint(0, self.n_oracle_states-1)
             worker_output = [r for _ in range(self.n_workers)]
         else:
             worker_output = [random.randint(0, self.n_oracle_states-1) for _ in range(self.n_workers)]
 
         # place agents
-        self.oracle = Oracle(self._next_id(), self, state=oracle_state)
+        self.oracle = Oracle(unique_id=self._next_id(), 
+                             model=self, 
+                             output=oracle_output,
+                             n_hidden_states=self.n_hidden_states)
         oracle_pos = (self.grid_middle, self.grid_middle)
         self.grid.place_agent(agent=self.oracle, pos=oracle_pos)
         self.schedule_all.add(self.oracle)
@@ -93,7 +95,10 @@ class Marl_model(mesa.Model):
                                                   self.grid_size, self.grid_size, 
                                                   oracle_pos, self.worker_placement)
         for i, curr_pos in enumerate(agent_positions):
-            worker = Worker(self._next_id(), self, output=worker_output[i], n_hidden_states=self.n_hidden_states)
+            worker = Worker(unique_id=self._next_id(), 
+                            model=self, 
+                            output=worker_output[i], 
+                            n_hidden_states=self.n_hidden_states)
             self.grid.place_agent(agent=worker, pos=curr_pos)
             self.schedule_all.add(worker)
             self.schedule_workers.add(worker)
@@ -108,17 +113,17 @@ class Marl_model(mesa.Model):
         self.current_id += 1
         return curr_id
     
-    def _compute_reward(self) -> [int, int, int, int]:
+    def _compute_reward(self):
         assert self.reward_calculation in {"individual", "per-agent"}
 
         # compute reward
-        n_wrongs = sum([1 for a in self.schedule_workers.agents if a.output != self.oracle.state])
+        n_wrongs = sum([1 for a in self.schedule_workers.agents if a.output != self.oracle.output])
         if self.reward_calculation == "individual":
             rewards = [-n_wrongs if n_wrongs else self.n_workers for _ in range(self.n_workers)]
             upper = self.n_workers * self.n_workers
             lower = -self.n_workers * self.n_workers
         elif self.reward_calculation == "per-agent":
-            rewards = [1 if a.output == self.oracle.state else -1 for a in self.schedule_workers.agents]
+            rewards = [1 if a.output == self.oracle.output else -1 for a in self.schedule_workers.agents]
             upper = self.n_workers
             lower = -self.n_workers
 
@@ -134,34 +139,34 @@ class Marl_model(mesa.Model):
     def get_obs_space(self) -> gymnasium.spaces.Space:
         """ obs space consisting of all agent states + adjacents matrix with edge attributes """
         graph_state = Box(0, GRAPH_HASH, shape=(1,), dtype=np.float32) # current step hash
-        agent_state = [
+        agent_states = Tuple([self._get_agent_state_space() for _ in range(self.n_agents)])
+        edge_states = Tuple([self._get_edge_state_space() for _ in range(self.n_agents * self.n_agents)])
+        return Tuple([graph_state, agent_states, edge_states])
+    
+    def _get_edge_state_space(self) -> gymnasium.spaces.Space:
+        return Tuple([
+            Discrete(2), # exists flag
+            Box(-MAX_DISTANCE, MAX_DISTANCE, shape=(2,), dtype=np.float32), # relative position to the given node
+        ])
+    
+    def _get_edge_state(self, from_agent: BaseAgent, to_agent: BaseAgent, visible_edge: int):
+        return tuple([visible_edge, np.array(get_relative_pos(from_agent.pos, to_agent.pos))])
+    
+    def _get_agent_state_space(self) -> gymnasium.spaces.Space:
+        return Tuple([
             Discrete(2),                                                # active flag
             Discrete(3),                                                # agent type
             Discrete(self.n_oracle_states),                             # current output
             Box(0, 1, shape=(self.n_hidden_states,), dtype=np.float32), # hidden state
-        ]
-        agent_states = Tuple([Tuple(agent_state) for _ in range(self.n_agents)])
+        ])
 
-        edge_state = [
-            Discrete(2), # exists flag
-            Box(-MAX_DISTANCE, MAX_DISTANCE, shape=(2,), dtype=np.float32), # relative position to the given node
-        ]
-        edge_states = Tuple([Tuple(edge_state) for _ in range(self.n_agents * self.n_agents)])
-
-        return Tuple([graph_state, agent_states, edge_states])
-    
-    def get_graph(self):
-        """compute adjacency graph"""
-        graph = nx.Graph()
-        for worker in self.schedule_all.agents:
-            graph.add_node(worker.unique_id)
-
-        for worker in self.schedule_all.agents:
-            neighbors = self.grid.get_neighbors(worker.pos, moore=True, radius=self.communication_range, include_center=True)
-            for n in neighbors:
-                graph.add_edge(worker.unique_id, n.unique_id)
-        return graph
-    
+    def _get_agent_state(self, agent: BaseAgent, activity_status: int):
+        """compute agent state"""
+        return tuple([activity_status,
+                        TYPE_ORACLE if type(agent) is Oracle else TYPE_WORKER, 
+                        agent.output,
+                        agent.hidden_state])
+        
     def get_obss(self) -> dict:
         """ collect and return current obs"""
         step_hash = np.array([random.randint(0, GRAPH_HASH)])
@@ -169,39 +174,26 @@ class Marl_model(mesa.Model):
         # agent states
         agent_states = [None for _ in range(self.n_agents)]
         for worker in self.schedule_all.agents:
-            if type(worker) is Oracle:
-                agent_states[worker.unique_id] = tuple([0,
-                                         TYPE_ORACLE, 
-                                         worker.state,
-                                         np.zeros(self.n_hidden_states)])
-            if type(worker) is Worker:
-                agent_states[worker.unique_id] = tuple([0,
-                                         TYPE_WORKER, 
-                                         worker.output, 
-                                         worker.hidden_state])
+            agent_states[worker.unique_id] = self._get_agent_state(agent=worker, activity_status=0)
+            
         # edge attributes
         edge_states = [None for _ in range(self.n_agents ** 2)]
         for worker in self.schedule_all.agents:
             # fully connected graph
             for destination in self.schedule_all.agents:
-                rel_pos = get_relative_pos(worker.pos, destination.pos)
-                edge_states[worker.unique_id * self.n_agents + destination.unique_id] = tuple([0, np.array(rel_pos, dtype=np.int32)])
+                edge_states[worker.unique_id * self.n_agents + destination.unique_id] = self._get_edge_state(from_agent=worker, to_agent=destination, visible_edge=0)
 
             # visible graph
             neighbors = self.grid.get_neighbors(worker.pos, moore=True, radius=self.communication_range, include_center=True)
-            for n in neighbors:
-                rel_pos = get_relative_pos(worker.pos, n.pos)
-                edge_states[worker.unique_id * self.n_agents + n.unique_id] = tuple([1, np.array(rel_pos, dtype=np.int32)]) 
+            for destination in neighbors:
+                edge_states[worker.unique_id * self.n_agents + destination.unique_id] = self._get_edge_state(from_agent=worker, to_agent=destination, visible_edge=1)
 
 
         # make obs_space for every agent, changing the live flag
         obss = dict()
         for worker in self.schedule_workers.agents:
             curr_agent_state = agent_states.copy()
-            curr_agent_state[worker.unique_id] = tuple([1,
-                                         TYPE_WORKER, 
-                                         worker.output, 
-                                         worker.hidden_state])
+            curr_agent_state[worker.unique_id] = self._get_agent_state(agent=worker, activity_status=1)
             obss[worker.unique_id] = tuple([step_hash, tuple(curr_agent_state), tuple(edge_states)])
         return obss
 
@@ -243,16 +235,16 @@ class Marl_model(mesa.Model):
             rewardss[worker.unique_id] = rewards[worker.unique_id - 1]
 
         # terminate or change to new oracle state
-        old_state = self.oracle.state
-        ts_old_state = self.ts_curr_state
+        old_output = self.oracle.output
+        ts_old_output = self.ts_curr_state
         if self.p_oracle_change > 0 and self.running and \
-            ts_old_state >= self.state_switch_pause and self.ts_episode + self.state_switch_pause <= self.episode_length:
+            ts_old_output >= self.state_switch_pause and self.ts_episode + self.state_switch_pause <= self.episode_length:
             r = random.random()
             if r <= self.p_oracle_change:
                 new_state = random.randint(0, self.n_oracle_states-1)
-                while new_state == self.oracle.state:
+                while new_state == self.oracle.output:
                     new_state = random.randint(0, self.n_oracle_states-1)
-                self.oracle.state = new_state
+                self.oracle.output = new_state
                 self.n_state_switches += 1
                 self.ts_curr_state = 0
 
@@ -260,13 +252,13 @@ class Marl_model(mesa.Model):
         if self.inference_mode:
             print()
             print(f"------------- step {self.ts_episode}/{self.episode_length} ------------")
-            print(f"  states             = {old_state} - {[a.output for a in self.schedule_workers.agents]}")
+            print(f"  outputs            = {old_output} - {[a.output for a in self.schedule_workers.agents]}")
             print(f"  rewards            = {rewards}")
             print(f"  converged          = {n_wrongs == 0}")
             print(f"  truncated          = {self.ts_episode >= self.episode_length}")
             print()
-            print(f"  next_state         = {'-' if old_state == self.oracle.state else {self.oracle.state}}")
-            print(f"  state_switch_pause = {ts_old_state}/{self.state_switch_pause}")
+            print(f"  next_state         = {'-' if old_output == self.oracle.output else {self.oracle.output}}")
+            print(f"  state_switch_pause = {ts_old_output}/{self.state_switch_pause}")
             print(f"  n_state_switches   = {self.n_state_switches}")
             print()
             print(f"  reward_lower_bound = {self.reward_lower_bound}")
@@ -278,3 +270,23 @@ class Marl_model(mesa.Model):
         return self.get_obss(), rewardss, terminateds, truncateds
 
 
+class Relstate_Model(Marl_model):
+        
+        def _get_agent_state_space(self) -> gymnasium.spaces.Space:
+            return Tuple([
+                Discrete(2),                                                    # active flag
+                Discrete(3),                                                    # agent type
+                Discrete(self.n_oracle_states),                                 # current output
+                Box(0, 1, shape=(self.n_hidden_states,), dtype=np.float32),     # hidden state
+                Box(-MAX_DISTANCE, MAX_DISTANCE, shape=(2,), dtype=np.float32), # relative position to oracle
+            ])
+        
+        def _get_agent_state(self, agent: BaseAgent, activity_status: int):
+            """compute agent state"""
+            return tuple([
+                activity_status,
+                TYPE_ORACLE if type(agent) is Oracle else TYPE_WORKER, 
+                agent.output,
+                agent.hidden_state,
+                np.array(get_relative_pos(agent.pos, self.oracle.pos))
+            ])
