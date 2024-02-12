@@ -238,7 +238,7 @@ class Marl_model(mesa.Model):
             plt.show()
         return graph
     
-    def _print_model_specific(self, obss):
+    def _print_model_specific(self):
         pass
         
 
@@ -307,7 +307,7 @@ class Marl_model(mesa.Model):
             print(f"  reward_upper_bound = {self.reward_upper_bound}")
             print(f"  reward_percentile  = {(self.reward_total - self.reward_lower_bound) / (self.reward_upper_bound - self.reward_lower_bound)}")
             print()
-            self._print_model_specific(obss)
+            self._print_model_specific()
 
         return self.get_obss(), rewardss, terminateds, truncateds
 
@@ -333,18 +333,20 @@ class Relstate_Model(Marl_model):
             np.array(get_relative_pos(agent.pos, self.oracle.pos))
         ])
     
-    def _print_model_specific(self, obss):
+    def _print_model_specific(self):
+        obss = self.get_obss()
         print("  worker relative positions:")
         for agent in self.schedule_all.agents:
-            print(f"    {agent.name}: ", obss[1][1][agent.unique_id][4])
+            print(f"    {agent.name} {agent.pos}: ", obss[1][1][agent.unique_id][4])
         #self.get_graph(save_fig=True)
 
         print("  edges:")
         for worker in self.schedule_all.agents:
             neighbors = self.grid.get_neighbors(worker.pos, moore=True, radius=self.communication_range, include_center=True)
+            neighbors = [n for n in neighbors if n != worker]
             for destination in neighbors:
                 print(f"    edge {worker.unique_id}->{destination.unique_id}: {self._get_edge_state(from_agent=worker, to_agent=destination, visible_edge=1)}")
-
+        print()
         
 class Moving_model(Relstate_Model):
     def get_action_space(self) -> gymnasium.spaces.Space:
