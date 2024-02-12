@@ -28,6 +28,7 @@ class SimpleCallback(DefaultCallbacks):
         episode.custom_metrics["n_state_switches"] = model.n_state_switches
         episode.custom_metrics["reward_percentile"] = (model.reward_total - model.reward_lower_bound) / (model.reward_upper_bound - model.reward_lower_bound) if model.reward_upper_bound - model.reward_lower_bound != 0 else 0
         episode.custom_metrics["reward_score"] = episode.custom_metrics["reward_percentile"] + int(env.get_task())
+        episode.custom_metrics["task_level"] = int(env.get_task())
 
     def on_train_result(
         self,
