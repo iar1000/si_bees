@@ -71,7 +71,8 @@ if __name__ == '__main__':
     tune.register_env("Marl_env", lambda env_config: Marl_env(config=env_config, env_config_file=params["model"]["custom_model_config"]["info"]["env_config"]))
     params["callbacks"] = SimpleCallback
     params["env_task_fn"] = curriculum_oracle_switch
-    params["model"]["custom_model"] = GNN_PyG
+    params["model"]["custom_model_config"] = GNN_PyG
+    params["model"]["custom_model"]["info"]["checkpoint"] = args.cp_path
     params["policy_mapping_fn"] = AlgorithmConfig.DEFAULT_POLICY_MAPPING_FN
     params["sample_collector"] = SimpleListCollector
 
