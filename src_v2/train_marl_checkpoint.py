@@ -43,6 +43,7 @@ if __name__ == '__main__':
     parser.add_argument('--cp_path',            default=None, help='path to checkpoint where params.json file is stored')
     parser.add_argument('--num_ray_threads',    default=36, help='default processes for ray to use')
     parser.add_argument('--num_samples',        default=10, help='num samples to run')
+    parser.add_argument('--num_workers',         default=4, help='num workers to train with')
     parser.add_argument('--enable_gpu',         action='store_true', help='enable use of gpu')
     args = parser.parse_args()
 
@@ -74,10 +75,18 @@ if __name__ == '__main__':
     params["policy_mapping_fn"] = AlgorithmConfig.DEFAULT_POLICY_MAPPING_FN
     params["sample_collector"] = SimpleListCollector
 
-    # override ressources
+    # override variables
     params["num_cpus_for_driver"] = 2
     params["num_workers"] = 0
     params["num_gpus"] = 1 if use_cuda else 0
+    def rec_update(dictionary):
+        for key, value in dictionary.items():
+            if isinstance(value, dict):
+                rec_update(value)
+            elif key == "n_workers":
+                dictionary[key] = int(args.num_workers)
+    rec_update(params)
+
 
     # run and checkpoint config
     run_config = air.RunConfig(

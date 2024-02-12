@@ -50,6 +50,7 @@ cd ${PROJECT_DIR}
 CP_PATH=""
 NUM_RAY_THREADS=36
 NUM_SAMPLES=10 
+NUM_WORKERS=4 
 FLAGS=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -80,6 +81,15 @@ while [[ $# -gt 0 ]]; do
         exit 1
       fi
       ;;
+    --num_workers)
+      if [[ -n $2 ]]; then
+        NUM_WORKERS=$2
+        shift 2
+      else
+        echo "Error: Missing value for -num_workers flag."
+        exit 1
+      fi
+      ;;
     --enable_gpu)
       FLAGS="$FLAGS --enable_gpu"
       shift 1  # No value needed, just shift by 1
@@ -94,11 +104,12 @@ echo "-> user parameters:"
 echo "    CP_PATH                 = $CP_PATH"
 echo "    NUM_RAY_THREADS         = $NUM_RAY_THREADS"
 echo "    NUM_SAMPLES             = $NUM_SAMPLES"
+echo "    NUM_WORKERS             = $NUM_WORKERS"
 echo "    FLAGS                   = $FLAGS"
 
 # Binary or script to execute
 echo "-> run train.py from directory $(pwd)"
-python $RUN_DIR/$SRC_DIR/train_marl_checkpoint.py --cp_path $CP_PATH --num_ray_threads $NUM_RAY_THREADS --num_samples $NUM_SAMPLES $FLAGS
+python $RUN_DIR/$SRC_DIR/train_marl_checkpoint.py --cp_path $CP_PATH --num_ray_threads $NUM_RAY_THREADS --num_samples $NUM_SAMPLES --num_workers $NUM_WORKERS $FLAGS
 
 # Send more noteworthy information to the output log
 echo "Finished at:     $(date)"
