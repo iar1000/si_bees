@@ -109,7 +109,7 @@ if __name__ == '__main__':
     tuner = tune.Tuner(
         "PPO",
         run_config=run_config,
-        tune_config=tune.TuneConfig(num_samples=args.num_samples),
+        tune_config=tune.TuneConfig(num_samples=int(args.num_samples)),
         param_space=params
     )
 
