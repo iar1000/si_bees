@@ -1,4 +1,5 @@
 from math import floor
+from matplotlib import pyplot as plt
 import mesa
 import random
 import numpy as np
@@ -212,16 +213,34 @@ class Marl_model(mesa.Model):
             obss[worker.unique_id] = tuple([step_hash, tuple(curr_agent_state), tuple(edge_states)])
         return obss
 
-    def get_graph(self):
+    def get_graph(self, save_fig=False):
         """compute adjacency graph"""
         graph = nx.Graph()
+        positioning = {}
         for worker in self.schedule_all.agents:
             graph.add_node(worker.unique_id)
+            positioning[worker.unique_id] = np.array(worker.pos)
         for worker in self.schedule_all.agents:
             neighbors = self.grid.get_neighbors(worker.pos, moore=True, radius=self.communication_range, include_center=True)
             for n in neighbors:
                 graph.add_edge(worker.unique_id, n.unique_id)
+
+        if save_fig:
+            graph.remove_edges_from(list(nx.selfloop_edges(graph)))
+            nx.draw_networkx_edges(graph, positioning, 
+                                    arrows=True,
+                                   connectionstyle='arc3, rad = 0.5')
+            nx.draw_networkx_nodes(graph, positioning, 
+                                    node_size=350,
+                                    node_color=['green'] + ['black'] * (self.n_workers))
+            nx.draw_networkx_labels(graph, positioning, 
+                                    font_size=16, font_color="white")
+            plt.show()
         return graph
+    
+    def _print_model_specific(self, obss):
+        pass
+        
 
     def step(self, actions=None) -> None:
         """advance the model one step in inference mode"""        
@@ -288,6 +307,7 @@ class Marl_model(mesa.Model):
             print(f"  reward_upper_bound = {self.reward_upper_bound}")
             print(f"  reward_percentile  = {(self.reward_total - self.reward_lower_bound) / (self.reward_upper_bound - self.reward_lower_bound)}")
             print()
+            self._print_model_specific(obss)
 
         return self.get_obss(), rewardss, terminateds, truncateds
 
@@ -312,6 +332,19 @@ class Relstate_Model(Marl_model):
             agent.hidden_state,
             np.array(get_relative_pos(agent.pos, self.oracle.pos))
         ])
+    
+    def _print_model_specific(self, obss):
+        print("  worker relative positions:")
+        for agent in self.schedule_all.agents:
+            print(f"    {agent.name}: ", obss[1][1][agent.unique_id][4])
+        #self.get_graph(save_fig=True)
+
+        print("  edges:")
+        for worker in self.schedule_all.agents:
+            neighbors = self.grid.get_neighbors(worker.pos, moore=True, radius=self.communication_range, include_center=True)
+            for destination in neighbors:
+                print(f"    edge {worker.unique_id}->{destination.unique_id}: {self._get_edge_state(from_agent=worker, to_agent=destination, visible_edge=1)}")
+
         
 class Moving_model(Relstate_Model):
     def get_action_space(self) -> gymnasium.spaces.Space:

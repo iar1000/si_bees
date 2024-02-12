@@ -111,7 +111,7 @@ class Simple_model(mesa.Model):
         self.current_id += 1
         return curr_id
     
-    def _compute_reward(self) -> [int, int, int, int]:
+    def _compute_reward(self):
         assert self.reward_calculation in {"individual", "binary"}
 
         # compute reward
@@ -273,7 +273,7 @@ class Moving_model(Simple_model):
                          use_cuda=use_cuda, 
                          policy_net=policy_net, inference_mode=inference_mode)
 
-    def _compute_reward(self) -> [int, int, int, int]:
+    def _compute_reward(self):
         assert self.reward_calculation in {"distance", "connectivity-spread"}
 
         # compute reward
