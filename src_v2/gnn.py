@@ -6,6 +6,7 @@ from torch import Tensor
 from torch.nn import Parameter
 
 from torch_geometric.nn.conv import MessagePassing
+from torch_geometric.nn.conv.gatv2_conv import GATv2Conv
 from torch_geometric.nn.dense.linear import Linear
 from torch_geometric.nn.inits import glorot, zeros
 from torch_geometric.typing import (
@@ -130,8 +131,34 @@ class GATv2EConv_old(MessagePassing):
         return x_t * alpha.unsqueeze(-1)
     
 
-class GATv2EConv(MessagePassing):
-    pass
+class GATv2EConv(GATv2Conv):
+    def __init__(
+        self,
+        in_channels: Union[int, Tuple[int, int]],
+        out_channels: int,
+        heads: int = 1,
+        concat: bool = True,
+        negative_slope: float = 0.2,
+        dropout: float = 0.0,
+        add_self_loops: bool = True,
+        edge_dim: Optional[int] = None,
+        fill_value: Union[float, Tensor, str] = 'mean',
+        bias: bool = True,
+        share_weights: bool = False,
+        **kwargs,
+    ):
+        super().__init__(in_channels,
+                            out_channels,
+                            heads,
+                            concat,
+                            negative_slope,
+                            dropout,
+                            add_self_loops,
+                            edge_dim,
+                            fill_value,
+                            bias,
+                            share_weights,
+                            **kwargs,)
 
 class GATv2EConv_GAT(MessagePassing):
     _alpha: OptTensor
