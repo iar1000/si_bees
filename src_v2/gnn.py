@@ -131,6 +131,9 @@ class GATv2EConv_old(MessagePassing):
     
 
 class GATv2EConv(MessagePassing):
+    pass
+
+class GATv2EConv_GAT(MessagePassing):
     _alpha: OptTensor
 
     def __init__(
