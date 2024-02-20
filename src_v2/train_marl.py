@@ -84,7 +84,7 @@ if __name__ == '__main__':
     encoding_config = read_yaml_config(os.path.join("src_v2", "configs", args.encoding_config))
 
     pyg_config = dict()
-    pyg_config["actor_config"] = filter_tunables(create_tunable_config(actor_config))
+    pyg_config["actor_config"] = create_tunable_config(actor_config)
     pyg_config["critic_config"] = create_tunable_config(critic_config)
     pyg_config["encoding_config"] = create_tunable_config(encoding_config)
     pyg_config["recurrent_actor"] = tune.choice([1, 0])
