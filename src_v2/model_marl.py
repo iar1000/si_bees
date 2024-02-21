@@ -482,7 +482,7 @@ class Moving_Discrete_model(Marl_model):
             for worker in self.schedule_workers.agents:
                 rewardss[worker.unique_id] = reward
             
-        return rewardss, upper, lower, 0
+        return rewardss, upper * self.n_workers, lower * self.n_workers, 0
 
 class Moving_History_model(Moving_Discrete_model):
 
