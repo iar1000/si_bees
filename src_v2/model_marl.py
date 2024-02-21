@@ -463,6 +463,7 @@ class Moving_Discrete_model(Marl_model):
             reward = 0
             lower = 0
             upper = 0
+            m_wrongs = 0
             for worker in self.schedule_workers.agents:
                 # find neighbours factor
                 neighbors = self.grid.get_neighbors(worker.pos, moore=True, radius=self.communication_range, include_center=True)
@@ -476,13 +477,13 @@ class Moving_Discrete_model(Marl_model):
                     else:
                         reward += 0.5
 
-                    upper += 0.5
-                    lower += -2.5
+                    upper += 0.5 * self.n_workers
+                    lower += -2.5 * self.n_workers
 
             for worker in self.schedule_workers.agents:
                 rewardss[worker.unique_id] = reward
             
-        return rewardss, upper * self.n_workers, lower * self.n_workers, 0
+        return rewardss, upper, lower, n_wrongs
 
 class Moving_History_model(Moving_Discrete_model):
 
