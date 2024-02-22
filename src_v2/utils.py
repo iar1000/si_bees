@@ -141,7 +141,7 @@ def compute_agent_placement(num_workers: int, communication_range: int,
         # x_new = x - grid_size if x > grid_size else x
         # y_new = y - grid_size if y > grid_size else y
         # agent_positions[i] = (x_new, y_new)
-        middle = grid_size / 2
+        middle = int(grid_size / 2)
         if x >= grid_size or x < 0 or y >= grid_size or y < 0:
             agent_positions[i] = (random.randint(max(middle - 5, 0), min(middle + 5, grid_size-1)), random.randint(max(middle - 5, 0), min(middle + 5, grid_size-1)))
 
