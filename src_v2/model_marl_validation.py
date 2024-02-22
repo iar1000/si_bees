@@ -1,15 +1,18 @@
 import random
 import gymnasium
-from gymnasium.spaces import Box, Tuple, Discrete
+from gymnasium.spaces import Box, Tuple, Discrete, flatten
+from ray.rllib.algorithms import Algorithm
 import mesa
 import numpy as np
+import torch
+from ray.rllib.policy.sample_batch import SampleBatch
 
 GRAPH_HASH = 1000000
 
 class Marl_Lever_Pulling():
 
     def __init__(self, config: dict,
-                 policy_net = None, inference_mode: bool = False) -> None:
+                 policy_net: Algorithm = None, inference_mode: bool = False) -> None:
         self.n_agents = 5
         self.agent_id_max = 500
         self.n_levers = 5
@@ -54,7 +57,6 @@ class Marl_Lever_Pulling():
             curr_agent_state = agent_states.copy()
             curr_agent_state[i] = tuple([1, agent_ids[i]])
             obss[i] = tuple([step_hash, tuple(curr_agent_state), tuple(edge_states)])
-            print(obss[i])
         return obss
     
     def step(self, actions=None):
@@ -65,7 +67,7 @@ class Marl_Lever_Pulling():
             obss = self.get_obss()
             if self.policy_net:
                 for i in range(self.n_agents):
-                    actions[i] = self.policy_net.compute_single_action(obss[i])
+                    actions[i], _, _ = self.policy_net.compute_single_action(obss[i], state=np.array([i, self.n_agents]))
             else:
                 for i in range(self.n_agents):
                     actions[i] = self.get_action_space().sample()

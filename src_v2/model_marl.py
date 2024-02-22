@@ -266,7 +266,8 @@ class Marl_model(mesa.Model):
 
             if self.policy_net:
                 for worker in self.schedule_workers.agents:
-                    actions[worker.unique_id] = self.policy_net.compute_single_action(obss[worker.unique_id])
+                    #actions[worker.unique_id] = self.policy_net.compute_single_action(obss[worker.unique_id])
+                    actions[worker.unique_id], _, _ = self.policy_net.compute_single_action(obss[worker.unique_id], state=np.array([worker.unique_id, self.n_workers]))
             else:
                 for worker in self.schedule_workers.agents:
                     actions[worker.unique_id] = self.get_action_space().sample()
