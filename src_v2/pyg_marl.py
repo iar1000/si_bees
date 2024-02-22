@@ -41,6 +41,10 @@ class GNN_PyG(TorchModelV2, Module):
         self.critic_is_fc = config["critic_config"]["model"] == "fc"
         self.device = torch.device("cuda:0" if config["use_cuda"] else "cpu")
 
+        # lookup
+        self.eval_duration = None
+        self.eval_lookup = None
+
         # todo: remove fc critic
         if self.critic_is_fc:
             print("not supported anymore")
@@ -160,6 +164,20 @@ class GNN_PyG(TorchModelV2, Module):
         edge_obss = obss[2]
         batch_size = len(obss_flat)
 
+        # evaluation mode: cache to use values of one graph iteration
+        eval_mode = state and len(state) == 2
+        if eval_mode:
+            if self.eval_lookup:
+                action = self.eval_lookup[state[0].item()]
+                self.eval_duration -= 1
+                if self.eval_duration == 0:
+                    self.eval_lookup = None
+                    print("empty cache")
+                return action, []
+            else:
+                self.eval_lookup = dict()
+                self.eval_duration = state[1] - 1
+
         # iterate through the batch
         actor_graphs_old = list()
         actor_graphs = list()
@@ -254,5 +272,11 @@ class GNN_PyG(TorchModelV2, Module):
                 values_of_batch = values_per_batch[batch_nr]
                 actions.append(actions_of_batch[sample_to_node_index[i]])
                 values.append(values_of_batch[sample_to_node_index[i]])
+
+            # cache values of all agents
+            if eval_mode:
+                for i, s in enumerate(actions_of_batch):
+                    self.eval_lookup[i] = torch.stack([s])
+
             self.last_values = torch.stack(values)
             return torch.stack(actions), state
