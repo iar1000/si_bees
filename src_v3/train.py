@@ -154,7 +154,7 @@ if __name__ == '__main__':
                 placement_strategy="PACK")
 
     # run and checkpoint config
-    run_name = f"marl-env-{datetime.now().strftime('%Y%m-%d-%H-%M%S')}" #@todo: adjust run name
+    run_name = f"{datetime.now().strftime('%Y%m%d')}_{'_'.join(str(args.env_config).split('.')[0].split('_')[2:])}_{datetime.now().strftime('%H-%M-%S')}"
     run_config = air.RunConfig(
         name=run_name,
         storage_path=storage_dir,

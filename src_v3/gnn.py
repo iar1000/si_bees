@@ -262,7 +262,7 @@ class gnn_torch_module(TorchModelV2, Module):
             # RL: each graph has concatenated actions output of all agents and one value
             else:
                 actions_per_graph.append(torch.flatten(curr_graph_actions[1:]))
-                values_per_graph.append(self.value_decoder(torch.mean(curr_graph_critic_h)))
+                values_per_graph.append(self.value_decoder(torch.mean(curr_graph_critic_h, dim=0)))
 
         # print(f"batch_size: {batch_size}")
         # print(f"actor_h_all output: {actor_h_all.shape}")
