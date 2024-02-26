@@ -168,7 +168,7 @@ if __name__ == '__main__':
             checkpoint_frequency=100,   # 500 ts per iteration, e.g. every 50'000 ts
             checkpoint_at_end=True),
         callbacks=[WandbLoggerCallback(
-                            project="si_marl",
+                            project="marl_si_v3",
                             group=run_name,
                             api_key_file=".wandb_key",
                             log_config=True)] if not args.local else []
