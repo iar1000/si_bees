@@ -1,0 +1,10 @@
+
+model: GINEConv
+rounds:
+  min: 1
+  max: 8
+n_hidden_mlp:
+  min: 0
+  max: 2
+hidden_mlp_size: [8, 16, 32]
+

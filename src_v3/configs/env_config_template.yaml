@@ -1,0 +1,27 @@
+env_type: 
+task_model: 
+task_configs:
+  task_0:    
+      model:
+        n_workers: 
+        n_hidden_state: 
+        communication_range: 
+        worker_placement: 
+        worker_init: 
+        reward_calculation: 
+        n_oracle_states: 
+        p_oracle_change: 
+        episode_length: 
+        grid_size: 
+  task_1:    
+      model:
+        n_workers: 
+        n_hidden_state: 
+        communication_range: 
+        worker_placement: 
+        worker_init: 
+        reward_calculation: 
+        n_oracle_states: 
+        p_oracle_change:
+        episode_length:
+        grid_size:
