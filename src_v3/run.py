@@ -29,8 +29,7 @@ if __name__ == "__main__":
     parser.add_argument('--canvas_height',      default=300,  help="set visualisation canvas height")
     args = parser.parse_args()
 
-    # load policy
-    policy_net = None
+    # load checkpoint
     checkpoint_dir = os.path.join("checkpoints", args.checkpoint_name) if args.checkpoint_name else None
     checkpoint_path = None
     if checkpoint_dir:
@@ -46,7 +45,6 @@ if __name__ == "__main__":
             cps.sort()
             checkpoint = cps[-1]
         checkpoint_path = os.path.join(checkpoint_dir, checkpoint)
-        policy_net = PPO.from_checkpoint(checkpoint_path)
         
     # load task config from checkpoint dir or from src3/configs if env_config is specified
     env_config_path = os.path.join(checkpoint_dir, env_config) if checkpoint_dir \
@@ -56,12 +54,16 @@ if __name__ == "__main__":
     env_config = read_yaml_config(env_config_path)
     task_configs = [env_config["task_configs"][task_level] for task_level in env_config["task_configs"]]
     selected_config = task_configs[int(args.task_level)]
-
+    
     # register environments
     assert env_config["env_type"] in {"rl", "marl"}, f"env_type {env_config['env_type']} is not supported"
     env_type = base_env(env_config) if env_config["env_type"] == "rl" else marl_env(env_config)
     tune.register_env("base_env", lambda env_config: base_env(config=env_config))
     tune.register_env("marl_env", lambda env_config: marl_env(config=env_config))
+    
+    # load policy
+    pollicy_net = None
+    if checkpoint_path: policy_net = PPO.from_checkpoint(checkpoint_path)
 
     # create visualisation canvas
     canvas = CanvasGrid(

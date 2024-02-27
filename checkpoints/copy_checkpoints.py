@@ -9,7 +9,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='script to copy and setup checkpoints')
     parser.add_argument('--uname',      default="kpius", help="user name")
     parser.add_argument('--server',     default="tik42x.ethz.ch", help="server adress")
-    parser.add_argument('--configs_dir',default="src_v2/configs", help="server adress")
+    parser.add_argument('--configs_dir',default="src_v3/configs", help="server adress")
     parser.add_argument('--to_dir',     default="checkpoints", help="local directory where files are saved")
     parser.add_argument('--group',      default=None, help="group name, something like marl-env-202402-13-10-1855")
     parser.add_argument('--run',        default=None, help="run number")
@@ -62,7 +62,7 @@ if __name__ == '__main__':
 
     print()
     print("-> create notes file")
-    run_command = f"python src_v2/run_marl.py --run_dir {args.group}-r{args.run} --task_level 0"
+    run_command = f"python src_v3/run.py --checkpoint_name {args.group}-r{args.run} --task_level 0"
     with open(os.path.join(local_dir, "notes.txt"), 'w') as file:
             file.write(run_command)
 
