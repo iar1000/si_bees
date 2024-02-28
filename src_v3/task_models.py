@@ -1,17 +1,19 @@
 import random
+import time
 import torch
 import networkx as nx
 import numpy as np
 from matplotlib import pyplot as plt
 from math import floor
+import pygame
 import mesa
-from mesa.space import MultiGrid
+from mesa.space import MultiGrid, ContinuousSpace
 from mesa.time import BaseScheduler
 import gymnasium
 from gymnasium.spaces import Box, Tuple, Discrete
 from ray.rllib.algorithms import Algorithm
 
-from agents import BaseAgent, Oracle, Worker
+from agents import TYPE_MPE_LANDMARK, TYPE_MPE_WORKER, BaseAgent, Oracle, Worker, mpe_landmark, mpe_worker
 from task_utils import get_worker_outputs, get_worker_placements, get_relative_pos
 
 MAX_DISTANCE = 5000
@@ -817,3 +819,267 @@ class moving_history_model_marl(moving_model_marl):
                 print("\t\t".join(ht))
             
             print()
+
+
+class mpe_spread_marl_model(base_model):
+    def __init__(self, config: dict,
+                 use_cuda: bool = False,
+                 inference_mode: bool = False,
+                 policy_net: Algorithm = None) -> None:
+        super().__init__(config=config, use_cuda=use_cuda, inference_mode=inference_mode, policy_net=policy_net)
+
+        # configs    
+        self.n_workers = config["model"]["n_workers"]
+        self.n_hidden_states = config["model"]["n_hidden_state"]
+        self.communication_range = config["model"]["communication_range"]
+        self.grid_size = config["model"]["grid_size"]
+        self.episode_length = config["model"]["episode_length"]
+        self.n_agents = 2 * self.n_workers
+
+        # time and space
+        self.running = True
+        self.t = 0
+        self.dt = 0.1
+        self.damping = 0.25
+        self.contact_force = 1e2
+        self.contact_margin = 1e-3
+
+        # print collisions
+        self.total_collisions = 0
+        
+        # mesa setup
+        self.grid = ContinuousSpace(self.grid_size, self.grid_size, False)
+        self.schedule_all = BaseScheduler(self)
+        self.schedule_workers = BaseScheduler(self)
+        self.schedule_landmarks = BaseScheduler(self)
+
+        for _ in range(self.n_workers):
+            worker = mpe_worker(unique_id=self._next_id(),
+                              model=self,
+                              n_hidden_states=self.n_hidden_states,
+                              size=0.15 if self.n_workers < 10 else 0.15 / 25)
+            self.grid.place_agent(agent=worker, pos=(random.uniform(0, self.grid_size), random.uniform(0, self.grid_size)))
+            self.schedule_workers.add(worker)
+            self.schedule_all.add(worker)
+        for _ in range(self.n_workers):
+            landmark = mpe_landmark(unique_id=self._next_id(),
+                              model=self,
+                              n_hidden_states=self.n_hidden_states,
+                              size=0.2)
+            self.grid.place_agent(agent=landmark, pos=(random.uniform(0, self.grid_size), random.uniform(0, self.grid_size)))
+            self.schedule_landmarks.add(landmark)
+            self.schedule_all.add(landmark)
+
+    def _distance(self, worker1, worker2) -> float:
+        return np.sqrt(np.sum(np.square([w - a for (w, a) in zip(worker1.pos, worker2.pos)])))
+
+    def _compute_reward(self):
+        rewardss = {}
+        collisionss = {}
+        global_reward = 0
+        for landmark in self.schedule_landmarks.agents:
+            min_dist = 999999
+            for worker in self.schedule_workers.agents:
+                d = self._distance(worker, landmark)
+                if d < min_dist:
+                    min_dist = d
+            global_reward -= min_dist
+
+        for worker in self.schedule_workers.agents:
+            collisions = 0
+            for w in self.schedule_workers.agents:
+                if worker == w: continue
+                is_collision =  self._distance(worker, w) < worker.size + w.size 
+                collisions += 1 if is_collision else 0
+            rewardss[worker.unique_id] = global_reward - collisions
+            collisionss[worker.unique_id] = collisions
+        
+        return rewardss, collisionss
+
+    def _apply_action(self, agent: mpe_worker, action, collision_force: list):
+        agent.hidden_state = action[0]
+        x, y = agent.pos
+        dx, dy = agent.velocity * self.dt
+
+        # calculate new position
+        x_new = max(0, min(self.grid_size-0.01, x + dx))
+        y_new = max(0, min(self.grid_size-0.01, y + dy))
+        self.grid.move_agent(agent=agent, pos=(x_new,y_new))
+
+        # update velocity
+        agent.velocity = agent.velocity * (1 - self.damping)
+
+        # aplly steering and collision forces
+        total_force = action[1] + collision_force
+        agent.velocity += (total_force / agent.mass) * self.dt
+
+        # cap speed
+        dx, dy = agent.velocity
+        if agent.max_speed:
+            speed = np.sqrt(np.square(dx) + np.square(dy))
+            if speed > agent.max_speed:
+                agent.velocity = agent.velocity/ speed * agent.max_speed
+    
+    def _get_edge_state_space(self) -> gymnasium.spaces.Space:
+        return Tuple([
+            Discrete(2),                                                    # visible edge flag
+            Box(-MAX_DISTANCE, MAX_DISTANCE, shape=(2,), dtype=np.float32), # relative distance between nodes
+        ])
+    
+    def _get_edge_state(self, from_agent: mpe_worker, to_agent: mpe_worker, visibility: int):
+        return tuple([
+            visibility, 
+            np.array(get_relative_pos(from_agent.pos, to_agent.pos))
+        ])
+
+    def _get_agent_state_space(self) -> gymnasium.spaces.Space:
+        return Tuple([
+            Discrete(2),                                                    # active flag
+            Discrete(2),                                                    # agent type
+            Box(0, 1, shape=(self.n_hidden_states,), dtype=np.float32),     # hidden state
+            Box(0, self.grid_size, shape=(2,), dtype=np.float32),           # position
+            Box(-1, 1, shape=(2,), dtype=np.float32),                       # velocity
+        ])
+    
+    def _get_agent_state(self, agent: mpe_worker, active: int):
+        return tuple([
+            active,
+            agent.type, 
+            agent.hidden_state,
+            np.array(agent.pos),
+            agent.velocity
+        ])
+
+    def get_action_space(self) -> gymnasium.spaces.Space:
+        return Tuple([
+            Box(0, 1, shape=(self.n_hidden_states,), dtype=np.float32),     # hidden state
+            Box(-1, 1, shape=(2,), dtype=np.float32),                       # continuous movement vector x,y
+        ]) 
+
+    def get_obs_space(self) -> gymnasium.spaces.Space:
+        graph_state = Box(0, GRAPH_HASH, shape=(1,), dtype=np.float32)
+        agent_states = Tuple([self._get_agent_state_space() for _ in range(self.n_agents)])
+        edge_states = Tuple([self._get_edge_state_space() for _ in range(self.n_agents * self.n_agents)])
+        return Tuple([graph_state, agent_states, edge_states])
+    
+    def get_obs(self):
+        graph_hash = np.array([random.randint(0, GRAPH_HASH)])
+        
+        agent_states = [None for _ in range(self.n_agents)]
+        for worker in self.schedule_all.agents:
+            agent_states[worker.unique_id] = self._get_agent_state(agent=worker, active=0)
+
+        edge_states = [None for _ in range(self.n_agents ** 2)]
+        for worker in self.schedule_all.agents:
+            # build full graph 
+            for destination in self.schedule_all.agents:
+                edge_states[worker.unique_id * self.n_agents + destination.unique_id] = self._get_edge_state(from_agent=worker, to_agent=destination, visibility=0)
+            # activate visible edges only
+            neighbors =  self._get_worker_neighbours(worker=worker, include_self=False, fixed_number=3)
+            for destination in neighbors:
+                edge_states[worker.unique_id * self.n_agents + destination.unique_id] = self._get_edge_state(from_agent=worker, to_agent=destination, visibility=1)
+
+        # create agent specific obs spaces
+        obss = dict()
+        for worker in self.schedule_workers.agents:
+            curr_agent_state = agent_states.copy()
+            curr_agent_state[worker.unique_id] = self._get_agent_state(agent=worker, active=1)
+            obss[worker.unique_id] = tuple([graph_hash, tuple(curr_agent_state), tuple(edge_states)])
+        return obss
+    
+    def _get_worker_neighbours(self, worker: BaseAgent, include_self: bool, fixed_number: int = 0):
+        """compute all agents in the neighbourhood of worker"""
+        if not fixed_number:
+            neighbors = self.grid.get_neighbors(worker.pos, radius=self.communication_range, include_center=True)
+            if not include_self:
+                neighbors = [n for n in neighbors if n != worker]
+            return neighbors
+        else:
+            neighbours_w, neighbours_l = list(), list()
+            max_dist_w, max_dist_l = -1, -1
+            for agent in self.schedule_all.agents:
+                if not include_self and agent == worker: continue
+
+                dist = self._distance(worker, agent)
+                if agent.type == TYPE_MPE_WORKER:
+                    if len(neighbours_w) < fixed_number:
+                        if max_dist_w < dist:
+                            max_dist_w = dist
+                        neighbours_w.append((agent, dist))
+                    else:
+                        if dist < max_dist_w:
+                            for i, (_, d) in enumerate(neighbours_w):
+                                if d > dist:
+                                    neighbours_w.pop(i)
+                                    neighbours_w.append((agent, dist))
+                                    break
+                        assert len(neighbours_w) <= fixed_number, "too many neighours found ?!"
+
+                if agent.type == TYPE_MPE_LANDMARK:
+                    if len(neighbours_l) < fixed_number:
+                        if max_dist_l < dist:
+                            max_dist_l = dist
+                        neighbours_l.append((agent, dist))
+                    else:
+                        if dist < max_dist_l:
+                            for i, (_, d) in enumerate(neighbours_l):
+                                if d > dist:
+                                    neighbours_l.pop(i)
+                                    neighbours_l.append((agent, dist))
+                                    break
+                        assert len(neighbours_l) <= fixed_number, "too many neighours found ?!"
+            return [n for (n,_) in neighbours_w + neighbours_l]
+
+    def _compute_collision_forces(self):
+        forces = {w.unique_id: [0, 0] for w in self.schedule_workers.agents}
+        for worker in self.schedule_workers.agents:
+            for collider in self.schedule_workers.agents:
+                if collider.unique_id <= worker.unique_id: continue
+                delta_force = [self.contact_force * (p1 - p2) for (p1, p2) in zip(worker.pos, collider.pos)]
+                dist = self._distance(worker, collider)
+                dist_min = worker.size + collider.size
+                if dist < dist_min:
+                    k = self.contact_margin
+                    penetration = np.logaddexp(0, -(dist - dist_min) / k) * k
+                    force =  delta_force / dist * penetration
+                    forces[worker.unique_id] += force
+                    forces[collider.unique_id] -= force
+        return forces
+
+    def as_graph(self, save_fig: str = None):
+        """return the current model state as nx.Graph()"""
+        raise NotImplementedError("as_graph not yet implemented")
+
+    def step(self, actions=None):
+        if self.inference_mode:
+            actions = dict()
+            obss = self.get_obs()
+
+            for worker in self.schedule_workers.agents:
+                if self.policy_net:
+                    # abuse state parameter to enable cashing of the computation graph in gnn module
+                    #   unfortunately no batch evaluation is possible, e.g. the cashing mechanism in learning mode is not available
+                    actions[worker.unique_id], _, _ = self.policy_net.compute_single_action(obss[worker.unique_id], state=np.array([worker.unique_id, self.n_workers]))
+                else:
+                    actions[worker.unique_id] = self.get_action_space().sample()
+
+        # apply agent actions to model
+        collision_forces = self._compute_collision_forces()
+        for k, v in actions.items():
+            worker = [w for w in self.schedule_all.agents if w.unique_id == k][0]
+            self._apply_action(agent=worker, action=v, collision_force=collision_forces[worker.unique_id])
+
+        # time
+        self.t += self.dt
+        self.running = self.t < self.episode_length
+
+        rewardss, collisionss = self._compute_reward()
+        self.total_collisions += sum([v for k,v in collisionss.items()])
+        truncateds = {"__all__": self.t >= self.episode_length}
+        terminateds = {"__all__": False}
+
+        return self.get_obs(), rewardss, terminateds, truncateds                    
+                    
+
+
+        

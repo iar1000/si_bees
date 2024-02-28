@@ -3,6 +3,7 @@ import numpy as np
 import torch
 from torch import TensorType
 from torch.nn import Module, Sequential
+from torch_geometric.profile import count_parameters
 from torch_geometric.data import Data
 from torch_geometric.loader import DataLoader
 from torch_geometric.nn.conv.gin_conv import GINEConv
@@ -94,6 +95,7 @@ class gnn_torch_module(TorchModelV2, Module):
         print(f"device: ", self.device)
         print(f"  cuda_is_available={torch.cuda.is_available()}")
         print(f"  use_cuda={config['use_cuda']}")
+        print(f"num parameters: ", count_parameters(self.node_encoder), count_parameters(self.actor), count_parameters(self.critic))
 
         
     def __build_fc(self, ins: int, outs: int, hiddens: list, activation: str):

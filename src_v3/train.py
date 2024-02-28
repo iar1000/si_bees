@@ -17,14 +17,16 @@ from datetime import datetime
 import ray
 from ray import air, tune
 from ray.train import CheckpointConfig
+from ray.rllib.utils.from_config import NotProvided
 from ray.air.integrations.wandb import WandbLoggerCallback
 from ray.tune.stopper import CombinedStopper
 from ray.tune.schedulers import ASHAScheduler
 from ray.rllib.algorithms.ppo import PPOConfig
 
-from environment import MARL_ENV, RL_ENV, base_env, marl_env
+from environment import MARL_ENV, RL_ENV, base_env, load_task_model, marl_env
 from gnn import gnn_torch_module
-from callback import score_callback
+from callback import mpe_callback, score_callback
+from task_models import mpe_spread_marl_model
 from utils import create_tunable_config, read_yaml_config
 from stopper import max_timesteps_stopper
 from curriculum import curriculum_50_min_percentile
@@ -84,6 +86,7 @@ if __name__ == '__main__':
     env_type = RL_ENV if env_config["env_type"] == "rl" else MARL_ENV
     tune.register_env("base_env", lambda env_config: base_env(config=env_config))
     tune.register_env("marl_env", lambda env_config: marl_env(config=env_config))
+    is_mpe = load_task_model(name=env_config["task_model"], env_type=env_type) == mpe_spread_marl_model
     
     # gnn module
     gnn = {
@@ -113,11 +116,11 @@ if __name__ == '__main__':
             env_config=env_config,
             disable_env_checking=True,
             # @todo: make curriculum adjustable
-            env_task_fn=curriculum_50_min_percentile)
+            env_task_fn=curriculum_50_min_percentile if not is_mpe else NotProvided)
     # default values: https://github.com/ray-project/ray/blob/e6ae08f41674d2ac1423f3c2a4f8d8bd3500379a/rllib/agents/ppo/ppo.py
     ppo_config.training(
             model=gnn,
-            train_batch_size=500,
+            train_batch_size=500 if not is_mpe else 7500,
             shuffle_sequences=False,
             lr=tune.uniform(0.00003, 0.003),
             gamma=0.99,
@@ -133,7 +136,7 @@ if __name__ == '__main__':
             grad_clip_by="value",
             _enable_learner_api=False)
     ppo_config.rl_module(_enable_rl_module_api=False)
-    ppo_config.callbacks(score_callback)
+    ppo_config.callbacks(score_callback if not is_mpe else mpe_callback)
     ppo_config.multi_agent(count_steps_by="agent_steps")
     #ppo_config.reporting(keep_per_episode_custom_metrics=True)
 
@@ -179,7 +182,7 @@ if __name__ == '__main__':
             num_samples=int(args.num_trials),
             scheduler= ASHAScheduler(
                 time_attr='timesteps_total',
-                metric='custom_metrics/reward_score_mean',
+                metric='custom_metrics/reward_score_mean' if not is_mpe else 'episode_reward_mean',
                 mode='max',
                 grace_period=int(args.grace_period),
                 max_t=int(args.max_timesteps),

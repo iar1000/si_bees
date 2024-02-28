@@ -2,7 +2,7 @@ from ray.rllib.env.apis.task_settable_env import TaskSettableEnv
 from ray.rllib.env.multi_agent_env import MultiAgentEnv
 from gymnasium.spaces.utils import flatdim
 
-from task_models import base_model, lever_pulling_model, moving_history_model_marl, moving_model_marl, transmission_extended_model_marl, transmission_model_marl, transmission_model_rl
+from task_models import base_model, lever_pulling_model, moving_history_model_marl, moving_model_marl, mpe_spread_marl_model, transmission_extended_model_marl, transmission_model_marl, transmission_model_rl
 
 RL_ENV = "base_env"
 MARL_ENV = "marl_env"
@@ -30,7 +30,12 @@ def load_task_model(name: str, env_type) -> base_model:
     if name == "moving_history":
         if type(env_type) == marl_env or env_type == MARL_ENV:
             return moving_history_model_marl
+    
+    if name == "mpe_spread":
+        if type(env_type) == marl_env or env_type == MARL_ENV:
+            return mpe_spread_marl_model
             
+        
     raise NotImplementedError(f"task {name} is not implemented for environment type {type(env_type)}")
 
 class base_env(TaskSettableEnv):

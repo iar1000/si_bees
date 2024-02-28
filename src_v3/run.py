@@ -1,12 +1,16 @@
 import argparse
 import os
+import sys
+import pygame
+from pygame.time import Clock
 from ray import tune
 from mesa.visualization.ModularVisualization import ModularServer
 from mesa.visualization.modules import CanvasGrid
 from ray.rllib.algorithms.ppo import PPO
 
-from agents import Oracle, Worker
+from agents import TYPE_MPE_LANDMARK, TYPE_MPE_WORKER, Oracle, Worker
 from environment import base_env, load_task_model, marl_env
+from task_models import mpe_spread_marl_model
 from utils import read_yaml_config
 
 def agent_visualisation(agent):
@@ -62,7 +66,7 @@ if __name__ == "__main__":
     tune.register_env("marl_env", lambda env_config: marl_env(config=env_config))
     
     # load policy
-    pollicy_net = None
+    policy_net = None
     if checkpoint_path: policy_net = PPO.from_checkpoint(checkpoint_path)
 
     # create visualisation canvas
@@ -82,16 +86,76 @@ if __name__ == "__main__":
     print("task level       = ", args.task_level)
     print("\n\n")
 
-    server = ModularServer(
-        name=f"{env_config['env_type']} {env_config['task_model']}", 
-        model_cls=load_task_model(name=env_config["task_model"], env_type=env_type), 
-        visualization_elements=[canvas], 
-        model_params={
-            "config": selected_config,
-            "inference_mode": True,
-            "policy_net": policy_net,
-            }
-    )
-    server.launch(open_browser=True)
+    model = load_task_model(name=env_config["task_model"], env_type=env_type)
+    # use pygame to render physical simpulation of mpe
+    if model is mpe_spread_marl_model:
+        task = model(config=selected_config,
+                      use_cuda=False,
+                      inference_mode=True,
+                      policy_net=policy_net)
+        pygame.init()
+        clock = Clock()
+        window = pygame.display.set_mode((500, 500))
+        font = pygame.font.SysFont('Computer Modern', 24)
+        pos_scale = 500.00 / task.grid_size
+        landmark_scale = pos_scale
+        agent_scale = pos_scale if task.n_workers < 10 else pos_scale * 10
+        
+        while True:
+            # check if quit 
+            for event in pygame.event.get() :
+                if event.type == pygame.QUIT :
+                    pygame.quit()
+                    sys.exit()
+
+            # advance model
+            task.step()
+
+            # draw
+            window.fill((255, 255, 255))
+            
+            # draw visibility
+            obs = task.get_obs()
+            edges = obs[0][2]
+            froms, tos = list(), list()
+            for j in range(task.n_agents ** 2):
+                if edges[j][0] == 1: # gym.Discrete(2) maps to one-hot encoding, 0 = [1,0], 1 = [0,1]
+                    froms.append(j // task.n_agents)
+                    tos.append(j % task.n_agents)
+            for f, t in zip(froms, tos):
+                pygame.draw.line(window, (0, 0, 0, 50), [p * pos_scale for p in task.schedule_all.agents[f].pos], [p * pos_scale for p in task.schedule_all.agents[t].pos], width=1)
+
+            # draw state
+            for agent in task.schedule_all.agents:
+                if int(agent.type) == int(TYPE_MPE_WORKER):
+                    pygame.draw.line(window, (180, 0, 0), [p * pos_scale for p in agent.pos], [p * pos_scale for p in agent.pos + agent.velocity], width=1)
+                    pygame.draw.circle(window, (0, 150, 0), [p * pos_scale for p in agent.pos], agent.size * agent_scale, width=0)
+                elif int(agent.type) == int(TYPE_MPE_LANDMARK):
+                    pygame.draw.circle(window, (150, 0, 0), [p * pos_scale for p in agent.pos], agent.size * landmark_scale, width=1)
+            state = font.render(f"t = {int(task.t)}/{int(task.episode_length)}", False, (0, 0, 0))
+            window.blit(state, (30,30))
+            pygame.display.update()
+            clock.tick(1.0/task.dt)
+
+            # automatical restart
+            if not task.running:
+                task = model(config=selected_config,
+                      use_cuda=False,
+                      inference_mode=True,
+                      policy_net=policy_net)
+
+    # buildin webserver for mesa environment
+    else:
+        server = ModularServer(
+            name=f"{env_config['env_type']} {env_config['task_model']}", 
+            model_cls=model, 
+            visualization_elements=[canvas], 
+            model_params={
+                "config": selected_config,
+                "inference_mode": True,
+                "policy_net": policy_net,
+                }
+        )
+        server.launch(open_browser=True)
 
  

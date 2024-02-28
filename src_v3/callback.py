@@ -30,4 +30,19 @@ class score_callback(DefaultCallbacks):
         episode.custom_metrics["reward_score"] = episode.custom_metrics["reward_percentile"] + int(env.get_task())
         episode.custom_metrics["task_level"] = int(env.get_task())
 
+class mpe_callback(DefaultCallbacks):
+    def on_episode_end(
+        self,
+        *,
+        worker: RolloutWorker,
+        base_env: BaseEnv,
+        policies: Dict[str, Policy],
+        episode: Episode,
+        env_index: int,
+        **kwargs
+    ):
+        env = base_env.get_sub_environments()[env_index]
+        model = env.model
+        episode.custom_metrics["collisions"] = int(model.total_collisions)
+        episode.custom_metrics["task_level"] = int(env.get_task())
 
