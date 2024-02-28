@@ -1,11 +1,9 @@
 import random
-import time
 import torch
 import networkx as nx
 import numpy as np
 from matplotlib import pyplot as plt
 from math import floor
-import pygame
 import mesa
 from mesa.space import MultiGrid, ContinuousSpace
 from mesa.time import BaseScheduler
