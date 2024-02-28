@@ -1,8 +1,6 @@
 import argparse
 import os
 import sys
-import pygame
-from pygame.time import Clock
 from ray import tune
 from mesa.visualization.ModularVisualization import ModularServer
 from mesa.visualization.modules import CanvasGrid
@@ -23,6 +21,9 @@ def agent_visualisation(agent):
         return {"Shape": "rect", "w": 1, "h": 1, "Color": colors[agent.output % 6], "Filled": "true", "Layer": 0}
 
 if __name__ == "__main__":
+    import pygame
+    from pygame.time import Clock
+
     parser = argparse.ArgumentParser(description="run script of the simulation")
 
     parser.add_argument("--checkpoint_name",    default=None, help="directory name of run in checkpoints directory")
