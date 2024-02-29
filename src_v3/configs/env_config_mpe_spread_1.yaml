@@ -6,5 +6,7 @@ task_configs:
         n_workers: 3
         n_hidden_state: 16
         episode_length: 25 
-        communication_range: 3 
+        communication_type: "range" 
+        communication_range: 0.5
+        reward_calculation: "individual_distance"
         grid_size: 2

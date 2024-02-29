@@ -829,6 +829,8 @@ class mpe_spread_marl_model(base_model):
         # configs    
         self.n_workers = config["model"]["n_workers"]
         self.n_hidden_states = config["model"]["n_hidden_state"]
+        self.communication_type = config["model"]["communication_type"]
+        self.reward_calculation = config["model"]["reward_calculation"]
         self.communication_range = config["model"]["communication_range"]
         self.grid_size = config["model"]["grid_size"]
         self.episode_length = config["model"]["episode_length"]
@@ -872,24 +874,40 @@ class mpe_spread_marl_model(base_model):
         return np.sqrt(np.sum(np.square([w - a for (w, a) in zip(worker1.pos, worker2.pos)])))
 
     def _compute_reward(self):
+        assert self.reward_calculation in {"shared_distance", "individual_distance"}
         rewardss = {}
         collisionss = {}
-        global_reward = 0
-        for landmark in self.schedule_landmarks.agents:
-            min_dist = 999999
-            for worker in self.schedule_workers.agents:
-                d = self._distance(worker, landmark)
-                if d < min_dist:
-                    min_dist = d
-            global_reward -= min_dist
 
+        # distance reward
+        if self.reward_calculation == "shared_distance":
+            global_reward = 0
+            for landmark in self.schedule_landmarks.agents:
+                min_dist = 999999
+                for worker in self.schedule_workers.agents:
+                    d = self._distance(worker, landmark)
+                    if d < min_dist:
+                        min_dist = d
+                global_reward -= min_dist
+            for worker in self.schedule_workers.agents:
+                rewardss[worker.unique_id] = global_reward / self.n_agents
+
+        if self.reward_calculation == "individual_distance":
+            for worker in self.schedule_workers.agents:
+                min_dist = 999999
+                for landmark in self.schedule_landmarks.agents:
+                    d = self._distance(worker, landmark)
+                    if d < min_dist:
+                        min_dist = d
+                rewardss[worker.unique_id] = -min_dist
+
+        # collisions
         for worker in self.schedule_workers.agents:
             collisions = 0
             for w in self.schedule_workers.agents:
                 if worker == w: continue
                 is_collision =  self._distance(worker, w) < worker.size + w.size 
                 collisions += 1 if is_collision else 0
-            rewardss[worker.unique_id] = global_reward - collisions
+            rewardss[worker.unique_id] -= collisions
             collisionss[worker.unique_id] = collisions
         
         return rewardss, collisionss
@@ -973,7 +991,7 @@ class mpe_spread_marl_model(base_model):
             for destination in self.schedule_all.agents:
                 edge_states[worker.unique_id * self.n_agents + destination.unique_id] = self._get_edge_state(from_agent=worker, to_agent=destination, visibility=0)
             # activate visible edges only
-            neighbors =  self._get_worker_neighbours(worker=worker, include_self=False, fixed_number=3)
+            neighbors =  self._get_worker_neighbours(worker=worker, include_self=False)
             for destination in neighbors:
                 edge_states[worker.unique_id * self.n_agents + destination.unique_id] = self._get_edge_state(from_agent=worker, to_agent=destination, visibility=1)
 
@@ -985,14 +1003,10 @@ class mpe_spread_marl_model(base_model):
             obss[worker.unique_id] = tuple([graph_hash, tuple(curr_agent_state), tuple(edge_states)])
         return obss
     
-    def _get_worker_neighbours(self, worker: BaseAgent, include_self: bool, fixed_number: int = 0):
+    def _get_worker_neighbours(self, worker: BaseAgent, include_self: bool):
         """compute all agents in the neighbourhood of worker"""
-        if not fixed_number:
-            neighbors = self.grid.get_neighbors(worker.pos, radius=self.communication_range, include_center=True)
-            if not include_self:
-                neighbors = [n for n in neighbors if n != worker]
-            return neighbors
-        else:
+        if self.communication_type == "neighbours":
+            fixed_number = int(self.communication_range)
             neighbours_w, neighbours_l = list(), list()
             max_dist_w, max_dist_l = -1, -1
             for agent in self.schedule_all.agents:
@@ -1027,6 +1041,11 @@ class mpe_spread_marl_model(base_model):
                                     break
                         assert len(neighbours_l) <= fixed_number, "too many neighours found ?!"
             return [n for (n,_) in neighbours_w + neighbours_l]
+        else:
+            neighbors = self.grid.get_neighbors(worker.pos, radius=self.communication_range, include_center=True)
+            if not include_self:
+                neighbors = [n for n in neighbors if n != worker]
+            return neighbors
 
     def _compute_collision_forces(self):
         forces = {w.unique_id: [0, 0] for w in self.schedule_workers.agents}

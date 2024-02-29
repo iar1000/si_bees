@@ -120,7 +120,7 @@ if __name__ == '__main__':
     # default values: https://github.com/ray-project/ray/blob/e6ae08f41674d2ac1423f3c2a4f8d8bd3500379a/rllib/agents/ppo/ppo.py
     ppo_config.training(
             model=gnn,
-            train_batch_size=500 if not is_mpe else 7500,
+            train_batch_size=500 if not is_mpe else 3750,
             shuffle_sequences=False,
             lr=tune.uniform(0.00003, 0.003),
             gamma=0.99,
