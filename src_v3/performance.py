@@ -132,7 +132,7 @@ if __name__ == '__main__':
         storage_path=storage_dir,
         local_dir=storage_dir,
         stop=CombinedStopper(
-            max_timesteps_stopper(max_timesteps=50000),
+            max_timesteps_stopper(max_timesteps=15000),
         ),        
         callbacks=[WandbLoggerCallback(
                             project="marl_si_v3",
