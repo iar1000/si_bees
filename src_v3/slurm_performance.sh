@@ -1,8 +1,5 @@
 #!/bin/bash
 
-#SBATCH --cpus-per-task=36
-#SBATCH --time=2-00:00:00
-
 ETH_USERNAME=kpius
 PROJECT_NAME=si_bees
 SRC_DIR="src_v3"
@@ -47,6 +44,8 @@ echo "Running on node: $(hostname)"
 echo "In directory:    $(pwd)"
 echo "Starting on:     $(date)"
 echo "SLURM_JOB_ID:    ${SLURM_JOB_ID}"
+
+NUM_RAY_THREADS=30
 
 # execute script
 echo "-> current directory $(pwd)"
