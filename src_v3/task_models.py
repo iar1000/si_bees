@@ -818,7 +818,6 @@ class moving_history_model_marl(moving_model_marl):
             
             print()
 
-
 class mpe_spread_marl_model(base_model):
     def __init__(self, config: dict,
                  use_cuda: bool = False,
