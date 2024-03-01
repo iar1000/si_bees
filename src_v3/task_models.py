@@ -21,12 +21,14 @@ class base_model(mesa.Model):
     def __init__(self, config: dict,
                  use_cuda: bool = False,
                  inference_mode: bool = False,
+                 verbose: bool = False,
                  policy_net: Algorithm = None) -> None:
         super().__init__()
 
         # base init
         self.config = config
         self.inference_mode = inference_mode
+        self.verbose = verbose
         self.policy_net = policy_net
 
         self.use_cuda = use_cuda
@@ -102,8 +104,9 @@ class lever_pulling_model(base_model):
     def __init__(self, config: dict,
                  use_cuda: bool = False,
                  inference_mode: bool = False,
+                verbose: bool = False,
                  policy_net: Algorithm = None) -> None:
-        super().__init__(config=config, use_cuda=use_cuda, inference_mode=inference_mode, policy_net=policy_net)
+        super().__init__(config=config, use_cuda=use_cuda, inference_mode=inference_mode, verbose=verbose, policy_net=policy_net)
 
         self.n_agents = 5
         self.agent_id_max = 500
@@ -165,7 +168,7 @@ class lever_pulling_model(base_model):
         self.reward_total = r
         self.reward_upper_bound = 1
 
-        if self.inference_mode:
+        if self.verbose:
             print("pulled levers: ")
             print(levers)
             print("reward: ", r)
@@ -181,8 +184,9 @@ class oracle_model(base_model):
     def __init__(self, config: dict,
                  use_cuda: bool = False,
                  inference_mode: bool = False,
+                 verbose: bool = False,
                  policy_net: Algorithm = None) -> None:
-        super().__init__(config=config, use_cuda=use_cuda, inference_mode=inference_mode, policy_net=policy_net)
+        super().__init__(config=config, use_cuda=use_cuda, inference_mode=inference_mode, verbose=verbose, policy_net=policy_net)
 
         # worker configs
         self.n_workers = config["model"]["n_workers"]
@@ -419,7 +423,7 @@ class transmission_model_rl(oracle_model):
                 self.ts_curr_state = 0
 
         # print status
-        if self.inference_mode:
+        if self.verbose:
             print()
             print(f"------------- step {self.ts_episode}/{self.episode_length} ------------")
             print(f"  outputs            = {oracle_output_old} - {[a.output for a in self.schedule_workers.agents]}")
@@ -604,7 +608,7 @@ class transmission_model_marl(oracle_model):
                 self.ts_curr_state = 0
 
         # print status
-        if self.inference_mode:
+        if self.verbose:
             print()
             print(f"------------- step {self.ts_episode}/{self.episode_length} ------------")
             print(f"  outputs            = {oracle_output_old} - {[a.output for a in self.schedule_workers.agents]}")
@@ -752,8 +756,8 @@ class moving_model_marl(transmission_model_marl):
     
 class moving_history_model_marl(moving_model_marl):
     """add history of past positions (relative to the oracle) to the worker state"""
-    def __init__(self, config: dict, use_cuda: bool = False, policy_net: Algorithm = None, inference_mode: bool = False) -> None:
-        super().__init__(config=config, use_cuda=use_cuda, inference_mode=inference_mode, policy_net=policy_net)
+    def __init__(self, config: dict, use_cuda: bool = False, policy_net: Algorithm = None, inference_mode: bool = False, verbose: bool = False) -> None:
+        super().__init__(config=config, use_cuda=use_cuda, inference_mode=inference_mode, verbose=verbose, policy_net=policy_net)
         # initialise random history
         self.history_length = 3
         self.history = {self.oracle.unique_id: [[np.array([0,0]), np.array([0,0])] for _ in range(self.history_length)]}
@@ -822,8 +826,9 @@ class mpe_spread_marl_model(base_model):
     def __init__(self, config: dict,
                  use_cuda: bool = False,
                  inference_mode: bool = False,
+                 verbose: bool = False,
                  policy_net: Algorithm = None) -> None:
-        super().__init__(config=config, use_cuda=use_cuda, inference_mode=inference_mode, policy_net=policy_net)
+        super().__init__(config=config, use_cuda=use_cuda, inference_mode=inference_mode, verbose=verbose, policy_net=policy_net)
 
         # configs    
         self.n_workers = config["model"]["n_workers"]

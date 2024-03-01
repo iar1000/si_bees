@@ -93,6 +93,7 @@ if __name__ == "__main__":
         task = model(config=selected_config,
                       use_cuda=False,
                       inference_mode=True,
+                      verbose=True,
                       policy_net=policy_net)
         pygame.init()
         clock = Clock()
@@ -154,6 +155,7 @@ if __name__ == "__main__":
             model_params={
                 "config": selected_config,
                 "inference_mode": True,
+                "verbose": True,
                 "policy_net": policy_net,
                 }
         )
