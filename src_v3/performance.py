@@ -1,7 +1,6 @@
 import os
 import platform
 
-
 if platform.system() == "Darwin":
     pass
 else:
@@ -18,16 +17,21 @@ from ray.air.integrations.wandb import WandbLoggerCallback
 from ray.tune.stopper import CombinedStopper
 from ray.rllib.algorithms.ppo import PPOConfig
 
-from environment import MARL_ENV, marl_env
+from task_models import mpe_spread_marl_model
+from environment import MARL_ENV, RL_ENV, base_env, load_task_model, marl_env
 from gnn import gnn_torch_module
-from callback import score_callback
-from utils import read_yaml_config
+from callback import mpe_callback, score_callback
+from utils import create_tunable_config, read_yaml_config
 from stopper import max_timesteps_stopper
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='script to setup hyperparameter tuning')
     parser.add_argument('--local',              action='store_true', help='run in local mode for debugging purposes (default: False)')
     parser.add_argument('--project_dir',        default=None, help='directory of the repository to store runs to')
+    parser.add_argument('--env_config',         default=None, help="path to env config")
+    parser.add_argument('--actor_config',       default=None, help="path to actor config")
+    parser.add_argument('--critic_config',      default=None, help="path to critic config")
+    parser.add_argument('--encoding_config',    default=None, help="path to encoding config")
     parser.add_argument('--num_ray_threads',    default=36, help='default processes for ray to use')
     parser.add_argument('--num_cpu_for_local',  default=2, help='num cpus for local worker')
     parser.add_argument('--num_rollouts',       default=0, help='num rollout workers')
@@ -61,20 +65,25 @@ if __name__ == '__main__':
     print()
 
     # fixed setup
-    env_config = read_yaml_config(os.path.join(base_dir, "src_v3", "configs", "env_config_performance.yaml"))
-    actor_config = read_yaml_config(os.path.join(base_dir, "src_v3", "configs", "model_Transformer_1.yaml"))
-    critic_config = read_yaml_config(os.path.join(base_dir, "src_v3", "configs", "model_Transformer_1.yaml"))
-    encoding_config = read_yaml_config(os.path.join(base_dir, "src_v3", "configs", "encoding_fixed.yaml"))
+    env_config = read_yaml_config(os.path.join(base_dir, "src_v3", "configs", args.env_config))
+    actor_config = read_yaml_config(os.path.join(base_dir, "src_v3", "configs", args.actor_config))
+    critic_config = read_yaml_config(os.path.join(base_dir, "src_v3", "configs", args.critic_config))
+    encoding_config = read_yaml_config(os.path.join(base_dir, "src_v3", "configs", args.encoding_config))
+    
+    assert env_config["env_type"] in {"rl", "marl"}, f"env_type {env_config['env_type']} is not supported"
+    env_type = RL_ENV if env_config["env_type"] == "rl" else MARL_ENV
+    tune.register_env("base_env", lambda env_config: base_env(config=env_config))
     tune.register_env("marl_env", lambda env_config: marl_env(config=env_config))
-
+    is_mpe = load_task_model(name=env_config["task_model"], env_type=env_type) == mpe_spread_marl_model
+    
     # gnn module
     gnn = {
         "custom_model": gnn_torch_module,
         "custom_model_config": {
-            "env_type": MARL_ENV,
-            "actor_config": actor_config,
-            "critic_config": critic_config,
-            "encoding_config": encoding_config,
+            "env_type": env_type,
+            "actor_config": create_tunable_config(actor_config),
+            "critic_config": create_tunable_config(critic_config),
+            "encoding_config": create_tunable_config(encoding_config),
             "recurrent_actor": 0,
             "recurrent_critic": 0,
             "use_cuda": use_cuda,
@@ -84,12 +93,12 @@ if __name__ == '__main__':
     # ppo config
     ppo_config = PPOConfig()
     ppo_config.environment(
-            env=MARL_ENV,
+            env=env_type,
             env_config=env_config,
             disable_env_checking=True,)
     ppo_config.training(
             model=gnn,
-            train_batch_size=500,
+            train_batch_size=500 if not is_mpe else 7500,
             shuffle_sequences=False,
             lr=0.0001,
             gamma=0.99,
@@ -105,7 +114,7 @@ if __name__ == '__main__':
             grad_clip_by="value",
             _enable_learner_api=False)
     ppo_config.rl_module(_enable_rl_module_api=False)
-    ppo_config.callbacks(score_callback)
+    ppo_config.callbacks(score_callback if not is_mpe else mpe_callback)
     ppo_config.multi_agent(count_steps_by="agent_steps")
 
     # @todo: investigate gpu utilisation
@@ -124,15 +133,14 @@ if __name__ == '__main__':
                 num_cpus_for_local_worker=int(args.num_cpu_for_local),
                 placement_strategy="PACK")
 
-    # 20 runs of 100k steps
     run_name = f"{datetime.now().strftime('%Y%m%d')}_performance_{datetime.now().strftime('%H-%M-%S')}"
-    tune_config = tune.TuneConfig(num_samples=15)
+    tune_config = tune.TuneConfig(num_samples=20)
     run_config = air.RunConfig(
         name=run_name,
         storage_path=storage_dir,
         local_dir=storage_dir,
         stop=CombinedStopper(
-            max_timesteps_stopper(max_timesteps=15000),
+            max_timesteps_stopper(max_timesteps=7500),
         ),        
         callbacks=[WandbLoggerCallback(
                             project="marl_si_v3",

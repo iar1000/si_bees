@@ -46,58 +46,89 @@ echo "Starting on:     $(date)"
 echo "SLURM_JOB_ID:    ${SLURM_JOB_ID}"
 
 NUM_RAY_THREADS=30
+ENV_CONFIG=""
+ACTOR_CONFIG=""
+CRITIC_CONFIG=""
+ENCODING_CONFIG=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --env_config)
+      if [[ -n $2 ]]; then
+        ENV_CONFIG=$2
+        shift 2
+      else
+        echo "Error: Missing value for -env_config flag."
+        exit 1
+      fi
+      ;;
+    --actor_config)
+      if [[ -n $2 ]]; then
+        ACTOR_CONFIG=$2
+        shift 2
+      else
+        echo "Error: Missing value for -actor_config flag."
+        exit 1
+      fi
+      ;;
+    --critic_config)
+      if [[ -n $2 ]]; then
+        CRITIC_CONFIG=$2
+        shift 2
+      else
+        echo "Error: Missing value for -critic_config flag."
+        exit 1
+      fi
+      ;;
+    --encoding_config)
+      if [[ -n $2 ]]; then
+        ENCODING_CONFIG=$2
+        shift 2
+      else
+        echo "Error: Missing value for -encoding_config flag."
+        exit 1
+      fi
+      ;;
+    *)
+      shift
+      ;;
+  esac
+done
 
 # execute script
 echo "-> current directory $(pwd)"
 echo "-> run train.py from directory $RUN_DIR/$SRC_DIR"
 python $RUN_DIR/$SRC_DIR/performance.py --project_dir $PROJECT_DIR \
+                                        --env_config $ENV_CONFIG \
+                                        --actor_config $ACTOR_CONFIG \
+                                        --critic_config $CRITIC_CONFIG \
+                                        --encoding_config $ENCODING_CONFIG \
                                         --num_ray_threads $NUM_RAY_THREADS \
                                         --num_cpu_for_local 1 \
                                         --num_rollouts 0
 python $RUN_DIR/$SRC_DIR/performance.py --project_dir $PROJECT_DIR \
-                                        --num_ray_threads $NUM_RAY_THREADS \
-                                        --num_cpu_for_local 1 \
-                                        --num_rollouts 1
-python $RUN_DIR/$SRC_DIR/performance.py --project_dir $PROJECT_DIR \
-                                        --num_ray_threads $NUM_RAY_THREADS \
-                                        --num_cpu_for_local 1 \
-                                        --num_rollouts 2
-python $RUN_DIR/$SRC_DIR/performance.py --project_dir $PROJECT_DIR \
-                                        --num_ray_threads $NUM_RAY_THREADS \
-                                        --num_cpu_for_local 1 \
-                                        --num_rollouts 4
-python $RUN_DIR/$SRC_DIR/performance.py --project_dir $PROJECT_DIR \
+                                        --env_config $ENV_CONFIG \
+                                        --actor_config $ACTOR_CONFIG \
+                                        --critic_config $CRITIC_CONFIG \
+                                        --encoding_config $ENCODING_CONFIG \
                                         --num_ray_threads $NUM_RAY_THREADS \
                                         --num_cpu_for_local 2 \
                                         --num_rollouts 0
 python $RUN_DIR/$SRC_DIR/performance.py --project_dir $PROJECT_DIR \
+                                        --env_config $ENV_CONFIG \
+                                        --actor_config $ACTOR_CONFIG \
+                                        --critic_config $CRITIC_CONFIG \
+                                        --encoding_config $ENCODING_CONFIG \
+                                        --num_ray_threads $NUM_RAY_THREADS \
+                                        --num_cpu_for_local 1 \
+                                        --num_rollouts 1
+python $RUN_DIR/$SRC_DIR/performance.py --project_dir $PROJECT_DIR \
+                                        --env_config $ENV_CONFIG \
+                                        --actor_config $ACTOR_CONFIG \
+                                        --critic_config $CRITIC_CONFIG \
+                                        --encoding_config $ENCODING_CONFIG \
                                         --num_ray_threads $NUM_RAY_THREADS \
                                         --num_cpu_for_local 2 \
                                         --num_rollouts 1
-python $RUN_DIR/$SRC_DIR/performance.py --project_dir $PROJECT_DIR \
-                                        --num_ray_threads $NUM_RAY_THREADS \
-                                        --num_cpu_for_local 2 \
-                                        --num_rollouts 2
-python $RUN_DIR/$SRC_DIR/performance.py --project_dir $PROJECT_DIR \
-                                        --num_ray_threads $NUM_RAY_THREADS \
-                                        --num_cpu_for_local 2 \
-                                        --num_rollouts 4
-python $RUN_DIR/$SRC_DIR/performance.py --project_dir $PROJECT_DIR \
-                                        --num_ray_threads $NUM_RAY_THREADS \
-                                        --num_cpu_for_local 4 \
-                                        --num_rollouts 0
-python $RUN_DIR/$SRC_DIR/performance.py --project_dir $PROJECT_DIR \
-                                        --num_ray_threads $NUM_RAY_THREADS \
-                                        --num_cpu_for_local 4 \
-                                        --num_rollouts 1
-python $RUN_DIR/$SRC_DIR/performance.py --project_dir $PROJECT_DIR \
-                                        --num_ray_threads $NUM_RAY_THREADS \
-                                        --num_cpu_for_local 4 \
-                                        --num_rollouts 2
-python $RUN_DIR/$SRC_DIR/performance.py --project_dir $PROJECT_DIR \
-                                        --num_ray_threads $NUM_RAY_THREADS \
-                                        --num_cpu_for_local 4 \
-                                        --num_rollouts 4
 
 
 # Send more noteworthy information to the output log
