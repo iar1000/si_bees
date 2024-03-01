@@ -118,9 +118,10 @@ if __name__ == '__main__':
             # @todo: make curriculum adjustable
             env_task_fn=curriculum_50_min_percentile if not is_mpe else NotProvided)
     # default values: https://github.com/ray-project/ray/blob/e6ae08f41674d2ac1423f3c2a4f8d8bd3500379a/rllib/agents/ppo/ppo.py
+    train_batch_size = 500 if not is_mpe else 7500
     ppo_config.training(
             model=gnn,
-            train_batch_size=500 if not is_mpe else 3750,
+            train_batch_size=train_batch_size,
             shuffle_sequences=False,
             lr=tune.uniform(0.00003, 0.003),
             gamma=0.99,
@@ -166,9 +167,7 @@ if __name__ == '__main__':
             max_timesteps_stopper(max_timesteps=int(args.max_timesteps)),
         ),        
         checkpoint_config=CheckpointConfig(
-            #checkpoint_score_attribute="custom_metrics/reward_score_mean",
-            #num_to_keep=1,
-            checkpoint_frequency=100,   # 500 ts per iteration, e.g. every 50'000 ts
+            checkpoint_frequency=50000 / train_batch_size,
             checkpoint_at_end=True),
         callbacks=[WandbLoggerCallback(
                             project="marl_si_v3",
