@@ -56,7 +56,7 @@ def get_worker_placements(num_workers: int,
     for i, (x, y) in enumerate(agent_positions):
         middle = grid_size / 2
         if x >= grid_size or x < 0 or y >= grid_size or y < 0:
-            agent_positions[i] = (random.randint(max(middle - 5, 0), min(middle + 5, grid_size-1)), random.randint(max(middle - 5, 0), min(middle + 5, grid_size-1)))
+            agent_positions[i] = (random.randint(int(max(middle - 5, 0)), int(min(middle + 5, grid_size-1))), random.randint(int(max(middle - 5, 0)), int(min(middle + 5, grid_size-1))))
 
     return agent_positions
         
