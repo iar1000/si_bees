@@ -167,7 +167,9 @@ if __name__ == '__main__':
             max_timesteps_stopper(max_timesteps=int(args.max_timesteps)),
         ),        
         checkpoint_config=CheckpointConfig(
-            checkpoint_frequency=50000 / train_batch_size,
+            num_to_keep=10 if is_mpe else None,
+            checkpoint_score_attribute="episode_reward_mean" if is_mpe else None,
+            checkpoint_frequency=100 if not is_mpe else 1,
             checkpoint_at_end=True),
         callbacks=[WandbLoggerCallback(
                             project="marl_si_v3",
