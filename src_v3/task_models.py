@@ -1,4 +1,5 @@
 import random
+from statistics import mean
 import torch
 import networkx as nx
 import numpy as np
@@ -293,7 +294,7 @@ class oracle_model(base_model):
     
 class transmission_model_rl(oracle_model):
     def _compute_reward(self):
-        assert self.reward_calculation in {"shared_binary", "shared_sum"}, f"reward calculation {self.reward_calculation} not implemented for {type(self)}"
+        assert self.reward_calculation in {"shared_binary", "shared_sum", "evaluation"}, f"reward calculation {self.reward_calculation} not implemented for {type(self)}"
 
         wrongs = sum([1 for worker in self.schedule_workers.agents if worker.output != self.oracle.output])
 
@@ -307,6 +308,11 @@ class transmission_model_rl(oracle_model):
             reward = -wrongs if wrongs else self.n_workers
             upper = self.n_workers
             lower = -self.n_workers
+        # simply count how many are correct
+        elif self.reward_calculation == "evaluation":
+            reward = sum([1 for worker in self.schedule_workers.agents if worker.output == self.oracle.output])
+            upper = self.n_workers
+            lower = 0
 
         return reward, upper, lower
     
@@ -445,7 +451,7 @@ class transmission_model_rl(oracle_model):
 class transmission_model_marl(oracle_model):
     def _compute_reward(self):
         """ note: bounds must be multiplied by number of agents as the reward is the sum of all agent rewards """
-        assert self.reward_calculation in {"shared_binary", "shared_sum", "individual"}, f"reward calculation {self.reward_calculation} not implemented for {type(self)}"
+        assert self.reward_calculation in {"shared_binary", "shared_sum", "individual", "evaluation"}, f"reward calculation {self.reward_calculation} not implemented for {type(self)}"
 
         rewardss = {}
         wrongs = sum([1 for worker in self.schedule_workers.agents if worker.output != self.oracle.output])
@@ -468,6 +474,11 @@ class transmission_model_marl(oracle_model):
                 rewardss[worker.unique_id] = 1 if worker.output == self.oracle.output else -1
             upper = self.n_workers
             lower = -self.n_workers
+        elif self.reward_calculation == "evaluation":
+            for worker in self.schedule_workers.agents:
+                rewardss[worker.unique_id] = 1 if worker.output == self.oracle.output else 0
+            upper = self.n_workers
+            lower = 0
 
         return rewardss, upper, lower
     
@@ -663,6 +674,15 @@ class transmission_extended_model_marl(transmission_model_marl):
 
 class moving_model_marl(transmission_model_marl):
     """agents still have to copy output, but additionally can move around"""
+    def __init__(self, config: dict, use_cuda: bool = False, inference_mode: bool = False, verbose: bool = False, policy_net: Algorithm = None) -> None:
+        super().__init__(config, use_cuda, inference_mode, verbose, policy_net)
+        # track stats for evaluation
+        self.last_number_connected = 0
+        self.last_average_distance = 0
+        self.last_average_distance_connected = 0
+        self.last_average_distance_correct = 0
+        self.last_connected_correct = 0
+
     def get_action_space(self) -> gymnasium.spaces.Space:
         return Tuple([
             Discrete(self.n_oracle_states),                             # output
@@ -681,7 +701,7 @@ class moving_model_marl(transmission_model_marl):
         self.grid.move_agent(agent=agent, pos=(x,y))
 
     def _compute_reward(self):
-        assert self.reward_calculation in {"spread", "spread-connected", "neighbours", "shared-neighbours"}
+        assert self.reward_calculation in {"spread", "spread-connected", "neighbours", "shared-neighbours", "evaluation"}
 
         # compute reward
         rewardss = {}
@@ -751,6 +771,32 @@ class moving_model_marl(transmission_model_marl):
 
             lower = -self.n_workers * self.n_workers
             upper = self.n_workers * self.n_workers
+        
+        elif self.reward_calculation == "evaluation":
+            g = self.as_graph()
+            self.last_number_connected = 0
+            self.last_connected_correct = 0
+            self.last_average_distance = list()
+            self.last_average_distance_connected = list()
+            self.last_average_distance_correct = list()
+            for worker in self.schedule_workers.agents:
+                rewardss[worker.unique_id] = 1 if worker.output == self.oracle.output else 0
+                distance = np.sqrt(np.sum(np.square([w - a for (w, a) in zip(worker.pos, self.oracle.pos)])))
+
+                self.last_average_distance.append(distance)
+                if nx.has_path(g, self.oracle.unique_id, worker.unique_id):
+                    self.last_number_connected += 1
+                    self.last_connected_correct += 1 if worker.output == self.oracle.output else 0
+                    self.last_average_distance_connected.append(distance)
+                if worker.output == self.oracle.output:
+                    self.last_average_distance_correct.append(distance)
+
+            self.last_average_distance = mean(self.last_average_distance) if self.last_average_distance else -1
+            self.last_average_distance_connected = mean(self.last_average_distance_connected) if self.last_average_distance_connected else -1
+            self.last_average_distance_correct = mean(self.last_average_distance_correct) if self.last_average_distance_correct else -1
+
+            lower = 0
+            upper = self.n_workers
             
         return rewardss, upper, lower
     
@@ -844,6 +890,7 @@ class mpe_spread_marl_model(base_model):
         self.running = True
         self.t = 0
         self.dt = 0.1
+        self.sensitivity = 5
         self.damping = 0.25
         self.contact_force = 1e2
         self.contact_margin = 1e-3
@@ -918,19 +965,12 @@ class mpe_spread_marl_model(base_model):
 
     def _apply_action(self, agent: mpe_worker, action, collision_force: list):
         agent.hidden_state = action[0]
-        x, y = agent.pos
-        dx, dy = agent.velocity * self.dt
-
-        # calculate new position
-        x_new = max(0, min(self.grid_size-0.01, x + dx))
-        y_new = max(0, min(self.grid_size-0.01, y + dy))
-        self.grid.move_agent(agent=agent, pos=(x_new,y_new))
 
         # update velocity
         agent.velocity = agent.velocity * (1 - self.damping)
 
         # aplly steering and collision forces
-        total_force = action[1] + collision_force
+        total_force = action[1] * self.sensitivity + collision_force
         agent.velocity += (total_force / agent.mass) * self.dt
 
         # cap speed
@@ -939,6 +979,13 @@ class mpe_spread_marl_model(base_model):
             speed = np.sqrt(np.square(dx) + np.square(dy))
             if speed > agent.max_speed:
                 agent.velocity = agent.velocity/ speed * agent.max_speed
+        
+        # calculate new position
+        x, y = agent.pos
+        dx, dy = agent.velocity * self.dt
+        x_new = max(0, min(self.grid_size-0.01, x + dx))
+        y_new = max(0, min(self.grid_size-0.01, y + dy))
+        self.grid.move_agent(agent=agent, pos=(x_new,y_new))
     
     def _get_edge_state_space(self) -> gymnasium.spaces.Space:
         return Tuple([
@@ -1059,12 +1106,11 @@ class mpe_spread_marl_model(base_model):
                 delta_force = [self.contact_force * (p1 - p2) for (p1, p2) in zip(worker.pos, collider.pos)]
                 dist = self._distance(worker, collider)
                 dist_min = worker.size + collider.size
-                if dist < dist_min:
-                    k = self.contact_margin
-                    penetration = np.logaddexp(0, -(dist - dist_min) / k) * k
-                    force =  delta_force / dist * penetration
-                    forces[worker.unique_id] += force
-                    forces[collider.unique_id] -= force
+                k = self.contact_margin
+                penetration = np.logaddexp(0, -(dist - dist_min) / k) * k
+                force =  delta_force / dist * penetration
+                forces[worker.unique_id] += force
+                forces[collider.unique_id] -= force
         return forces
 
     def as_graph(self, save_fig: str = None):
