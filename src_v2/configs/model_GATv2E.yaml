@@ -1,6 +1,0 @@
-
-model: GATv2EConv
-rounds:
-  min: 6
-  max: 8
-

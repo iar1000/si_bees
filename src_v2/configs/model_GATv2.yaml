@@ -1,8 +1,0 @@
-
-model: GATv2Conv
-rounds:
-  min: 2
-  max: 8
-dropout:
-  min: 0
-  max: 0.1

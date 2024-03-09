@@ -1,7 +1,0 @@
-
-model: TransformerConv
-rounds:
-  min: 4
-  max: 8
-dropout: 0
-
