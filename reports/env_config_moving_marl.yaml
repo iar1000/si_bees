@@ -37,7 +37,7 @@ task_configs:
         n_oracle_states: 5
         p_oracle_change: 0.12
         episode_length: 200
-        grid_size: 51
+        grid_size: 41
   task_3:    
       model:
         n_workers: 20
@@ -49,7 +49,7 @@ task_configs:
         n_oracle_states: 5
         p_oracle_change: 0.12
         episode_length: 200
-        grid_size: 51
+        grid_size: 41
   task_4:    
       model:
         n_workers: 40
