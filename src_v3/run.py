@@ -8,7 +8,7 @@ from ray.rllib.algorithms.ppo import PPO
 
 from agents import TYPE_MPE_LANDMARK, TYPE_MPE_WORKER, Oracle, Worker
 from environment import base_env, load_task_model, marl_env
-from task_models import mpe_spread_marl_model
+from task_models import mpe_spread_marl_model, mpe_spread_reduced
 from utils import read_yaml_config
 
 def agent_visualisation(agent):
@@ -89,7 +89,7 @@ if __name__ == "__main__":
 
     model = load_task_model(name=env_config["task_model"], env_type=env_type)
     # use pygame to render physical simpulation of mpe
-    if model is mpe_spread_marl_model:
+    if model is mpe_spread_marl_model or mpe_spread_reduced:
         task = model(config=selected_config,
                       use_cuda=False,
                       inference_mode=True,

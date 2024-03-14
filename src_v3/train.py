@@ -26,7 +26,7 @@ from ray.rllib.algorithms.ppo import PPOConfig
 from environment import MARL_ENV, RL_ENV, base_env, load_task_model, marl_env
 from gnn import gnn_torch_module
 from callback import mpe_callback, score_callback
-from task_models import mpe_spread_marl_model
+from task_models import mpe_spread_marl_model, mpe_spread_reduced
 from utils import create_tunable_config, read_yaml_config
 from stopper import max_timesteps_stopper
 from curriculum import curriculum_50_min_percentile
@@ -86,7 +86,7 @@ if __name__ == '__main__':
     env_type = RL_ENV if env_config["env_type"] == "rl" else MARL_ENV
     tune.register_env("base_env", lambda env_config: base_env(config=env_config))
     tune.register_env("marl_env", lambda env_config: marl_env(config=env_config))
-    is_mpe = load_task_model(name=env_config["task_model"], env_type=env_type) == mpe_spread_marl_model
+    is_mpe = load_task_model(name=env_config["task_model"], env_type=env_type) == mpe_spread_marl_model or mpe_spread_reduced
     
     # gnn module
     gnn = {

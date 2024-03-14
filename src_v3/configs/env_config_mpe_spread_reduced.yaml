@@ -1,0 +1,12 @@
+env_type: marl
+task_model: mpe_spread_reduced
+task_configs:
+  task_0:    
+      model:
+        n_workers: 3
+        n_hidden_state: 64
+        episode_length: 25 
+        communication_type: "neighbours" 
+        communication_range: 3
+        reward_calculation: "individual_distance"
+        grid_size: 2

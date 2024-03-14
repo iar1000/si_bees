@@ -1149,4 +1149,46 @@ class mpe_spread_marl_model(base_model):
                     
 
 
+class mpe_spread_reduced(mpe_spread_marl_model):
+    def _apply_action(self, agent: mpe_worker, action, collision_force: list):
+        # update velocity
+        agent.velocity = agent.velocity * (1 - self.damping)
+
+        # aplly steering and collision forces
+        total_force = action[0] * self.sensitivity + collision_force
+        agent.velocity += (total_force / agent.mass) * self.dt
+
+        # cap speed
+        dx, dy = agent.velocity
+        if agent.max_speed:
+            speed = np.sqrt(np.square(dx) + np.square(dy))
+            if speed > agent.max_speed:
+                agent.velocity = agent.velocity/ speed * agent.max_speed
         
+        # calculate new position
+        x, y = agent.pos
+        dx, dy = agent.velocity * self.dt
+        x_new = max(0, min(self.grid_size-0.01, x + dx))
+        y_new = max(0, min(self.grid_size-0.01, y + dy))
+        self.grid.move_agent(agent=agent, pos=(x_new,y_new))
+    
+    def get_action_space(self) -> gymnasium.spaces.Space:
+        return Tuple([
+            Box(-1, 1, shape=(2,), dtype=np.float32),                       # continuous movement vector x,y
+        ]) 
+
+    def _get_agent_state_space(self) -> gymnasium.spaces.Space:
+        return Tuple([
+            Discrete(2),                                                    # active flag
+            Discrete(2),                                                    # agent type
+            Box(0, self.grid_size, shape=(2,), dtype=np.float32),           # position
+            Box(-1, 1, shape=(2,), dtype=np.float32),                       # velocity
+        ])
+    
+    def _get_agent_state(self, agent: mpe_worker, active: int):
+        return tuple([
+            active,
+            agent.type, 
+            np.array(agent.pos),
+            agent.velocity
+        ])
