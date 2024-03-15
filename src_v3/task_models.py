@@ -1108,7 +1108,7 @@ class mpe_spread_marl_model(base_model):
                 dist_min = worker.size + collider.size
                 k = self.contact_margin
                 penetration = np.logaddexp(0, -(dist - dist_min) / k) * k
-                force =  delta_force / dist * penetration
+                force =  delta_force / dist * penetration if dist != 0 else np.array([0,0])
                 forces[worker.unique_id] += force
                 forces[collider.unique_id] -= force
         return forces
