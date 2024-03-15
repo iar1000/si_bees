@@ -209,8 +209,8 @@ class gnn_torch_module(TorchModelV2, Module):
             actor_edge_index = torch.tensor(actor_edge_index, dtype=torch.int64, device=self.device)
             fc_edge_index = torch.tensor(fc_edge_index, dtype=torch.int64, device=self.device)
             if actor_edge_attr:
-                actor_edge_attr = [e.to(self.device) for e in x]
-                fc_edge_attr = [e.to(self.device) for e in x]
+                actor_edge_attr = [e.to(self.device) for e in actor_edge_attr]
+                fc_edge_attr = [e.to(self.device) for e in fc_edge_attr]
             actor_edge_attr = torch.stack([self.edge_encoder(e) for e in actor_edge_attr]) if actor_edge_attr else torch.zeros((0, self.encoding_size), dtype=torch.float32, device=self.device)
             fc_edge_attr = torch.stack([self.edge_encoder(e) for e in fc_edge_attr]) if fc_edge_attr else torch.zeros((0, self.encoding_size), dtype=torch.float32, device=self.device)
 
