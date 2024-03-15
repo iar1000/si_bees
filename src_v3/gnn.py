@@ -75,6 +75,7 @@ class gnn_torch_module(TorchModelV2, Module):
                                         add_pooling=False)
         
         # put to correct device for gpu training
+        config["use_cuda"] = True
         self.device = torch.device("cuda:0" if config["use_cuda"] else "cpu")
         self.node_encoder.to(device=self.device)
         self.edge_encoder.to(device=self.device)
@@ -200,6 +201,8 @@ class gnn_torch_module(TorchModelV2, Module):
 
             # get graph data for sample i from batched observations
             x, actor_edge_index, actor_edge_attr, fc_edge_index, fc_edge_attr = get_graph_from_batch_obs(self.num_agents, agent_obss, edge_obss, i) 
+
+            print(type(x))
 
             # encode node and edge states
             x_old = torch.clone(torch.stack([v for v in x]))
