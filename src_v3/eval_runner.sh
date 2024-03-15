@@ -31,7 +31,7 @@ echo "SLURM_JOB_ID:    ${SLURM_JOB_ID}"
 # execute script
 echo "-> current directory $(pwd)"
 echo "-> run eval.py from directory "
-python $PROJECT_DIR/xxx_mpe.py
+python $PROJECT_DIR/src_v3/xxx_mpe.py
 
 # Send more noteworthy information to the output log
 echo "Finished at:     $(date)"
