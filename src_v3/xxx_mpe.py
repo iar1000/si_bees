@@ -32,6 +32,7 @@ def evaluate_mpe(name: str, checkpoint_path: str, env_config_path: str,
             _, rewardss, _, truncated = model.step()
             done = truncated["__all__"]
             rewards.append(-mean(rewardss.values()))
+            print(f"-- model step {model.t}")
 
     means = round(mean(rewards), 2)
     stdevs = round(stdev(rewards), 2)

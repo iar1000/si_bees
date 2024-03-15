@@ -10,9 +10,6 @@ else:
     print(f"-> cpu count: ", os.cpu_count())
     print(f"-> cpu affinity: ", os.sched_getaffinity(0))
 
-import ray
-ray.init()
-
 from xxx_mpe import evaluate_mpe
 from xxx_lever_pulling import evaluate_lever_pulling
 from xxx_moving import evaluate_moving_MARL, evaluate_moving_history_MARL
