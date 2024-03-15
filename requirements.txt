@@ -21,6 +21,7 @@ debugpy==1.8.0
 decorator==5.1.1
 dm-tree==0.1.8
 docker-pycreds==0.4.0
+exceptiongroup==1.2.0
 executing==2.0.0
 Farama-Notifications==0.0.4
 fastjsonschema==2.18.1
@@ -80,6 +81,7 @@ psutil==5.9.6
 ptyprocess==0.7.0
 pure-eval==0.2.2
 pyarrow==13.0.0
+pygame==2.5.2
 Pygments==2.16.1
 pymdown-extensions==10.3
 pyparsing==3.1.1
