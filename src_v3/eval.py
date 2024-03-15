@@ -52,8 +52,8 @@ if __name__ == '__main__':
     if args.task_name == "mpe_spread":
         checkpoints = [
                 ["random", None],
-                ["10-00-31-r97-c89", os.path.join("scratch", "20240313_mpe_spread_2_10-00-31-r97", "checkpoint_000089")],
-                ["10-00-31-r97-c92", os.path.join("scratch", "20240313_mpe_spread_2_10-00-31-r97", "checkpoint_000092")],
+                ["10-00-31-r97-c89", os.path.join("/scratch", "20240313_mpe_spread_2_10-00-31-r97", "checkpoint_000089")],
+                ["10-00-31-r97-c92", os.path.join("/scratch", "20240313_mpe_spread_2_10-00-31-r97", "checkpoint_000092")],
             ]
         env_config_path = os.path.join("reports", "env_config_mpe_spread.yaml")
         evaluate_mpe(name=checkpoints[task_checkpoint][0],
