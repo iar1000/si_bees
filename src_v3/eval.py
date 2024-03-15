@@ -2,7 +2,7 @@
 import argparse
 import os
 import ray
-#ray.init(num_cpus=4)
+ray.init()
 
 from xxx_mpe import evaluate_mpe
 from xxx_lever_pulling import evaluate_lever_pulling
@@ -16,6 +16,7 @@ if __name__ == '__main__':
     parser.add_argument('--task_level',         type=int, help='Level of the task')
     parser.add_argument('--eval_episodes',      type=int, help='Number of evaluation episodes')
     args = parser.parse_args()
+
 
     task_checkpoint = int(args.task_checkpoint)
     task_level = int(args.task_level)
