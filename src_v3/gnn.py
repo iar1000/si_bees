@@ -203,9 +203,9 @@ class gnn_torch_module(TorchModelV2, Module):
             x, actor_edge_index, actor_edge_attr, fc_edge_index, fc_edge_attr = get_graph_from_batch_obs(self.num_agents, agent_obss, edge_obss, i) 
             # encode node and edge states
             x = [e.to(self.device) for e in x]
-            x_old = torch.clone(torch.stack([v for v in x]))
-            x_old = [e.to(self.device) for e in x_old]
+            x_old = [torch.clone(e).to(self.device) for e in x]
             x = torch.stack([self.node_encoder(v) for v in x])
+            x_old = torch.stack(x_old)
             
             actor_edge_index = torch.tensor(actor_edge_index, dtype=torch.int64, device=self.device)
             fc_edge_index = torch.tensor(fc_edge_index, dtype=torch.int64, device=self.device)
