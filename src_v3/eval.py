@@ -2,7 +2,7 @@
 import argparse
 import os
 import ray
-ray.init(num_cpus=4)
+#ray.init(num_cpus=4)
 
 from xxx_mpe import evaluate_mpe
 from xxx_lever_pulling import evaluate_lever_pulling
