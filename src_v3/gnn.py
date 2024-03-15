@@ -210,9 +210,15 @@ class gnn_torch_module(TorchModelV2, Module):
             fc_edge_index = torch.tensor(fc_edge_index, dtype=torch.int64, device=self.device)
             if actor_edge_attr:
                 actor_edge_attr = [e.to(self.device) for e in actor_edge_attr]
+                actor_edge_attr = torch.stack([self.edge_encoder(e) for e in actor_edge_attr]) 
+            else:
+                actor_edge_attr = torch.zeros((0, self.encoding_size), dtype=torch.float32, device=self.device)
+
+            if fc_edge_attr:
                 fc_edge_attr = [e.to(self.device) for e in fc_edge_attr]
-            actor_edge_attr = torch.stack([self.edge_encoder(e) for e in actor_edge_attr]) if actor_edge_attr else torch.zeros((0, self.encoding_size), dtype=torch.float32, device=self.device)
-            fc_edge_attr = torch.stack([self.edge_encoder(e) for e in fc_edge_attr]) if fc_edge_attr else torch.zeros((0, self.encoding_size), dtype=torch.float32, device=self.device)
+                fc_edge_attr = torch.stack([self.edge_encoder(e) for e in fc_edge_attr])
+            else:
+                fc_edge_attr = torch.zeros((0, self.encoding_size), dtype=torch.float32, device=self.device)
 
             actor_graphs_old.append(Data(x=x_old, edge_index=actor_edge_index, edge_attr=actor_edge_attr))
             actor_graphs.append(Data(x=x, edge_index=actor_edge_index, edge_attr=actor_edge_attr))
