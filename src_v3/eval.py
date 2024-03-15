@@ -1,6 +1,15 @@
 
 import argparse
 import os
+import platform
+if platform.system() == "Darwin":
+    pass
+else:
+    os.environ["WANDB__SERVICE_WAIT"] = "600"
+    os.sched_setaffinity(0, range(os.cpu_count())) 
+    print(f"-> cpu count: ", os.cpu_count())
+    print(f"-> cpu affinity: ", os.sched_getaffinity(0))
+
 import ray
 ray.init()
 
