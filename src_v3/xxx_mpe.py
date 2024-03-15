@@ -1,5 +1,6 @@
 import os
 from statistics import stdev, mean
+import ray
 from ray import tune
 from ray.rllib.algorithms.ppo import PPO
 #from tqdm import tqdm
@@ -7,6 +8,8 @@ from environment import MARL_ENV, load_task_model, marl_env
 from utils import read_yaml_config
 
 EVAL_EPISODES = 50
+
+ray.init(num_cpus=4, local_mode=True)
 
 def evaluate_mpe(exclude = None):
     env_config = read_yaml_config(os.path.join("reports", "env_config_mpe_spread.yaml"))
