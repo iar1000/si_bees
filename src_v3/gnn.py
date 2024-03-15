@@ -203,7 +203,7 @@ class gnn_torch_module(TorchModelV2, Module):
             x, actor_edge_index, actor_edge_attr, fc_edge_index, fc_edge_attr = get_graph_from_batch_obs(self.num_agents, agent_obss, edge_obss, i) 
 
             for e in x:
-                print(type(e))
+                print(e.get_device())
 
             # encode node and edge states
             x_old = torch.clone(torch.stack([v for v in x]))
