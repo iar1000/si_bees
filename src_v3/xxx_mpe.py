@@ -1,7 +1,6 @@
 from statistics import mean, stdev
 from ray import tune
 from ray.rllib.algorithms.ppo import PPO
-#from tqdm import tqdm
 from environment import MARL_ENV, load_task_model, marl_env
 from utils import read_yaml_config
 
@@ -38,10 +37,10 @@ def evaluate_mpe(name: str, checkpoint_path: str, env_config_path: str,
     stdevs = round(stdev(rewards), 2)
     print(means, stdevs)
 
-    with open(f"reports/report_mpe_{name}_{task_level}.txt", "w") as file:
+    with open(f"reports/report_mpe_{name}_{task_level}.txt", "a+") as file:
         file.write(f"\t- checkpoint: {checkpoint_path}\n")
         file.write(f"\t- env config: {env_config_path}\n")
         file.write(f"\t- task level: {task_level}\n")
         file.write(f"\t- eval episodes: {eval_episodes}\n")
         file.write(f"mean: {means}\n")
-        file.write(f"stdev: {stdevs}")
+        file.write(f"stdev: {stdevs}\n")
