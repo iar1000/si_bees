@@ -304,6 +304,9 @@ class gnn_torch_module(TorchModelV2, Module):
                 actions = torch.stack([actions_per_graph[0] for _ in range(batch_size)])
                 
             self.last_values = torch.stack([torch.tensor(np.zeros(1), device=self.device) for _ in range(batch_size)])
+            
+            actions = actions.cpu()
+            self.last_values = self.last_values.cpu()
             return actions, []
         else:
             # MARL: per graph there is an action output per node, which need to returned to the correct sample
