@@ -204,6 +204,7 @@ class gnn_torch_module(TorchModelV2, Module):
             # encode node and edge states
             x = [e.to(self.device) for e in x]
             x_old = torch.clone(torch.stack([v for v in x]))
+            x_old = [e.to(self.device) for e in x_old]
             x = torch.stack([self.node_encoder(v) for v in x])
             
             actor_edge_index = torch.tensor(actor_edge_index, dtype=torch.int64, device=self.device)
