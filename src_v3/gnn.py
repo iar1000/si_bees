@@ -237,6 +237,7 @@ class gnn_torch_module(TorchModelV2, Module):
 
         # compute actor hidden states and decode actions
         actor_h_all = self.actor(x=actor_batch.x, edge_index=actor_batch.edge_index, edge_attr=actor_batch.edge_attr, batch=actor_batch.batch)
+        actor_h_all = actor_h_all.to(self.device)
         if self.recurrent_actor:
             actions_all = self.action_decoder(torch.cat([actor_h_all, actor_old_batch.x], dim=1))
         else:
