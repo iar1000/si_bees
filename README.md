@@ -12,9 +12,9 @@ Finally, model evaluation is conducted through scripts prefixed with `xxx_`, ini
 The framework was produced for the Thesis `Scaling MARL with Graph Neural Networks`
 
 ## setup
-the project uses conda and ray to easily scale up and perform on compute clusters. 
-for ITET members, how to install and setup conda is described in the [ITET Cluster Handbook](https://hackmd.io/hYACdY2aR1-F3nRdU8q5dA).
-ray is installed, with all other dependencies, by creating the following conda environment:
+The project leverages Conda and Ray to seamlessly scale up and optimize performance on compute clusters. Comprehensive instructions for installing and configuring Conda can be found in the ITET [ITET Cluster Handbook](https://hackmd.io/hYACdY2aR1-F3nRdU8q5dA), tailored specifically for ITET members.
+
+All dependencies are installed by creating the following conda environment, or by using `requirements.txt`:
 `CONDA_OVERRIDE_CUDA=11.7 conda create --name swarm python pytorch==1.13.1 torchvision==0.14.1 torchaudio==0.13.1 pytorch-cuda=11.7 pyarrow pandas gymnasium ray-all==2.7.1 pyg==2.4.0 mesa lz4==4.3.2 dm-tree==0.1.8 scikit-image==0.22.0 wandb==0.15.12 -c pytorch -c nvidia -c conda-forge -c pyg`
 
 ## implemented tasks
