@@ -46,10 +46,13 @@ if __name__ == "__main__":
             options = [cp for cp in cps if args.checkpoint_nr in cp]
             options.sort()
             checkpoint = options[0]
-        else:
+            checkpoint_path = os.path.join(checkpoint_dir, checkpoint)
+        elif cps:
             cps.sort()
             checkpoint = cps[-1]
-        checkpoint_path = os.path.join(checkpoint_dir, checkpoint)
+            checkpoint_path = os.path.join(checkpoint_dir, checkpoint)
+        else:
+            checkpoint_path = checkpoint_dir
         
     # load task config from checkpoint dir or from src3/configs if env_config is specified
     env_config_path = os.path.join(checkpoint_dir, env_config) if checkpoint_dir \
@@ -89,7 +92,7 @@ if __name__ == "__main__":
 
     model = load_task_model(name=env_config["task_model"], env_type=env_type)
     # use pygame to render physical simpulation of mpe
-    if model is mpe_spread_marl_model or mpe_spread_reduced:
+    if model is mpe_spread_marl_model or model is mpe_spread_reduced:
         task = model(config=selected_config,
                       use_cuda=False,
                       inference_mode=True,
@@ -117,15 +120,15 @@ if __name__ == "__main__":
             window.fill((255, 255, 255))
             
             # draw visibility
-            obs = task.get_obs()
-            edges = obs[0][2]
-            froms, tos = list(), list()
-            for j in range(task.n_agents ** 2):
-                if edges[j][0] == 1: # gym.Discrete(2) maps to one-hot encoding, 0 = [1,0], 1 = [0,1]
-                    froms.append(j // task.n_agents)
-                    tos.append(j % task.n_agents)
-            for f, t in zip(froms, tos):
-                pygame.draw.line(window, (0, 0, 0, 50), [p * pos_scale for p in task.schedule_all.agents[f].pos], [p * pos_scale for p in task.schedule_all.agents[t].pos], width=1)
+            # obs = task.get_obs()
+            # edges = obs[0][2]
+            # froms, tos = list(), list()
+            # for j in range(task.n_agents ** 2):
+            #     if edges[j][0] == 1: # gym.Discrete(2) maps to one-hot encoding, 0 = [1,0], 1 = [0,1]
+            #         froms.append(j // task.n_agents)
+            #         tos.append(j % task.n_agents)
+            # for f, t in zip(froms, tos):
+            #     pygame.draw.line(window, (0, 0, 0, 50), [p * pos_scale for p in task.schedule_all.agents[f].pos], [p * pos_scale for p in task.schedule_all.agents[t].pos], width=1)
 
             # draw state
             for agent in task.schedule_all.agents:

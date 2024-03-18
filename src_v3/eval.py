@@ -10,7 +10,7 @@ else:
     print(f"-> cpu count: ", os.cpu_count())
     print(f"-> cpu affinity: ", os.sched_getaffinity(0))
 
-from xxx_mpe import evaluate_mpe
+from xxx_mpe import evaluate_mpe, evaluate_mpe_reduced
 from xxx_lever_pulling import evaluate_lever_pulling
 from xxx_moving import evaluate_moving_MARL, evaluate_moving_history_MARL
 from xxx_transmission import evaluate_transmission_MARL, evaluate_transmission_RL, evaluate_transmission_extended_MARL
@@ -53,12 +53,25 @@ if __name__ == '__main__':
         checkpoints = [
                 ["random", None],
                 ["10-00-31-r97-c89", os.path.join("checkpoints", "20240313_mpe_spread_2_10-00-31-r97", "checkpoint_000089")],
-                ["10-00-31-r97-c92", os.path.join("checkpoints", "20240313_mpe_spread_2_10-00-31-r97", "checkpoint_000092")],
             ]
+        
         env_config_path = os.path.join("reports", "env_config_mpe_spread.yaml")
         evaluate_mpe(name=checkpoints[task_checkpoint][0],
-                      checkpoint_path=checkpoints[task_checkpoint][1],
-                      env_config_path=env_config_path,
-                      task_level=task_level,
-                      eval_episodes=eval_episodes)
+                    checkpoint_path=checkpoints[task_checkpoint][1],
+                    env_config_path=env_config_path,
+                    task_level=task_level,
+                    eval_episodes=eval_episodes)
+            
+    """MPE Spread Reduced"""
+    if args.task_name == "mpe_spread_reduced":
+        checkpoints = [
+                ["09-44-17-r42-c112", os.path.join("checkpoints", "20240314_mpe_spread_reduced_09-44-17-r52", "checkpoint_000112")],
+                ["09-41-42-r229-c42", os.path.join("checkpoints", "20240314_mpe_spread_reduced_09-41-42-r229", "checkpoint_000042")],
+            ]
+        env_config_path = os.path.join("reports", "env_config_mpe_spread_reduced.yaml")
+        evaluate_mpe_reduced(name=checkpoints[task_checkpoint][0],
+                    checkpoint_path=checkpoints[task_checkpoint][1],
+                    env_config_path=env_config_path,
+                    task_level=task_level,
+                    eval_episodes=eval_episodes)
 

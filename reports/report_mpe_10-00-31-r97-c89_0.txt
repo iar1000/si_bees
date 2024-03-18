@@ -1,0 +1,6 @@
+	- checkpoint: checkpoints/20240313_mpe_spread_2_10-00-31-r97/checkpoint_000089
+	- env config: reports/env_config_mpe_spread.yaml
+	- task level: 0
+	- eval episodes: 50
+mean: 0.27
+stdev: 0.22

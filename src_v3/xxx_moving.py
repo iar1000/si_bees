@@ -6,7 +6,7 @@ from tqdm import tqdm
 from environment import MARL_ENV, load_task_model, marl_env
 from utils import read_yaml_config
 
-EVAL_EPISODES = 20
+EVAL_EPISODES = 100
 
 def evaluate_moving_MARL(exclude = None):
     env_config = read_yaml_config(os.path.join("reports", "env_config_moving_marl.yaml"))
@@ -95,10 +95,10 @@ def evaluate_moving_history_MARL(exclude = None):
     # 500k step trainingh with ASHA, 250-300 Trials
     checkpoints_marl = [
         #os.path.join("checkpoints", "20240227_moving_history_marl_1_19-18-56-r10", "checkpoint_000003"),    # spread
-        os.path.join("checkpoints", "20240228_moving_history_marl_2_04-33-42-r196", "checkpoint_000004"),   # spread-connected, encoding s
+        #os.path.join("checkpoints", "20240228_moving_history_marl_2_04-33-42-r196", "checkpoint_000004"),   # spread-connected, encoding s
         #os.path.join("checkpoints", "20240301_moving_history_marl_2_14-25-32-r219", "checkpoint_000005"),   # spread-connected, encoding l
         #os.path.join("checkpoints", "20240301_moving_history_marl_5_14-25-21-r231", "checkpoint_000009"),   # spread-connected big, encoding l
-        os.path.join("checkpoints", "20240229_moving_history_marl_3_11-32-26-r97", "checkpoint_000007"),    # neighbours
+        #os.path.join("checkpoints", "20240229_moving_history_marl_3_11-32-26-r97", "checkpoint_000007"),    # neighbours
         #os.path.join("checkpoints", "20240302_moving_history_marl_4_02-12-22-r197", "checkpoint_000007"),   # shared neighbours
     ]
     
@@ -120,6 +120,7 @@ def evaluate_moving_history_MARL(exclude = None):
             
             ratios = list()
             state_switches = list()
+            heatmap = [[0] * selected_config["model"]["grid_size"] for _ in range(selected_config["model"]["grid_size"])]
 
 
             # Initialize progress bar for iterations
@@ -140,6 +141,11 @@ def evaluate_moving_history_MARL(exclude = None):
                         
                         for j, v in enumerate([model.last_number_connected, model.last_connected_correct, model.last_average_distance, model.last_average_distance_connected, model.last_average_distance_correct]):
                             data[j].append(v)
+
+                        # build heatmap
+                        for a in model.schedule_workers.agents:
+                            x, y = a.pos
+                            heatmap[x][y] += 1
                     
                     # save stats
                     for j, f in enumerate(files):
@@ -148,9 +154,10 @@ def evaluate_moving_history_MARL(exclude = None):
                             file.write("\n")   
                     state_switches.append(model.n_state_switches)
 
-
                     # Update progress bar
                     pbar.update(1)
+            
+            print(heatmap)
 
             means.append(round(mean(ratios), 2))
             stdevs.append(round(stdev(ratios), 2))

@@ -1,5 +1,5 @@
 env_type: marl
-task_model: mpe_spread
+task_model: mpe_spread_reduced
 task_configs:
   task_0:    
       model:

@@ -668,9 +668,6 @@ class transmission_extended_model_marl(transmission_model_marl):
         for worker in self.schedule_all.agents:
             neighbors = self.grid.get_neighbors(worker.pos, moore=True, radius=self.communication_range, include_center=True)
             neighbors = [n for n in neighbors if n != worker]
-            for destination in neighbors:
-                print(f"    edge {worker.unique_id}->{destination.unique_id}: {self._get_edge_state(from_agent=worker, to_agent=destination, visible_edge=1)}")
-        print()
 
 class moving_model_marl(transmission_model_marl):
     """agents still have to copy output, but additionally can move around"""
