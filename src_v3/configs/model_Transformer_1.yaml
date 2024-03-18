@@ -1,0 +1,4 @@
+
+model: TransformerConv
+rounds: 1
+dropout: 0

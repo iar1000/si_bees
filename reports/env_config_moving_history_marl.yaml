@@ -1,0 +1,76 @@
+
+env_type: marl
+task_model: moving_history
+task_configs:
+  task_0:    
+      model:
+        n_workers: 4
+        n_hidden_state: 16
+        communication_range: 2
+        worker_placement: "random_multidirectional"
+        worker_init: "random"
+        reward_calculation: "evaluation"
+        n_oracle_states: 5
+        p_oracle_change: 0.1
+        episode_length: 100
+        grid_size: 21
+  task_1:    
+      model:
+        n_workers: 4
+        n_hidden_state: 16
+        communication_range: 2
+        worker_placement: "random"
+        worker_init: "random"
+        reward_calculation: "evaluation"
+        n_oracle_states: 5
+        p_oracle_change: 0.1
+        episode_length: 100
+        grid_size: 21
+  task_2:    
+      model:
+        n_workers: 20
+        n_hidden_state: 16
+        communication_range: 2
+        worker_placement: "random_multidirectional"
+        worker_init: "random"
+        reward_calculation: "evaluation"
+        n_oracle_states: 5
+        p_oracle_change: 0.1
+        episode_length: 200
+        grid_size: 41
+  task_3:    
+      model:
+        n_workers: 20
+        n_hidden_state: 16
+        communication_range: 2
+        worker_placement: "random"
+        worker_init: "random"
+        reward_calculation: "evaluation"
+        n_oracle_states: 5
+        p_oracle_change: 0.1
+        episode_length: 200
+        grid_size: 41
+  task_4:    
+      model:
+        n_workers: 40
+        n_hidden_state: 16
+        communication_range: 2
+        worker_placement: "random_multidirectional"
+        worker_init: "random"
+        reward_calculation: "evaluation"
+        n_oracle_states: 5
+        p_oracle_change: 0.1
+        episode_length: 250
+        grid_size: 83
+  task_5:    
+      model:
+        n_workers: 40
+        n_hidden_state: 16
+        communication_range: 2
+        worker_placement: "random"
+        worker_init: "random"
+        reward_calculation: "evaluation"
+        n_oracle_states: 5
+        p_oracle_change: 0.1
+        episode_length: 250
+        grid_size: 83

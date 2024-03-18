@@ -1,0 +1,6 @@
+	- checkpoint: None
+	- env config: reports/env_config_mpe_spread.yaml
+	- task level: 1
+	- eval episodes: 100
+mean: 0.18
+stdev: 0.03

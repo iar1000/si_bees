@@ -1,0 +1,15 @@
+env_type: marl
+task_model: lever-pulling
+task_configs:
+  task_0:    
+      model:
+        n_workers: null
+        n_hidden_state: null
+        communication_range: null
+        worker_placement: null
+        worker_init: null
+        reward_calculation: null
+        n_oracle_states: null
+        p_oracle_change: null
+        episode_length: null
+        grid_size: null

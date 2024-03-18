@@ -1,0 +1,5 @@
+	- checkpoint: checkpoints/20240314_mpe_spread_reduced_09-41-42-r229/checkpoint_000042
+	- env config: reports/env_config_mpe_spread_reduced.yaml
+	- task level: 1
+	- eval episodes: 50
+mean: 0.23

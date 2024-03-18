@@ -1,0 +1,17 @@
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|c|c|c|c|}
+\hline
+\textbf{Model} & \textbf{Convolution} & \textbf{Rounds} & \textbf{Result} \\
+\hline
+CommNet & - & 2 & 0.94 \\
+Ours & Transformer & 2 & 0.84 $\pm$ 0.12 \\
+Ours & Transformer & 1 & 0.82 $\pm$ 0.13 \\
+Ours & GATv2 & 1 & 0.67 $\pm$ 0.15 \\
+Ours & GINE & 1 & 0.67 $\pm$ 0.14 \\
+\hline
+\end{tabular}
+\caption{Lever Pulling Task Results. Shows mean and standard deviation over 1000 independent samples for distinct levers pulled, GNN convolution type ('Convolution'), and communication rounds ('Rounds').}
+\label{tab:results-lever}
+\end{table}

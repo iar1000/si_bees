@@ -1,0 +1,4 @@
+
+model: GATv2Conv
+rounds: 1
+dropout: 0

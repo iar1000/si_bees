@@ -1,0 +1,12 @@
+env_type: marl
+task_model: mpe_spread
+task_configs:
+  task_0:    
+      model:
+        n_workers: 3
+        n_hidden_state: 16
+        episode_length: 25 
+        communication_type: "range" 
+        communication_range: 0.5
+        reward_calculation: "individual_distance"
+        grid_size: 2
