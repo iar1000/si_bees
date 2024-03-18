@@ -1,7 +1,6 @@
 # keys
 .wandb_key
 log/
-README.md
 .DS_Store
 
 checkpoints/
