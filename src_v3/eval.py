@@ -82,7 +82,7 @@ if __name__ == '__main__':
     if args.task_name == "transmission_ext_marl":
         checkpoints = [
             ["random", None],
-            ["11-34-07-r143", os.path.join("checkpoints", "20240229_transmission_ext_marl_1_11-34-07-r143", "checkpoint_000004")], # MARL binary
+            ["11-34-07-r143", os.path.join("checkpoints", "20240229_transmission_ext_marl_1_11-34-07-r143", "checkpoint_000004")], # 
         ]   
         env_config_path = os.path.join("reports", "env_config_transmission_ext_marl.yaml")
         evaluate_transmission_extended_MARL(name=checkpoints[task_checkpoint][0],

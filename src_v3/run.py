@@ -100,7 +100,7 @@ if __name__ == "__main__":
                       policy_net=policy_net)
         pygame.init()
         clock = Clock()
-        window = pygame.display.set_mode((500, 500))
+        window = pygame.display.set_mode((900, 900))
         font = pygame.font.SysFont('Computer Modern', 24)
         pos_scale = 500.00 / task.grid_size
         landmark_scale = pos_scale
@@ -120,15 +120,15 @@ if __name__ == "__main__":
             window.fill((255, 255, 255))
             
             # draw visibility
-            # obs = task.get_obs()
-            # edges = obs[0][2]
-            # froms, tos = list(), list()
-            # for j in range(task.n_agents ** 2):
-            #     if edges[j][0] == 1: # gym.Discrete(2) maps to one-hot encoding, 0 = [1,0], 1 = [0,1]
-            #         froms.append(j // task.n_agents)
-            #         tos.append(j % task.n_agents)
-            # for f, t in zip(froms, tos):
-            #     pygame.draw.line(window, (0, 0, 0, 50), [p * pos_scale for p in task.schedule_all.agents[f].pos], [p * pos_scale for p in task.schedule_all.agents[t].pos], width=1)
+            obs = task.get_obs()
+            edges = obs[0][2]
+            froms, tos = list(), list()
+            for j in range(task.n_agents ** 2):
+                if edges[j][0] == 1: # gym.Discrete(2) maps to one-hot encoding, 0 = [1,0], 1 = [0,1]
+                    froms.append(j // task.n_agents)
+                    tos.append(j % task.n_agents)
+            for f, t in zip(froms, tos):
+                pygame.draw.line(window, (0, 0, 0, 50), [p * pos_scale for p in task.schedule_all.agents[f].pos], [p * pos_scale for p in task.schedule_all.agents[t].pos], width=1)
 
             # draw state
             for agent in task.schedule_all.agents:
